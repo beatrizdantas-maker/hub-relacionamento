@@ -932,32 +932,117 @@ function ModalResolucao({ item, onClose, onResolve, alunos }) {
 }
 
 function ModalNovoAluno({ onClose, onSave, profile }) {
-  const [f, setF] = useState({ nome: "", turma: "", rm: "", responsavel: "", telefone: "" });
+  const [modo, setModo] = useState("massa");
   const [saving, setSaving] = useState(false);
+  const [f, setF] = useState({ nome: "", turma: "", rm: "", responsavel: "", telefone: "" });
   const upd = (k, v) => setF(p => ({ ...p, [k]: v }));
-  const handle = async () => {
+  const linhaVazia = () => ({ nome: "", responsavel: "", turma: "", telefone: "" });
+  const [linhas, setLinhas] = useState(Array.from({ length: 10 }, linhaVazia));
+  const updLinha = (i, k, v) => setLinhas(p => p.map((l, idx) => idx === i ? { ...l, [k]: v } : l));
+  const addLinhas = () => setLinhas(p => [...p, ...Array.from({ length: 5 }, linhaVazia)]);
+  const linhasValidas = linhas.filter(l => l.nome.trim());
+  const handlePaste = (e, rowIdx, colKey) => {
+    const text = e.clipboardData.getData("text");
+    if (!text.includes("\t") && !text.includes("\n")) return;
+    e.preventDefault();
+    const cols = ["nome", "responsavel", "turma", "telefone"];
+    const colIdx = cols.indexOf(colKey);
+    const rows = text.trim().split("\n").map(r => r.split("\t"));
+    setLinhas(prev => {
+      const novo = [...prev];
+      rows.forEach((row, ri) => {
+        const targetRow = rowIdx + ri;
+        if (!novo[targetRow]) novo.push(linhaVazia());
+        row.forEach((val, ci) => {
+          const colTarget = colIdx + ci;
+          if (colTarget < cols.length) novo[targetRow] = { ...novo[targetRow], [cols[colTarget]]: val.trim() };
+        });
+      });
+      return novo;
+    });
+  };
+  const handleSalvarMassa = async () => {
+    if (linhasValidas.length === 0) return;
+    setSaving(true);
+    const payload = linhasValidas.map(l => ({ nome: l.nome.trim(), responsavel: l.responsavel.trim(), turma: l.turma.trim(), telefone: l.telefone.trim(), rm: "", escola_id: profile.escola_id, risco: 0 }));
+    const { data, error } = await supabase.from("alunos").insert(payload).select();
+    if (!error && data) data.forEach(a => onSave(a));
+    setSaving(false); onClose();
+  };
+  const handleSalvarIndividual = async () => {
     if (!f.nome.trim()) return;
     setSaving(true);
     const { data, error } = await supabase.from("alunos").insert([{ ...f, escola_id: profile.escola_id, risco: 0 }]).select().single();
     if (!error && data) onSave(data);
     setSaving(false); onClose();
   };
+  const thS = { padding: "8px 10px", background: "#f1f5f9", fontSize: 12, fontWeight: 700, color: "#475569", textAlign: "left", borderBottom: "1px solid #e2e8f0", position: "sticky", top: 0, zIndex: 1 };
+  const tdS = { padding: "2px 4px", borderBottom: "1px solid #f1f5f9" };
+  const inpS = (d) => ({ width: "100%", padding: "7px 10px", border: `1.5px solid ${d ? "#2563eb" : "transparent"}`, borderRadius: 6, fontSize: 13, outline: "none", background: d ? "#eff6ff" : "#fafafa", color: "#1e293b", fontFamily: "inherit", boxSizing: "border-box" });
   return (
     <Overlay onClose={onClose}>
-      <MBox width={500}>
-        <MHead title="Cadastrar Aluno" icon="👨‍🎓" onClose={onClose} />
+      <MBox width={820}>
+        <MHead title="Cadastrar Alunos" subtitle="Individual ou importação em massa." icon="👨‍🎓" onClose={onClose} />
+        <div style={{ display: "flex", borderBottom: "1px solid #f1f5f9", padding: "0 24px" }}>
+          {[["massa", "📋 Importação em Massa"], ["individual", "➕ Individual"]].map(([m, l]) => (
+            <button key={m} onClick={() => setModo(m)} style={{ padding: "10px 18px", border: "none", background: "none", cursor: "pointer", fontSize: 13, fontWeight: modo === m ? 800 : 500, color: modo === m ? "#2563eb" : "#64748b", borderBottom: modo === m ? "2px solid #2563eb" : "2px solid transparent", marginBottom: -1 }}>{l}</button>
+          ))}
+        </div>
         <MBody>
-          <Input label="Nome completo *" value={f.nome} onChange={e => upd("nome", e.target.value)} placeholder="Nome do aluno" />
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <Input label="Turma" value={f.turma} onChange={e => upd("turma", e.target.value)} placeholder="Ex: 3º A" />
-            <Input label="RM / Matrícula" value={f.rm} onChange={e => upd("rm", e.target.value)} placeholder="Ex: 2024001" />
-          </div>
-          <Input label="Nome do Responsável" value={f.responsavel} onChange={e => upd("responsavel", e.target.value)} placeholder="Nome completo do responsável" />
-          <Input label="Telefone do Responsável" value={f.telefone} onChange={e => upd("telefone", e.target.value)} placeholder="(00) 00000-0000" />
+          {modo === "massa" && (<>
+            <div style={{ padding: "10px 14px", background: "#eff6ff", borderRadius: 10, border: "1px solid #bfdbfe", fontSize: 13, color: "#1d4ed8" }}>
+              💡 <b>Dica:</b> Copie e cole direto de uma planilha Excel na ordem: <b>Nome → Responsável → Turma → Telefone</b>
+            </div>
+            <div style={{ overflowX: "auto", borderRadius: 10, border: "1px solid #e2e8f0" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 600 }}>
+                <thead><tr>
+                  <th style={{ ...thS, width: 36, textAlign: "center" }}>#</th>
+                  <th style={{ ...thS, width: "32%" }}>Nome do Aluno *</th>
+                  <th style={{ ...thS, width: "28%" }}>Nome do Responsável</th>
+                  <th style={{ ...thS, width: "18%" }}>Turma</th>
+                  <th style={{ ...thS, width: "22%" }}>Telefone</th>
+                </tr></thead>
+                <tbody>
+                  {linhas.map((l, i) => {
+                    const ok = l.nome.trim().length > 0;
+                    return (<tr key={i} style={{ background: ok ? "#fafffe" : "#fff" }}>
+                      <td style={{ ...tdS, textAlign: "center", fontSize: 11, color: "#94a3b8", fontWeight: 700 }}>{i + 1}</td>
+                      <td style={tdS}><input value={l.nome} onChange={e => updLinha(i, "nome", e.target.value)} onPaste={e => handlePaste(e, i, "nome")} placeholder="Nome completo" style={inpS(ok)} /></td>
+                      <td style={tdS}><input value={l.responsavel} onChange={e => updLinha(i, "responsavel", e.target.value)} onPaste={e => handlePaste(e, i, "responsavel")} placeholder="Nome do responsável" style={inpS(false)} /></td>
+                      <td style={tdS}><input value={l.turma} onChange={e => updLinha(i, "turma", e.target.value)} onPaste={e => handlePaste(e, i, "turma")} placeholder="Ex: 3º A" style={inpS(false)} /></td>
+                      <td style={tdS}><input value={l.telefone} onChange={e => updLinha(i, "telefone", e.target.value)} onPaste={e => handlePaste(e, i, "telefone")} placeholder="(00) 00000-0000" style={inpS(false)} /></td>
+                    </tr>);
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <button onClick={addLinhas} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "#2563eb", fontWeight: 600, padding: 0 }}>+ Adicionar 5 linhas</button>
+              <span style={{ fontSize: 13, color: linhasValidas.length > 0 ? "#16a34a" : "#64748b", fontWeight: linhasValidas.length > 0 ? 700 : 400 }}>
+                {linhasValidas.length > 0 ? `✓ ${linhasValidas.length} aluno(s) prontos` : "Preencha pelo menos o nome"}
+              </span>
+            </div>
+          </>)}
+          {modo === "individual" && (<>
+            <Input label="Nome completo *" value={f.nome} onChange={e => upd("nome", e.target.value)} placeholder="Nome do aluno" />
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <Input label="Turma" value={f.turma} onChange={e => upd("turma", e.target.value)} placeholder="Ex: 3º A" />
+              <Input label="RM / Matrícula" value={f.rm} onChange={e => upd("rm", e.target.value)} placeholder="Ex: 2024001" />
+            </div>
+            <Input label="Nome do Responsável" value={f.responsavel} onChange={e => upd("responsavel", e.target.value)} placeholder="Nome completo do responsável" />
+            <Input label="Telefone do Responsável" value={f.telefone} onChange={e => upd("telefone", e.target.value)} placeholder="(00) 00000-0000" />
+          </>)}
         </MBody>
         <MFoot>
           <Btn variant="ghost" onClick={onClose}>Cancelar</Btn>
-          <Btn onClick={handle} disabled={saving}>{saving ? "Salvando..." : "Cadastrar Aluno"}</Btn>
+          {modo === "massa" ? (
+            <Btn onClick={handleSalvarMassa} disabled={saving || linhasValidas.length === 0} icon="📋">
+              {saving ? "Salvando..." : `Cadastrar ${linhasValidas.length > 0 ? linhasValidas.length + " " : ""}Aluno(s)`}
+            </Btn>
+          ) : (
+            <Btn onClick={handleSalvarIndividual} disabled={saving || !f.nome.trim()}>
+              {saving ? "Salvando..." : "Cadastrar Aluno"}</Btn>
+          )}
         </MFoot>
       </MBox>
     </Overlay>
@@ -1097,6 +1182,7 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin }) {
   const nav = [
     { id: "dashboard", icon: "📊", label: "Dashboard" },
     { id: "alunos", icon: "👨‍🎓", label: "Alunos" },
+    { id: "turmas", icon: "🏫", label: "Turmas" },
     { id: "comunicacoes", icon: "💬", label: "Comunicações" },
     { id: "encaminhamentos", icon: "📨", label: "Encaminhamentos" },
     { id: "reunioes", icon: "📅", label: "Reuniões" },
@@ -1281,7 +1367,7 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin }) {
                 <div key={c.id} style={{ border: "1px solid #f1f5f9", borderRadius: 10, overflow: "hidden" }}>
                   <div onClick={() => setExpandido(exp ? null : c.id)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", background: "#fafafa", cursor: "pointer", flexWrap: "wrap" }}>
                     <div style={{ fontSize: 12, color: "#94a3b8", minWidth: 90 }}>{c.data_registro}</div>
-                    <div style={{ flex: 1, minWidth: 160 }}><div style={{ fontWeight: 700, fontSize: 14, color: "#1e293b" }}>{aluno?.nome}</div><div style={{ fontSize: 12, color: "#64748b" }}>{c.titulo}</div></div>
+                    <div style={{ flex: 1, minWidth: 160 }}><div style={{ fontWeight: 700, fontSize: 14, color: "#1e293b" }}>{aluno?.nome}</div><div style={{ fontSize: 12, color: "#64748b" }}>{aluno?.turma ? `${aluno.turma} · ` : ""}{c.titulo}</div></div>
                     <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
                       {c.urgencia ? <Badge color={getUrgColor(c.urgencia)}>{c.urgencia}</Badge> : <span style={{ fontSize: 12, color: "#cbd5e1" }}>—</span>}
                       {c.encaminhamento && <Badge color="#7c3aed">📨 Encaminhado</Badge>}
@@ -1409,6 +1495,103 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin }) {
     );
   };
 
+  // ── TURMAS ──
+  const TurmasPage = () => {
+    const [novaT, setNovaT] = useState("");
+    const [turmasList, setTurmasList] = useState(() => {
+      const ts = [...new Set(alunos.map(a => a.turma).filter(Boolean))].sort();
+      return ts;
+    });
+    const [turmaExpand, setTurmaExpand] = useState(null);
+    const [modalNovaT, setModalNovaT] = useState(false);
+
+    const alunosDaTurma = (t) => alunos.filter(a => a.turma === t).sort((a, b) => a.nome.localeCompare(b.nome));
+    const todasTurmas = [...new Set([...turmasList, ...alunos.map(a => a.turma).filter(Boolean)])].sort();
+
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
+          <div>
+            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: "#1e293b" }}>🏫 Turmas</h1>
+            <p style={{ margin: "4px 0 0", fontSize: 14, color: "#94a3b8" }}>Visualize e gerencie os alunos por turma.</p>
+          </div>
+        </div>
+
+        {/* Métricas */}
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+          {[
+            { label: "Total de Turmas", value: todasTurmas.length, color: "#2563eb" },
+            { label: "Total de Alunos", value: alunos.length, color: "#7c3aed" },
+            { label: "Média por Turma", value: todasTurmas.length > 0 ? Math.round(alunos.length / todasTurmas.length) : 0, color: "#059669" },
+            { label: "Sem Turma", value: alunos.filter(a => !a.turma).length, color: "#f59e0b" },
+          ].map(m => (
+            <Card key={m.label} style={{ flex: 1, minWidth: 140 }}>
+              <div style={{ fontSize: 11, color: "#64748b", fontWeight: 600, marginBottom: 6 }}>{m.label}</div>
+              <div style={{ fontSize: 26, fontWeight: 900, color: m.color }}>{m.value}</div>
+            </Card>
+          ))}
+        </div>
+
+        {/* Lista de turmas */}
+        {todasTurmas.length === 0 ? (
+          <Card>
+            <div style={{ textAlign: "center", padding: 40, color: "#94a3b8" }}>
+              <div style={{ fontSize: 40, marginBottom: 12 }}>🏫</div>
+              <p style={{ fontSize: 15, fontWeight: 600 }}>Nenhuma turma cadastrada ainda</p>
+              <p style={{ fontSize: 13 }}>As turmas aparecem automaticamente quando você cadastrar alunos com a turma preenchida.</p>
+              <Btn onClick={() => setModalNovoAluno(true)} icon="+" style={{ marginTop: 8 }}>Cadastrar Alunos</Btn>
+            </div>
+          </Card>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {todasTurmas.map(turma => {
+              const alunosT = alunosDaTurma(turma);
+              const exp = turmaExpand === turma;
+              const riscoAlto = alunosT.filter(a => a.risco >= 60).length;
+              const riscoMedio = alunosT.filter(a => a.risco >= 30 && a.risco < 60).length;
+              return (
+                <Card key={turma} style={{ padding: 0, overflow: "hidden" }}>
+                  <div onClick={() => setTurmaExpand(exp ? null : turma)} style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px 20px", cursor: "pointer", background: exp ? "#fafeff" : "#fff" }}>
+                    <div style={{ width: 44, height: 44, borderRadius: 10, background: "#2563eb18", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>🏫</div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 800, fontSize: 17, color: "#1e293b" }}>{turma}</div>
+                      <div style={{ fontSize: 13, color: "#64748b" }}>{alunosT.length} aluno(s)</div>
+                    </div>
+                    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                      {riscoAlto > 0 && <Badge color="#ef4444">⚠️ {riscoAlto} risco alto</Badge>}
+                      {riscoMedio > 0 && <Badge color="#f59e0b">🔶 {riscoMedio} atenção</Badge>}
+                      <Badge color="#22c55e">{alunosT.filter(a => a.risco < 30).length} estáveis</Badge>
+                      <span style={{ color: "#94a3b8", fontSize: 18 }}>{exp ? "▲" : "▼"}</span>
+                    </div>
+                  </div>
+                  {exp && (
+                    <div style={{ borderTop: "1px solid #f1f5f9" }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 8, padding: 16 }}>
+                        {alunosT.map(a => (
+                          <div key={a.id} onClick={() => setAlunoSel(a)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderRadius: 10, border: `1px solid ${getRiscoColor(a.risco)}20`, background: getRiscoBg(a.risco), cursor: "pointer" }}>
+                            <Av initials={(a.nome || "?").split(" ").map(n => n[0]).slice(0, 2).join("")} color={getRiscoColor(a.risco)} size={36} />
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontWeight: 700, fontSize: 13, color: "#1e293b", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{a.nome}</div>
+                              <div style={{ fontSize: 11, color: "#64748b" }}>Resp.: {a.responsavel || "—"}</div>
+                            </div>
+                            <div style={{ textAlign: "center", flexShrink: 0 }}>
+                              <div style={{ fontSize: 15, fontWeight: 900, color: getRiscoColor(a.risco) }}>{a.risco}</div>
+                              <div style={{ fontSize: 9, color: getRiscoColor(a.risco), fontWeight: 700 }}>RISCO</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </Card>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   // ── RETENÇÃO ──
   const RetencaoPage = () => {
     const alto = alunos.filter(a => a.risco >= 60).sort((a, b) => b.risco - a.risco);
@@ -1480,6 +1663,7 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin }) {
         <div style={{ flex: 1, padding: 28, overflowY: "auto" }}>
           {pagina === "dashboard" && <DashboardPage />}
           {pagina === "alunos" && <AlunosPage />}
+          {pagina === "turmas" && <TurmasPage />}
           {pagina === "comunicacoes" && <ComunicacoesPage />}
           {pagina === "encaminhamentos" && <EncaminhamentosPage />}
           {pagina === "reunioes" && <ReunioesPage />}
