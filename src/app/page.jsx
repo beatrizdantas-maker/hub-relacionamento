@@ -719,15 +719,18 @@ function LoginPage({ onLogin }) {
 }
 
 // ── MODAIS SISTEMA ESCOLAR ─────────────────────────────────────────────────────
-function ModalNovaCom({ onClose, onSave, profile, alunos, equipe }) {
-  const [f, setF] = useState({ alunoId: "", titulo: "", detalhes: "", urgencia: "", comQuem: "", encaminhar: false, encDestino: "", encResponsavelId: "", encResponsavelNome: "", encObs: "" });
+function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos }) {
+  const [f, setF] = useState({ alunoId: "", titulo: "", detalhes: "", urgencia: "", comQuem: "", motivoId: "", encaminhar: false, encDestino: "", encResponsavelId: "", encResponsavelNome: "", encObs: "" });
   const [err, setErr] = useState({});
   const [saving, setSaving] = useState(false);
   const upd = (k, v) => setF(p => ({ ...p, [k]: v }));
+
+  const motivoSel = motivos?.find(m => m.id === f.motivoId);
+
   const validate = () => {
     const e = {};
     if (!f.alunoId) e.alunoId = "Obrigatório";
-    if (!f.titulo.trim()) e.titulo = "Obrigatório";
+    if (!f.motivoId) e.motivoId = "Selecione o motivo";
     if (!f.detalhes.trim()) e.detalhes = "Descreva ou grave o relato";
     if (!f.comQuem) e.comQuem = "Obrigatório";
     if (f.encaminhar && !f.encDestino) e.encDestino = "Obrigatório";
@@ -737,9 +740,29 @@ function ModalNovaCom({ onClose, onSave, profile, alunos, equipe }) {
   const handle = async () => {
     if (!validate()) return;
     setSaving(true);
-    const payload = { escola_id: profile.escola_id, aluno_id: f.alunoId, data_registro: fmtDate(), titulo: f.titulo, detalhes: f.detalhes, urgencia: f.urgencia || null, autor_id: profile.id, autor_nome: profile.nome, encaminhamento: f.encaminhar, enc_destino: f.encaminhar ? f.encDestino : null, enc_responsavel: f.encaminhar ? f.encResponsavelNome : null, enc_responsavel_id: f.encaminhar ? f.encResponsavelId : null, enc_obs: f.encObs || null, enc_status: f.encaminhar ? "PENDENTE" : null, status: "PENDENTE", com_quem: f.comQuem };
+    const pontos = motivoSel?.pontos || 0;
+    const payload = {
+      escola_id: profile.escola_id, aluno_id: f.alunoId, data_registro: fmtDate(),
+      titulo: motivoSel?.nome || f.titulo, detalhes: f.detalhes,
+      urgencia: f.urgencia || null, autor_id: profile.id, autor_nome: profile.nome,
+      motivo_id: f.motivoId || null, motivo_nome: motivoSel?.nome || null, motivo_pontos: pontos,
+      encaminhamento: f.encaminhar, enc_destino: f.encaminhar ? f.encDestino : null,
+      enc_responsavel: f.encaminhar ? f.encResponsavelNome : null,
+      enc_responsavel_id: f.encaminhar ? f.encResponsavelId : null,
+      enc_obs: f.encObs || null, enc_status: f.encaminhar ? "PENDENTE" : null,
+      status: "PENDENTE", com_quem: f.comQuem
+    };
     const { data, error } = await supabase.from("comunicacoes").insert([payload]).select().single();
-    if (!error && data) onSave(data);
+    if (!error && data) {
+      // Atualizar score do aluno
+      const aluno = alunos.find(a => a.id === f.alunoId);
+      if (aluno && pontos !== 0) {
+        const novoRisco = Math.max(0, Math.min(100, (aluno.risco || 0) + pontos));
+        await supabase.from("alunos").update({ risco: novoRisco }).eq("id", f.alunoId);
+        data._novoRisco = novoRisco;
+      }
+      onSave(data);
+    }
     setSaving(false); onClose();
   };
   const FBlock = ({ num, title, children }) => (
@@ -761,7 +784,24 @@ function ModalNovaCom({ onClose, onSave, profile, alunos, equipe }) {
               <option value="">Selecione o aluno...</option>
               {alunos.map(a => <option key={a.id} value={a.id}>{a.nome} — {a.turma}</option>)}
             </Sel>
-            <Input label="Título / Assunto *" error={err.titulo} value={f.titulo} onChange={e => upd("titulo", e.target.value)} placeholder="Ex: Retenção, Bullying, Escuta..." />
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 600, color: err.motivoId ? "#ef4444" : "#475569", display: "block", marginBottom: 4 }}>Motivo da Comunicação *</label>
+              <select value={f.motivoId} onChange={e => upd("motivoId", e.target.value)}
+                style={{ padding: "9px 13px", border: `1.5px solid ${err.motivoId ? "#ef4444" : "#e2e8f0"}`, borderRadius: 8, fontSize: 14, outline: "none", background: "#fafafa", color: "#1e293b", fontFamily: "inherit", width: "100%" }}>
+                <option value="">Selecione o motivo...</option>
+                {(motivos || []).map(m => (
+                  <option key={m.id} value={m.id}>
+                    {m.nome} ({m.pontos > 0 ? "+" : ""}{m.pontos} pts)
+                  </option>
+                ))}
+              </select>
+              {err.motivoId && <span style={{ fontSize: 11, color: "#ef4444" }}>{err.motivoId}</span>}
+              {motivoSel && (
+                <div style={{ marginTop: 6, padding: "6px 12px", borderRadius: 8, background: motivoSel.pontos > 0 ? "#fef2f2" : "#f0fdf4", border: `1px solid ${motivoSel.pontos > 0 ? "#fecaca" : "#bbf7d0"}`, fontSize: 12, fontWeight: 700, color: motivoSel.pontos > 0 ? "#dc2626" : "#16a34a" }}>
+                  {motivoSel.pontos > 0 ? `⚠️ Este motivo adiciona +${motivoSel.pontos} pontos de risco ao aluno` : `✓ Este motivo reduz ${Math.abs(motivoSel.pontos)} pontos de risco do aluno`}
+                </div>
+              )}
+            </div>
           </FBlock>
           <FBlock num="2" title="Detalhamento">
             <CampoRelato value={f.detalhes} onChange={v => upd("detalhes", v)} />
@@ -1053,12 +1093,40 @@ function ModalNovoAluno({ onClose, onSave, profile }) {
 // ── PERFIL ALUNO ───────────────────────────────────────────────────────────────
 function PerfilAluno({ aluno, comunicacoes, reunioes, onClose, profile }) {
   const [tab, setTab] = useState("timeline");
+  const [analisando, setAnalisando] = useState(false);
+  const [analise, setAnalise] = useState(null);
   const isCan = (c) => profile.perfil === "DIRECAO" || profile.perfil === "SUPER_ADMIN" || c.autor_id === profile.id || c.enc_responsavel_id === profile.id;
   const coms = comunicacoes.filter(c => c.aluno_id === aluno.id && isCan(c));
   const reunioesA = reunioes.filter(r => r.convocados?.some(c => c.aluno_id === aluno.id));
   const totalP = reunioesA.reduce((s, r) => s + (r.convocados?.find(c => c.aluno_id === aluno.id)?.compareceu ? 1 : 0), 0);
   const timeline = [...coms.map(c => ({ tipo: "com", data: c.data_registro, item: c })), ...reunioesA.map(r => ({ tipo: "reu", data: r.data_reuniao, item: r }))]
     .sort((a, b) => (b.data || "").split("/").reverse().join("").localeCompare((a.data || "").split("/").reverse().join("")));
+
+  const nivelColor = { "BAIXO": "#22c55e", "MÉDIO": "#f59e0b", "ALTO": "#ef4444", "CRÍTICO": "#7c3aed" };
+
+  const analisarRisco = async () => {
+    setAnalisando(true);
+    setAnalise(null);
+    try {
+      const res = await fetch("/api/analisar-risco", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ aluno, comunicacoes: coms, reunioes: reunioesA, score: aluno.risco }),
+      });
+      const data = await res.json();
+      if (data.analise) {
+        setAnalise(data.analise);
+        // Salvar análise no banco
+        await supabase.from("analises_risco").insert([{
+          escola_id: aluno.escola_id, aluno_id: aluno.id,
+          nivel: data.analise.nivel, justificativa: data.analise.justificativa,
+          acao_sugerida: data.analise.acao_sugerida, score_calculado: aluno.risco,
+          gerado_por: profile.id,
+        }]);
+      }
+    } catch { setAnalise({ nivel: "MÉDIO", justificativa: "Erro ao conectar com a IA.", acao_sugerida: "Verifique manualmente." }); }
+    setAnalisando(false);
+  };
   return (
     <Overlay onClose={onClose}>
       <MBox width={720}>
@@ -1076,6 +1144,43 @@ function PerfilAluno({ aluno, comunicacoes, reunioes, onClose, profile }) {
             <div><div style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600 }}>Responsável</div><div style={{ fontSize: 14, fontWeight: 700, color: "#1e293b" }}>{aluno.responsavel}</div></div>
             <div><div style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600 }}>Telefone</div><div style={{ fontSize: 14, fontWeight: 700, color: "#1e293b" }}>{aluno.telefone}</div></div>
           </div>
+
+          {/* Análise IA */}
+          <div style={{ background: "#faf5ff", borderRadius: 12, border: "1px solid #e9d5ff", padding: 16 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: analise ? 14 : 0, flexWrap: "wrap", gap: 10 }}>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: "#7c3aed" }}>🧠 Análise de Risco com IA</div>
+                <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 2 }}>Parecer inteligente baseado em todo o histórico do aluno</div>
+              </div>
+              <Btn small onClick={analisarRisco} disabled={analisando} style={{ background: "#7c3aed", color: "#fff", border: "none" }}>
+                {analisando ? "Analisando..." : analise ? "🔄 Reanalisar" : "🧠 Analisar com IA"}
+              </Btn>
+            </div>
+            {analisando && (
+              <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 0" }}>
+                <div style={{ width: 20, height: 20, border: "2px solid #e9d5ff", borderTop: "2px solid #7c3aed", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
+                <span style={{ fontSize: 13, color: "#7c3aed" }}>Analisando histórico completo do aluno...</span>
+              </div>
+            )}
+            {analise && !analisando && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <div style={{ padding: "6px 16px", borderRadius: 20, background: (nivelColor[analise.nivel] || "#94a3b8") + "20", color: nivelColor[analise.nivel] || "#94a3b8", fontWeight: 900, fontSize: 14 }}>
+                    {analise.nivel === "CRÍTICO" ? "🚨" : analise.nivel === "ALTO" ? "⚠️" : analise.nivel === "MÉDIO" ? "🔶" : "✅"} RISCO {analise.nivel}
+                  </div>
+                </div>
+                <div style={{ padding: "10px 14px", background: "#fff", borderRadius: 8, border: "1px solid #e9d5ff" }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#7c3aed", marginBottom: 4 }}>JUSTIFICATIVA</div>
+                  <div style={{ fontSize: 13, color: "#1e293b", lineHeight: 1.6 }}>{analise.justificativa}</div>
+                </div>
+                <div style={{ padding: "10px 14px", background: "#fffbeb", borderRadius: 8, border: "1px solid #fef3c7" }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#d97706", marginBottom: 4 }}>AÇÃO SUGERIDA</div>
+                  <div style={{ fontSize: 13, color: "#1e293b", lineHeight: 1.6 }}>{analise.acao_sugerida}</div>
+                </div>
+              </div>
+            )}
+          </div>
+          <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
           <div style={{ display: "flex", gap: 4, borderBottom: "1px solid #e2e8f0" }}>
             {[["timeline", "📋 Timeline"], ["reunioes", "📅 Reuniões"], ["encaminhamentos", "📨 Encaminhamentos"]].map(([t, l]) => (
               <button key={t} onClick={() => setTab(t)} style={{ padding: "8px 16px", border: "none", background: "none", cursor: "pointer", fontSize: 13, fontWeight: tab === t ? 800 : 500, color: tab === t ? "#2563eb" : "#64748b", borderBottom: tab === t ? "2px solid #2563eb" : "2px solid transparent", marginBottom: -1 }}>{l}</button>
@@ -1149,6 +1254,7 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin }) {
   const [comunicacoes, setComunicacoes] = useState([]);
   const [reunioes, setReunioes] = useState([]);
   const [equipe, setEquipe] = useState([]);
+  const [motivos, setMotivos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalNovaCom, setModalNovaCom] = useState(false);
   const [modalNovaReuniao, setModalNovaReuniao] = useState(false);
@@ -1159,16 +1265,18 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin }) {
 
   const carregarTudo = async () => {
     setLoading(true);
-    const [{ data: al }, { data: co }, { data: re }, { data: eq }] = await Promise.all([
+    const [{ data: al }, { data: co }, { data: re }, { data: eq }, { data: mo }] = await Promise.all([
       supabase.from("alunos").select("*").eq("escola_id", escola.id).order("nome"),
       supabase.from("comunicacoes").select("*").eq("escola_id", escola.id).order("created_at", { ascending: false }),
       supabase.from("reunioes").select("*, reuniao_convocados(*)").eq("escola_id", escola.id).order("created_at", { ascending: false }),
       supabase.from("profiles").select("*").eq("escola_id", escola.id),
+      supabase.from("motivos").select("*").or(`escola_id.eq.${escola.id},escola_id.is.null`).order("nome"),
     ]);
     setAlunos(al || []);
     setComunicacoes(co || []);
     setReunioes((re || []).map(r => ({ ...r, convocados: r.reuniao_convocados || [] })));
     setEquipe(eq || []);
+    setMotivos(mo || []);
     setLoading(false);
   };
 
@@ -1671,7 +1779,7 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin }) {
           {pagina === "retencao" && <RetencaoPage />}
         </div>
       </div>
-      {modalNovaCom && <ModalNovaCom onClose={() => setModalNovaCom(false)} onSave={addCom} profile={profile} alunos={alunos} equipe={equipe} />}
+      {modalNovaCom && <ModalNovaCom onClose={() => setModalNovaCom(false)} onSave={addCom} profile={profile} alunos={alunos} equipe={equipe} motivos={motivos} />}
       {modalNovaReuniao && <ModalNovaReuniao onClose={() => setModalNovaReuniao(false)} onSave={addReuniao} profile={profile} alunos={alunos} />}
       {modalNovoAluno && <ModalNovoAluno onClose={() => setModalNovoAluno(false)} onSave={addAluno} profile={profile} />}
       {alunoSel && <PerfilAluno aluno={alunoSel} comunicacoes={comunicacoes} reunioes={reunioes} profile={profile} onClose={() => setAlunoSel(null)} />}
