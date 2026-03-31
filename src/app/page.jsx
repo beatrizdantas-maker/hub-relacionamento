@@ -1042,9 +1042,31 @@ function ModalNovaReuniao({ onClose, onSave, profile, alunos, escolaId }) {
   const [convocados, setConvocados] = useState([]);
   const [err, setErr] = useState({});
   const [saving, setSaving] = useState(false);
+  const [busca, setBusca] = useState("");
+  const [turmaSel, setTurmaSel] = useState("");
   const upd = (k, v) => setF(p => ({ ...p, [k]: v }));
+
+  const turmas = [...new Set(alunos.map(a => a.turma).filter(Boolean))].sort();
+
+  const alunosFiltrados = alunos.filter(a => {
+    const okTurma = !turmaSel || a.turma === turmaSel;
+    const okBusca = !busca || a.nome?.toLowerCase().includes(busca.toLowerCase()) || a.responsavel?.toLowerCase().includes(busca.toLowerCase());
+    return okTurma && okBusca;
+  });
+
   const toggleAluno = (a) => setConvocados(p => p.find(c => c.alunoId === a.id) ? p.filter(c => c.alunoId !== a.id) : [...p, { alunoId: a.id, responsavel: a.responsavel, compareceu: false }]);
   const toggleP = (id) => setConvocados(p => p.map(c => c.alunoId === id ? { ...c, compareceu: !c.compareceu } : c));
+
+  const selecionarTurma = () => {
+    const jaSelecionados = alunosFiltrados.every(a => convocados.find(c => c.alunoId === a.id));
+    if (jaSelecionados) {
+      setConvocados(p => p.filter(c => !alunosFiltrados.find(a => a.id === c.alunoId)));
+    } else {
+      const novos = alunosFiltrados.filter(a => !convocados.find(c => c.alunoId === a.id));
+      setConvocados(p => [...p, ...novos.map(a => ({ alunoId: a.id, responsavel: a.responsavel, compareceu: false }))]);
+    }
+  };
+
   const handle = async () => {
     const e = {};
     if (!f.titulo.trim()) e.titulo = "Obrigatório";
@@ -1058,6 +1080,9 @@ function ModalNovaReuniao({ onClose, onSave, profile, alunos, escolaId }) {
     if (!error && reuniao) onSave({ ...reuniao, convocados });
     setSaving(false); onClose();
   };
+
+  const todosFiltradosSel = alunosFiltrados.length > 0 && alunosFiltrados.every(a => convocados.find(c => c.alunoId === a.id));
+
   return (
     <Overlay onClose={onClose}>
       <MBox width={700}>
@@ -1076,22 +1101,79 @@ function ModalNovaReuniao({ onClose, onSave, profile, alunos, escolaId }) {
               <textarea value={f.descricao} onChange={e => upd("descricao", e.target.value)} placeholder="Descreva a pauta..." rows={2} style={{ padding: "9px 13px", border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 14, outline: "none", background: "#fafafa", fontFamily: "inherit", resize: "vertical", width: "100%", boxSizing: "border-box" }} />
             </div>
           </div>
-          <div style={{ background: "#f8fafc", borderRadius: 12, padding: 18, border: "1px solid #e2e8f0", display: "flex", flexDirection: "column", gap: 10 }}>
-            <div style={{ fontWeight: 700, color: "#1e293b", fontSize: 14 }}>Lista de Presença</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 200, overflowY: "auto" }}>
-              {alunos.map(a => {
+
+          <div style={{ background: "#f8fafc", borderRadius: 12, padding: 18, border: "1px solid #e2e8f0", display: "flex", flexDirection: "column", gap: 12 }}>
+            {/* Cabeçalho com contador */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ fontWeight: 700, color: "#1e293b", fontSize: 14 }}>Lista de Presença</div>
+              {convocados.length > 0 && (
+                <div style={{ display: "flex", gap: 8 }}>
+                  <Badge color="#2563eb">{convocados.length} convocados</Badge>
+                  <Badge color="#16a34a">✓ {convocados.filter(c => c.compareceu).length} presentes</Badge>
+                  <Badge color="#ef4444">✗ {convocados.filter(c => !c.compareceu).length} ausentes</Badge>
+                </div>
+              )}
+            </div>
+
+            {/* Filtros: busca + turma */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 10 }}>
+              <input
+                value={busca}
+                onChange={e => setBusca(e.target.value)}
+                placeholder="🔍 Buscar por nome ou responsável..."
+                style={{ padding: "8px 13px", border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 13, outline: "none", background: "#fff", fontFamily: "inherit" }}
+              />
+              <select
+                value={turmaSel}
+                onChange={e => setTurmaSel(e.target.value)}
+                style={{ padding: "8px 13px", border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 13, outline: "none", background: "#fff", fontFamily: "inherit", minWidth: 140 }}
+              >
+                <option value="">Todas as turmas</option>
+                {turmas.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
+
+            {/* Botão selecionar todos da turma/filtro */}
+            {alunosFiltrados.length > 0 && (
+              <button
+                onClick={selecionarTurma}
+                style={{ alignSelf: "flex-start", padding: "5px 14px", borderRadius: 20, border: `1.5px solid ${todosFiltradosSel ? "#ef4444" : "#2563eb"}`, background: todosFiltradosSel ? "#fef2f2" : "#eff6ff", color: todosFiltradosSel ? "#ef4444" : "#2563eb", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
+              >
+                {todosFiltradosSel ? `✕ Desmarcar todos (${alunosFiltrados.length})` : `✓ Selecionar todos (${alunosFiltrados.length})`}
+              </button>
+            )}
+
+            {/* Lista filtrada */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 260, overflowY: "auto" }}>
+              {alunosFiltrados.length === 0 && (
+                <div style={{ textAlign: "center", padding: 20, color: "#94a3b8", fontSize: 13 }}>
+                  Nenhum aluno encontrado para "{busca}"
+                </div>
+              )}
+              {alunosFiltrados.map(a => {
                 const conv = convocados.find(c => c.alunoId === a.id);
                 return (
-                  <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", borderRadius: 8, border: `1.5px solid ${conv ? "#2563eb" : "#e2e8f0"}`, background: conv ? "#eff6ff" : "#fafafa" }}>
-                    <input type="checkbox" checked={!!conv} onChange={() => toggleAluno(a)} />
-                    <div style={{ flex: 1 }}><div style={{ fontSize: 13, fontWeight: 600, color: "#1e293b" }}>{a.nome}</div><div style={{ fontSize: 11, color: "#94a3b8" }}>Resp.: {a.responsavel}</div></div>
-                    {conv && <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, color: conv.compareceu ? "#16a34a" : "#94a3b8", cursor: "pointer" }}><input type="checkbox" checked={conv.compareceu} onChange={() => toggleP(a.id)} />{conv.compareceu ? "✓ Compareceu" : "Ausente"}</label>}
+                  <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: 8, border: `1.5px solid ${conv ? "#2563eb" : "#e2e8f0"}`, background: conv ? "#eff6ff" : "#fff" }}>
+                    <input type="checkbox" checked={!!conv} onChange={() => toggleAluno(a)} style={{ cursor: "pointer", width: 16, height: 16, flexShrink: 0 }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b" }}>{a.nome}</div>
+                      <div style={{ fontSize: 11, color: "#94a3b8" }}>
+                        {a.turma && <span style={{ marginRight: 8, background: "#e0e7ff", color: "#3730a3", padding: "1px 7px", borderRadius: 10, fontWeight: 700 }}>{a.turma}</span>}
+                        Resp.: {a.responsavel || "—"}
+                      </div>
+                    </div>
+                    {conv && (
+                      <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, color: conv.compareceu ? "#16a34a" : "#94a3b8", cursor: "pointer", flexShrink: 0 }}>
+                        <input type="checkbox" checked={conv.compareceu} onChange={() => toggleP(a.id)} />
+                        {conv.compareceu ? "✓ Compareceu" : "Ausente"}
+                      </label>
+                    )}
                   </div>
                 );
               })}
             </div>
-            {convocados.length > 0 && <div style={{ display: "flex", gap: 10 }}><Badge color="#16a34a">✓ {convocados.filter(c => c.compareceu).length} presentes</Badge><Badge color="#ef4444">✗ {convocados.filter(c => !c.compareceu).length} ausentes</Badge></div>}
           </div>
+
           <div style={{ background: "#f8fafc", borderRadius: 12, padding: 18, border: "1px solid #e2e8f0", display: "flex", flexDirection: "column", gap: 10 }}>
             <div style={{ fontWeight: 700, color: "#1e293b", fontSize: 14 }}>Ata e Próximos Passos</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
