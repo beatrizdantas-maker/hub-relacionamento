@@ -123,12 +123,13 @@ function CampoRelato({ value, onChange }) {
     if (!value?.trim()) return;
     setResumindo(true); setResumo("");
     try {
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 1000, system: "Você é um assistente escolar. Resuma transcrições de conversas sobre alunos de forma clara e objetiva em português brasileiro. Use no máximo 4 frases. Foque no problema central.", messages: [{ role: "user", content: `Resuma:\n\n${value}` }] })
+      const res = await fetch("/api/resumir", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ texto: value }),
       });
       const data = await res.json();
-      setResumo(data.content?.[0]?.text || "Não foi possível gerar o resumo.");
+      setResumo(data.resumo || "Não foi possível gerar o resumo.");
     } catch { setResumo("Erro ao conectar com a IA."); }
     setResumindo(false);
   };
