@@ -718,6 +718,81 @@ function LoginPage({ onLogin }) {
   );
 }
 
+// ── BUSCA DE ALUNO COM DIGITAÇÃO ──────────────────────────────────────────────
+function BuscaAluno({ alunos, value, onChange, error }) {
+  const [busca, setBusca] = useState("");
+  const [aberto, setAberto] = useState(false);
+  const ref = useRef(null);
+  const alunoSel = alunos.find(a => a.id === value);
+
+  const filtrados = busca.length > 0
+    ? alunos.filter(a => a.nome?.toLowerCase().includes(busca.toLowerCase()) || a.turma?.toLowerCase().includes(busca.toLowerCase())).slice(0, 12)
+    : [];
+
+  useEffect(() => {
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setAberto(false); };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const selecionar = (aluno) => {
+    onChange(aluno.id);
+    setBusca("");
+    setAberto(false);
+  };
+
+  const limpar = () => { onChange(""); setBusca(""); setAberto(false); };
+
+  return (
+    <div ref={ref} style={{ display: "flex", flexDirection: "column", gap: 4, position: "relative" }}>
+      <label style={{ fontSize: 12, fontWeight: 600, color: error ? "#ef4444" : "#475569" }}>Aluno *</label>
+
+      {alunoSel ? (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "9px 13px", border: `1.5px solid ${error ? "#ef4444" : "#2563eb"}`, borderRadius: 8, background: "#eff6ff" }}>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "#1e293b" }}>{alunoSel.nome}</div>
+            <div style={{ fontSize: 11, color: "#64748b" }}>{alunoSel.turma}</div>
+          </div>
+          <button onClick={limpar} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", fontSize: 16, padding: 4 }}>✕</button>
+        </div>
+      ) : (
+        <div style={{ position: "relative" }}>
+          <input
+            value={busca}
+            onChange={e => { setBusca(e.target.value); setAberto(true); }}
+            onFocus={() => setAberto(true)}
+            placeholder="Digite o nome do aluno para buscar..."
+            style={{ width: "100%", padding: "9px 13px", border: `1.5px solid ${error ? "#ef4444" : "#e2e8f0"}`, borderRadius: 8, fontSize: 14, outline: "none", background: "#fafafa", color: "#1e293b", fontFamily: "inherit", boxSizing: "border-box" }}
+          />
+          {busca && <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", fontSize: 12, color: "#94a3b8" }}>🔍</span>}
+        </div>
+      )}
+
+      {aberto && filtrados.length > 0 && (
+        <div style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 100, background: "#fff", border: "1.5px solid #e2e8f0", borderRadius: 10, boxShadow: "0 8px 32px rgba(0,0,0,.12)", maxHeight: 280, overflowY: "auto", marginTop: 4 }}>
+          {filtrados.map(a => (
+            <div key={a.id} onClick={() => selecionar(a)}
+              style={{ padding: "10px 14px", cursor: "pointer", borderBottom: "1px solid #f1f5f9", transition: "background .1s" }}
+              onMouseEnter={e => e.currentTarget.style.background = "#eff6ff"}
+              onMouseLeave={e => e.currentTarget.style.background = "#fff"}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: "#1e293b" }}>{a.nome}</div>
+              <div style={{ fontSize: 11, color: "#64748b" }}>{a.turma}{a.responsavel ? ` · Resp.: ${a.responsavel}` : ""}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {aberto && busca.length > 0 && filtrados.length === 0 && (
+        <div style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 100, background: "#fff", border: "1.5px solid #e2e8f0", borderRadius: 10, padding: "14px 16px", boxShadow: "0 8px 32px rgba(0,0,0,.12)", marginTop: 4, fontSize: 13, color: "#94a3b8", textAlign: "center" }}>
+          Nenhum aluno encontrado para "{busca}"
+        </div>
+      )}
+
+      {error && <span style={{ fontSize: 11, color: "#ef4444" }}>{error}</span>}
+    </div>
+  );
+}
+
 // ── MODAIS SISTEMA ESCOLAR ─────────────────────────────────────────────────────
 function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos }) {
   const [f, setF] = useState({ alunoId: "", titulo: "", detalhes: "", urgencia: "", comQuem: "", motivoId: "", motivoCustom: "", motivoCustomPontos: "0", encaminhar: false, encDestino: "", encResponsavelId: "", encResponsavelNome: "", encObs: "" });
@@ -783,10 +858,7 @@ function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos }) {
         <MHead title="Nova Comunicação" subtitle="Registre uma nova interação." icon="📨" onClose={onClose} />
         <MBody>
           <FBlock num="1" title="Identificação">
-            <Sel label="Aluno *" error={err.alunoId} value={f.alunoId} onChange={e => upd("alunoId", e.target.value)}>
-              <option value="">Selecione o aluno...</option>
-              {alunos.map(a => <option key={a.id} value={a.id}>{a.nome} — {a.turma}</option>)}
-            </Sel>
+            <BuscaAluno alunos={alunos} value={f.alunoId} onChange={id => upd("alunoId", id)} error={err.alunoId} />
             <div>
               <label style={{ fontSize: 12, fontWeight: 600, color: err.motivoId ? "#ef4444" : "#475569", display: "block", marginBottom: 4 }}>Motivo da Comunicação *</label>
               <select value={f.motivoId} onChange={e => upd("motivoId", e.target.value)}
@@ -1119,11 +1191,48 @@ function ModalNovoAluno({ onClose, onSave, profile }) {
   );
 }
 
+// ── MODAL EDITAR ALUNO ─────────────────────────────────────────────────────────
+function ModalEditarAluno({ aluno, onClose, onSave }) {
+  const [f, setF] = useState({ nome: aluno.nome || "", turma: aluno.turma || "", rm: aluno.rm || "", responsavel: aluno.responsavel || "", telefone: aluno.telefone || "" });
+  const [saving, setSaving] = useState(false);
+  const upd = (k, v) => setF(p => ({ ...p, [k]: v }));
+  const handle = async () => {
+    if (!f.nome.trim()) return;
+    setSaving(true);
+    const { data, error } = await supabase.from("alunos").update(f).eq("id", aluno.id).select().single();
+    if (!error && data) onSave(data);
+    setSaving(false); onClose();
+  };
+  return (
+    <Overlay onClose={onClose}>
+      <MBox width={500}>
+        <MHead title="Editar Cadastro do Aluno" icon="✏️" subtitle={aluno.nome} onClose={onClose} />
+        <MBody>
+          <Input label="Nome completo *" value={f.nome} onChange={e => upd("nome", e.target.value)} placeholder="Nome do aluno" />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <Input label="Turma" value={f.turma} onChange={e => upd("turma", e.target.value)} placeholder="Ex: 3º A" />
+            <Input label="RM / Matrícula" value={f.rm} onChange={e => upd("rm", e.target.value)} placeholder="Ex: 2024001" />
+          </div>
+          <Input label="Nome do Responsável" value={f.responsavel} onChange={e => upd("responsavel", e.target.value)} placeholder="Nome completo do responsável" />
+          <Input label="Telefone do Responsável" value={f.telefone} onChange={e => upd("telefone", e.target.value)} placeholder="(00) 00000-0000" />
+        </MBody>
+        <MFoot>
+          <Btn variant="ghost" onClick={onClose}>Cancelar</Btn>
+          <Btn onClick={handle} disabled={saving}>{saving ? "Salvando..." : "Salvar Alterações"}</Btn>
+        </MFoot>
+      </MBox>
+    </Overlay>
+  );
+}
+
 // ── PERFIL ALUNO ───────────────────────────────────────────────────────────────
-function PerfilAluno({ aluno, comunicacoes, reunioes, onClose, profile }) {
+function PerfilAluno({ aluno: alunoInicial, comunicacoes, reunioes, onClose, profile, onAlunoAtualizado }) {
+  const [aluno, setAluno] = useState(alunoInicial);
   const [tab, setTab] = useState("timeline");
   const [analisando, setAnalisando] = useState(false);
   const [analise, setAnalise] = useState(null);
+  const [editando, setEditando] = useState(false);
+  const podeEditar = profile.perfil === "DIRECAO" || profile.perfil === "SECRETARIA" || profile.perfil === "SUPER_ADMIN";
   const isCan = (c) => profile.perfil === "DIRECAO" || profile.perfil === "SUPER_ADMIN" || c.autor_id === profile.id || c.enc_responsavel_id === profile.id;
   const coms = comunicacoes.filter(c => c.aluno_id === aluno.id && isCan(c));
   const reunioesA = reunioes.filter(r => r.convocados?.some(c => c.aluno_id === aluno.id));
@@ -1161,6 +1270,12 @@ function PerfilAluno({ aluno, comunicacoes, reunioes, onClose, profile }) {
       <MBox width={720}>
         <MHead title={aluno.nome} subtitle={`${aluno.turma} · RM: ${aluno.rm}`} onClose={onClose} />
         <MBody>
+          {/* Botão editar — só para direção e secretaria */}
+          {podeEditar && (
+            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+              <Btn small variant="ghost" icon="✏️" onClick={() => setEditando(true)}>Editar Cadastro</Btn>
+            </div>
+          )}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10 }}>
             {[{ label: "Risco", value: getRiscoNivel(aluno.risco), color: getRiscoColor(aluno.risco) }, { label: "Score", value: `${aluno.risco} pts`, color: getRiscoColor(aluno.risco) }, { label: "Comunicações", value: coms.length, color: "#2563eb" }, { label: "Presença", value: `${totalP}/${reunioesA.length}`, color: totalP < reunioesA.length / 2 ? "#ef4444" : "#22c55e" }].map(m => (
               <div key={m.label} style={{ background: "#f8fafc", borderRadius: 10, padding: "12px 14px", border: "1px solid #e2e8f0", textAlign: "center" }}>
@@ -1273,6 +1388,17 @@ function PerfilAluno({ aluno, comunicacoes, reunioes, onClose, profile }) {
         </MBody>
       </MBox>
     </Overlay>
+    {editando && (
+      <ModalEditarAluno
+        aluno={aluno}
+        onClose={() => setEditando(false)}
+        onSave={(atualizado) => {
+          setAluno(atualizado);
+          if (onAlunoAtualizado) onAlunoAtualizado(atualizado);
+          setEditando(false);
+        }}
+      />
+    )}
   );
 }
 
@@ -1312,6 +1438,7 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin }) {
   const addCom = (c) => setComunicacoes(p => [c, ...p]);
   const addReuniao = (r) => setReunioes(p => [r, ...p]);
   const addAluno = (a) => setAlunos(p => [...p, a].sort((x, y) => (x.nome || "").localeCompare(y.nome || "")));
+  const atualizarAluno = (a) => setAlunos(p => p.map(x => x.id === a.id ? a : x));
   const resolveEnc = (id, status, resolucao) => setComunicacoes(p => p.map(c => c.id === id ? { ...c, enc_status: status, status, resolucao } : c));
 
   const isCan = (c) => profile.perfil === "DIRECAO" || profile.perfil === "SUPER_ADMIN" || c.autor_id === profile.id || c.enc_responsavel_id === profile.id;
@@ -1811,7 +1938,7 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin }) {
       {modalNovaCom && <ModalNovaCom onClose={() => setModalNovaCom(false)} onSave={addCom} profile={profile} alunos={alunos} equipe={equipe} motivos={motivos} />}
       {modalNovaReuniao && <ModalNovaReuniao onClose={() => setModalNovaReuniao(false)} onSave={addReuniao} profile={profile} alunos={alunos} />}
       {modalNovoAluno && <ModalNovoAluno onClose={() => setModalNovoAluno(false)} onSave={addAluno} profile={profile} />}
-      {alunoSel && <PerfilAluno aluno={alunoSel} comunicacoes={comunicacoes} reunioes={reunioes} profile={profile} onClose={() => setAlunoSel(null)} />}
+      {alunoSel && <PerfilAluno aluno={alunoSel} comunicacoes={comunicacoes} reunioes={reunioes} profile={profile} onClose={() => setAlunoSel(null)} onAlunoAtualizado={atualizarAluno} />}
     </div>
   );
 }
