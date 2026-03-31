@@ -720,17 +720,18 @@ function LoginPage({ onLogin }) {
 
 // ── MODAIS SISTEMA ESCOLAR ─────────────────────────────────────────────────────
 function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos }) {
-  const [f, setF] = useState({ alunoId: "", titulo: "", detalhes: "", urgencia: "", comQuem: "", motivoId: "", encaminhar: false, encDestino: "", encResponsavelId: "", encResponsavelNome: "", encObs: "" });
+  const [f, setF] = useState({ alunoId: "", titulo: "", detalhes: "", urgencia: "", comQuem: "", motivoId: "", motivoCustom: "", motivoCustomPontos: "0", encaminhar: false, encDestino: "", encResponsavelId: "", encResponsavelNome: "", encObs: "" });
   const [err, setErr] = useState({});
   const [saving, setSaving] = useState(false);
   const upd = (k, v) => setF(p => ({ ...p, [k]: v }));
 
-  const motivoSel = motivos?.find(m => m.id === f.motivoId);
+  const motivoSel = f.motivoId === "outro" ? { nome: f.motivoCustom, pontos: Number(f.motivoCustomPontos) || 0 } : motivos?.find(m => m.id === f.motivoId);
 
   const validate = () => {
     const e = {};
     if (!f.alunoId) e.alunoId = "Obrigatório";
     if (!f.motivoId) e.motivoId = "Selecione o motivo";
+    if (f.motivoId === "outro" && !f.motivoCustom?.trim()) e.motivoCustom = "Descreva o motivo";
     if (!f.detalhes.trim()) e.detalhes = "Descreva ou grave o relato";
     if (!f.comQuem) e.comQuem = "Obrigatório";
     if (f.encaminhar && !f.encDestino) e.encDestino = "Obrigatório";
@@ -740,12 +741,14 @@ function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos }) {
   const handle = async () => {
     if (!validate()) return;
     setSaving(true);
-    const pontos = motivoSel?.pontos || 0;
+    const pontos = f.motivoId === "outro" ? (Number(f.motivoCustomPontos) || 0) : (motivoSel?.pontos || 0);
+    const nomeMotivo = f.motivoId === "outro" ? f.motivoCustom : (motivoSel?.nome || "");
     const payload = {
       escola_id: profile.escola_id, aluno_id: f.alunoId, data_registro: fmtDate(),
-      titulo: motivoSel?.nome || f.titulo, detalhes: f.detalhes,
+      titulo: nomeMotivo, detalhes: f.detalhes,
       urgencia: f.urgencia || null, autor_id: profile.id, autor_nome: profile.nome,
-      motivo_id: f.motivoId || null, motivo_nome: motivoSel?.nome || null, motivo_pontos: pontos,
+      motivo_id: f.motivoId !== "outro" ? f.motivoId : null,
+      motivo_nome: nomeMotivo, motivo_pontos: pontos,
       encaminhamento: f.encaminhar, enc_destino: f.encaminhar ? f.encDestino : null,
       enc_responsavel: f.encaminhar ? f.encResponsavelNome : null,
       enc_responsavel_id: f.encaminhar ? f.encResponsavelId : null,
@@ -794,11 +797,37 @@ function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos }) {
                     {m.nome} ({m.pontos > 0 ? "+" : ""}{m.pontos} pts)
                   </option>
                 ))}
+                <option value="outro">✏️ Outro (digitar manualmente)</option>
               </select>
               {err.motivoId && <span style={{ fontSize: 11, color: "#ef4444" }}>{err.motivoId}</span>}
-              {motivoSel && (
+
+              {/* Campo personalizado */}
+              {f.motivoId === "outro" && (
+                <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 10 }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                      <label style={{ fontSize: 12, fontWeight: 600, color: err.motivoCustom ? "#ef4444" : "#475569" }}>Descreva o motivo *</label>
+                      <input value={f.motivoCustom} onChange={e => upd("motivoCustom", e.target.value)} placeholder="Ex: Problema com transporte escolar" style={{ padding: "9px 13px", border: `1.5px solid ${err.motivoCustom ? "#ef4444" : "#e2e8f0"}`, borderRadius: 8, fontSize: 14, outline: "none", background: "#fafafa", color: "#1e293b", fontFamily: "inherit" }} />
+                      {err.motivoCustom && <span style={{ fontSize: 11, color: "#ef4444" }}>{err.motivoCustom}</span>}
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                      <label style={{ fontSize: 12, fontWeight: 600, color: "#475569" }}>Pontuação de risco</label>
+                      <input type="number" value={f.motivoCustomPontos} onChange={e => upd("motivoCustomPontos", e.target.value)} placeholder="Ex: 15" min="-50" max="50" style={{ padding: "9px 13px", border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 14, outline: "none", background: "#fafafa", color: "#1e293b", fontFamily: "inherit" }} />
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 11, color: "#94a3b8" }}>💡 Valores positivos aumentam o risco. Negativos reduzem. Ex: +15 para algo ruim, -5 para algo bom.</div>
+                </div>
+              )}
+
+              {/* Preview da pontuação */}
+              {motivoSel && f.motivoId !== "outro" && (
                 <div style={{ marginTop: 6, padding: "6px 12px", borderRadius: 8, background: motivoSel.pontos > 0 ? "#fef2f2" : "#f0fdf4", border: `1px solid ${motivoSel.pontos > 0 ? "#fecaca" : "#bbf7d0"}`, fontSize: 12, fontWeight: 700, color: motivoSel.pontos > 0 ? "#dc2626" : "#16a34a" }}>
-                  {motivoSel.pontos > 0 ? `⚠️ Este motivo adiciona +${motivoSel.pontos} pontos de risco ao aluno` : `✓ Este motivo reduz ${Math.abs(motivoSel.pontos)} pontos de risco do aluno`}
+                  {motivoSel.pontos > 0 ? `⚠️ +${motivoSel.pontos} pontos de risco` : `✓ ${Math.abs(motivoSel.pontos)} pontos de risco reduzidos`}
+                </div>
+              )}
+              {f.motivoId === "outro" && f.motivoCustomPontos && (
+                <div style={{ marginTop: 6, padding: "6px 12px", borderRadius: 8, background: Number(f.motivoCustomPontos) > 0 ? "#fef2f2" : "#f0fdf4", border: `1px solid ${Number(f.motivoCustomPontos) > 0 ? "#fecaca" : "#bbf7d0"}`, fontSize: 12, fontWeight: 700, color: Number(f.motivoCustomPontos) > 0 ? "#dc2626" : "#16a34a" }}>
+                  {Number(f.motivoCustomPontos) > 0 ? `⚠️ +${f.motivoCustomPontos} pontos de risco` : `✓ ${Math.abs(Number(f.motivoCustomPontos))} pontos de risco reduzidos`}
                 </div>
               )}
             </div>
