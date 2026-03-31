@@ -793,6 +793,101 @@ function BuscaAluno({ alunos, value, onChange, error }) {
   );
 }
 
+// ── BLOCO NUMERADO (fora do modal para evitar remontagem a cada tecla) ─────────
+const FBlock = ({ num, title, children }) => (
+  <div style={{ background: "#f8fafc", borderRadius: 12, padding: 18, border: "1px solid #e2e8f0", display: "flex", flexDirection: "column", gap: 12 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <div style={{ width: 24, height: 24, borderRadius: "50%", background: "#2563eb", color: "#fff", fontSize: 12, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>{num}</div>
+      <span style={{ fontWeight: 700, color: "#1e293b", fontSize: 15 }}>{title}</span>
+    </div>
+    {children}
+  </div>
+);
+
+// ── BUSCA DE MOTIVO COM DIGITAÇÃO ─────────────────────────────────────────────
+function BuscaMotivo({ motivos, value, onChange, error }) {
+  const [busca, setBusca] = useState("");
+  const [aberto, setAberto] = useState(false);
+  const ref = useRef(null);
+
+  const opcoes = [
+    ...(motivos || []).map(m => ({ id: m.id, nome: m.nome, pontos: m.pontos })),
+    { id: "outro", nome: "✏️ Outro (digitar manualmente)", pontos: null },
+  ];
+
+  const motivoSel = opcoes.find(m => m.id === value);
+
+  const filtrados = busca.length > 0
+    ? opcoes.filter(m => m.nome.toLowerCase().includes(busca.toLowerCase())).slice(0, 15)
+    : [];
+
+  useEffect(() => {
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setAberto(false); };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const selecionar = (m) => { onChange(m.id); setBusca(""); setAberto(false); };
+  const limpar = () => { onChange(""); setBusca(""); setAberto(false); };
+
+  return (
+    <div ref={ref} style={{ display: "flex", flexDirection: "column", gap: 4, position: "relative" }}>
+      <label style={{ fontSize: 12, fontWeight: 600, color: error ? "#ef4444" : "#475569" }}>Motivo da Comunicação *</label>
+
+      {motivoSel ? (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "9px 13px", border: `1.5px solid ${error ? "#ef4444" : "#2563eb"}`, borderRadius: 8, background: "#eff6ff" }}>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "#1e293b" }}>{motivoSel.nome}</div>
+            {motivoSel.pontos !== null && (
+              <div style={{ fontSize: 11, color: motivoSel.pontos > 0 ? "#dc2626" : "#16a34a" }}>
+                {motivoSel.pontos > 0 ? `+${motivoSel.pontos} pts de risco` : `${motivoSel.pontos} pts de risco`}
+              </div>
+            )}
+          </div>
+          <button onClick={limpar} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", fontSize: 16, padding: 4 }}>✕</button>
+        </div>
+      ) : (
+        <div style={{ position: "relative" }}>
+          <input
+            value={busca}
+            onChange={e => { setBusca(e.target.value); setAberto(true); }}
+            onFocus={() => setAberto(true)}
+            placeholder="Digite o motivo para buscar..."
+            style={{ width: "100%", padding: "9px 13px", border: `1.5px solid ${error ? "#ef4444" : "#e2e8f0"}`, borderRadius: 8, fontSize: 14, outline: "none", background: "#fafafa", color: "#1e293b", fontFamily: "inherit", boxSizing: "border-box" }}
+          />
+          {busca && <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", fontSize: 12, color: "#94a3b8" }}>🔍</span>}
+        </div>
+      )}
+
+      {aberto && filtrados.length > 0 && (
+        <div style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 100, background: "#fff", border: "1.5px solid #e2e8f0", borderRadius: 10, boxShadow: "0 8px 32px rgba(0,0,0,.12)", maxHeight: 260, overflowY: "auto", marginTop: 4 }}>
+          {filtrados.map(m => (
+            <div key={m.id} onClick={() => selecionar(m)}
+              style={{ padding: "10px 14px", cursor: "pointer", borderBottom: "1px solid #f1f5f9" }}
+              onMouseEnter={e => e.currentTarget.style.background = "#eff6ff"}
+              onMouseLeave={e => e.currentTarget.style.background = "#fff"}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: "#1e293b" }}>{m.nome}</div>
+              {m.pontos !== null && (
+                <div style={{ fontSize: 11, color: m.pontos > 0 ? "#dc2626" : "#16a34a" }}>
+                  {m.pontos > 0 ? `+${m.pontos} pts` : `${m.pontos} pts`}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {aberto && busca.length > 0 && filtrados.length === 0 && (
+        <div style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 100, background: "#fff", border: "1.5px solid #e2e8f0", borderRadius: 10, padding: "14px 16px", boxShadow: "0 8px 32px rgba(0,0,0,.12)", marginTop: 4, fontSize: 13, color: "#94a3b8", textAlign: "center" }}>
+          Nenhum motivo encontrado para "{busca}"
+        </div>
+      )}
+
+      {error && <span style={{ fontSize: 11, color: "#ef4444" }}>{error}</span>}
+    </div>
+  );
+}
+
 // ── MODAIS SISTEMA ESCOLAR ─────────────────────────────────────────────────────
 function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos, escolaId }) {
   const [f, setF] = useState({ alunoId: "", titulo: "", detalhes: "", urgencia: "", comQuem: "", motivoId: "", motivoCustom: "", motivoCustomPontos: "0", encaminhar: false, encDestino: "", encResponsavelId: "", encResponsavelNome: "", encObs: "" });
@@ -848,15 +943,6 @@ function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos, escol
     }
     setSaving(false); onClose();
   };
-  const FBlock = ({ num, title, children }) => (
-    <div style={{ background: "#f8fafc", borderRadius: 12, padding: 18, border: "1px solid #e2e8f0", display: "flex", flexDirection: "column", gap: 12 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <div style={{ width: 24, height: 24, borderRadius: "50%", background: "#2563eb", color: "#fff", fontSize: 12, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>{num}</div>
-        <span style={{ fontWeight: 700, color: "#1e293b", fontSize: 15 }}>{title}</span>
-      </div>
-      {children}
-    </div>
-  );
   return (
     <Overlay onClose={onClose}>
       <MBox>
@@ -865,18 +951,7 @@ function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos, escol
           <FBlock num="1" title="Identificação">
             <BuscaAluno alunos={alunos} value={f.alunoId} onChange={id => upd("alunoId", id)} error={err.alunoId} />
             <div>
-              <label style={{ fontSize: 12, fontWeight: 600, color: err.motivoId ? "#ef4444" : "#475569", display: "block", marginBottom: 4 }}>Motivo da Comunicação *</label>
-              <select value={f.motivoId} onChange={e => upd("motivoId", e.target.value)}
-                style={{ padding: "9px 13px", border: `1.5px solid ${err.motivoId ? "#ef4444" : "#e2e8f0"}`, borderRadius: 8, fontSize: 14, outline: "none", background: "#fafafa", color: "#1e293b", fontFamily: "inherit", width: "100%" }}>
-                <option value="">Selecione o motivo...</option>
-                {(motivos || []).map(m => (
-                  <option key={m.id} value={m.id}>
-                    {m.nome} ({m.pontos > 0 ? "+" : ""}{m.pontos} pts)
-                  </option>
-                ))}
-                <option value="outro">✏️ Outro (digitar manualmente)</option>
-              </select>
-              {err.motivoId && <span style={{ fontSize: 11, color: "#ef4444" }}>{err.motivoId}</span>}
+              <BuscaMotivo motivos={motivos} value={f.motivoId} onChange={id => upd("motivoId", id)} error={err.motivoId} />
 
               {/* Campo personalizado */}
               {f.motivoId === "outro" && (
