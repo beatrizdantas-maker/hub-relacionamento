@@ -7,7 +7,7 @@ const getRiscoColor = (r) => r >= 60 ? "#ef4444" : r >= 30 ? "#f59e0b" : "#22c55
 const getRiscoBg = (r) => r >= 60 ? "#fef2f2" : r >= 30 ? "#fffbeb" : "#f0fdf4";
 const getRiscoNivel = (r) => r >= 60 ? "ALTO" : r >= 30 ? "MÉDIO" : "BAIXO";
 const getUrgColor = (u) => u === "ALTA" ? "#ef4444" : u === "MEDIA" ? "#f59e0b" : u === "BAIXA" ? "#22c55e" : "#94a3b8";
-const getStColor = (s) => s === "RESOLVIDO" ? "#22c55e" : s === "EM_ANALISE" ? "#3b82f6" : "#f59e0b";
+const getStColor = (s) => s === "RESOLVIDO" ? "#22c55e" : s === "EM_ANALISE" ? "#3b82f6" : s === "CONCLUÍDO" ? "#8b5cf6" : "#f59e0b";
 const getStLabel = (s) => s === "EM_ANALISE" ? "EM ANÁLISE" : s || "PENDENTE";
 const fmtDate = () => new Date().toLocaleDateString("pt-BR");
 const perfilLabel = (p) => ({ SUPER_ADMIN: "Super Admin", DIRECAO: "Direção", PSICOLOGO: "Psicólogo", SECRETARIA: "Secretária", PROFESSOR: "Professor", NUCLEO: "Núcleo Pedagógico", RECEPÇÃO: "Recepção", PSICOPEDAGOGO: "Psicopedagogo" }[p] || p);
@@ -924,7 +924,7 @@ function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos, escol
       enc_responsavel: f.encaminhar ? f.encResponsavelNome : null,
       enc_responsavel_id: f.encaminhar ? f.encResponsavelId : null,
       enc_obs: f.encObs || null, enc_status: f.encaminhar ? "PENDENTE" : null,
-      status: "PENDENTE", com_quem: f.comQuem
+      status: f.encaminhar ? "PENDENTE" : "CONCLUÍDO", com_quem: f.comQuem
     };
     const { data, error } = await supabase.from("comunicacoes").insert([payload]).select().single();
     if (error) {
