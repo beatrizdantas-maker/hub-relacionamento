@@ -567,13 +567,94 @@ function PainelEscola({ escola, onClose, onUpdate, onEntrar }) {
   );
 }
 
+// ── NARAEDU360 — MÓDULOS DO ECOSSISTEMA ────────────────────────────────────────
+const NARA_MODULOS = [
+  { id: "relacionamento", nome: "NARA Relacionamento", desc: "Comunicação, encaminhamentos e retenção", emoji: "💬", cor: "#7c3aed", disponivel: true },
+  { id: "relatorios",     nome: "NARA Relatórios",     desc: "Relatórios pedagógicos e boletins",        emoji: "📊", cor: "#2563eb", disponivel: true },
+  { id: "reunioes",       nome: "NARA Reuniões",       desc: "Controle de presença e atas",              emoji: "📅", cor: "#0891b2", disponivel: true },
+  { id: "financeiro",     nome: "NARA Financeiro",     desc: "Mensalidades e inadimplência",             emoji: "💰", cor: "#059669", disponivel: false },
+  { id: "pedagogico",     nome: "NARA Pedagógico",     desc: "Currículo, planos e avaliações",           emoji: "🎓", cor: "#d97706", disponivel: false },
+  { id: "comunicados",    nome: "NARA Comunicados",    desc: "Murais e avisos para famílias",            emoji: "📢", cor: "#db2777", disponivel: false },
+];
+
+// Logo NARAEDU360 em SVG inline
+const LogoNara = ({ size = 32 }) => (
+  <svg width={size * 2.8} height={size} viewBox="0 0 140 50" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <text x="0" y="36" fontFamily="system-ui,sans-serif" fontWeight="900" fontSize="28" fill="#a855f7">NARA</text>
+    <text x="72" y="36" fontFamily="system-ui,sans-serif" fontWeight="700" fontSize="20" fill="#86efac">EDU</text>
+    <text x="112" y="36" fontFamily="system-ui,sans-serif" fontWeight="900" fontSize="20" fill="#a855f7">360</text>
+  </svg>
+);
+
+// Modal de módulos da escola
+function ModalModulos({ escola, onClose, onSave }) {
+  const ativos = escola.modulos || ["relacionamento", "relatorios", "reunioes"];
+  const [selecionados, setSelecionados] = useState(ativos);
+  const [saving, setSaving] = useState(false);
+
+  const toggle = (id) => setSelecionados(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id]);
+
+  const handle = async () => {
+    setSaving(true);
+    const { data, error } = await supabase.from("escolas").update({ modulos: selecionados }).eq("id", escola.id).select().single();
+    if (!error && data) onSave(data);
+    setSaving(false); onClose();
+  };
+
+  return (
+    <Overlay onClose={onClose}>
+      <MBox width={620}>
+        <MHead title="Módulos do Ecossistema" subtitle={escola.nome} icon="🧩" onClose={onClose} />
+        <MBody>
+          <div style={{ padding: "10px 14px", background: "#faf5ff", borderRadius: 10, border: "1px solid #e9d5ff", fontSize: 13, color: "#7c3aed", marginBottom: 4 }}>
+            💡 Ative os módulos que esta escola contratou. Cada módulo aparece no menu lateral da escola.
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {NARA_MODULOS.map(m => {
+              const ativo = selecionados.includes(m.id);
+              return (
+                <div key={m.id} onClick={() => m.disponivel && toggle(m.id)}
+                  style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 18px", borderRadius: 12,
+                    border: `2px solid ${ativo ? m.cor : "#e2e8f0"}`,
+                    background: ativo ? m.cor + "10" : "#fafafa",
+                    cursor: m.disponivel ? "pointer" : "not-allowed",
+                    opacity: m.disponivel ? 1 : 0.5 }}>
+                  <span style={{ fontSize: 24 }}>{m.emoji}</span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: "#1e293b" }}>{m.nome}</div>
+                    <div style={{ fontSize: 12, color: "#64748b" }}>{m.desc}</div>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    {!m.disponivel && <span style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", background: "#f1f5f9", padding: "2px 8px", borderRadius: 20 }}>Em breve</span>}
+                    <div style={{ width: 20, height: 20, borderRadius: "50%", border: `2px solid ${ativo ? m.cor : "#cbd5e1"}`, background: ativo ? m.cor : "transparent", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      {ativo && <span style={{ color: "#fff", fontSize: 12, fontWeight: 900 }}>✓</span>}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </MBody>
+        <MFoot>
+          <Btn variant="ghost" onClick={onClose}>Cancelar</Btn>
+          <Btn onClick={handle} disabled={saving} style={{ background: "#7c3aed", color: "#fff", border: "none" }}>
+            {saving ? "Salvando..." : "Salvar Módulos"}
+          </Btn>
+        </MFoot>
+      </MBox>
+    </Overlay>
+  );
+}
+
 // ── SUPER ADMIN PANEL ──────────────────────────────────────────────────────────
 function SuperAdminPanel({ onLogout, onEntrarEscola }) {
   const [escolas, setEscolas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalNova, setModalNova] = useState(false);
   const [escolaSelecionada, setEscolaSelecionada] = useState(null);
+  const [modalModulos, setModalModulos] = useState(null);
   const [busca, setBusca] = useState("");
+  const [abaAtiva, setAbaAtiva] = useState("escolas");
 
   useEffect(() => { carregarEscolas(); }, []);
 
@@ -585,101 +666,172 @@ function SuperAdminPanel({ onLogout, onEntrarEscola }) {
   };
 
   const filtradas = escolas.filter(e => !busca || e.nome?.toLowerCase().includes(busca.toLowerCase()) || e.cidade?.toLowerCase().includes(busca.toLowerCase()));
-
   const statusColor = s => s === "ATIVA" ? "#22c55e" : s === "TRIAL" ? "#f59e0b" : s === "SUSPENSA" ? "#ef4444" : "#94a3b8";
   const planColor = p => p === "PRO" ? "#7c3aed" : p === "BÁSICO" ? "#2563eb" : "#f59e0b";
 
+  const totalModulos = escolas.reduce((acc, e) => {
+    (e.modulos || []).forEach(m => { acc[m] = (acc[m] || 0) + 1; });
+    return acc;
+  }, {});
+
   return (
-    <div style={{ minHeight: "100vh", background: "#f1f5f9", fontFamily: "system-ui,sans-serif" }}>
-      {/* Topbar */}
-      <div style={{ background: "#fff", borderBottom: "1px solid #e2e8f0", padding: "0 32px", height: 60, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ width: 36, height: 36, borderRadius: 8, background: "#2563eb", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>🏫</div>
-          <div><div style={{ fontWeight: 900, fontSize: 15, color: "#1e293b" }}>HUB DE RELACIONAMENTO</div><div style={{ fontSize: 11, color: "#94a3b8" }}>Painel Super Admin</div></div>
+    <div style={{ minHeight: "100vh", background: "#f5f3ff", fontFamily: "system-ui,sans-serif" }}>
+      {/* Topbar NARAEDU360 */}
+      <div style={{ background: "#fff", borderBottom: "1px solid #e9d5ff", padding: "0 32px", height: 64, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <LogoNara size={34} />
+          <div style={{ width: 1, height: 28, background: "#e9d5ff" }} />
+          <span style={{ fontSize: 12, fontWeight: 600, color: "#a855f7", letterSpacing: 1 }}>PAINEL SUPER ADMIN</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <Av initials="SA" color="#ef4444" />
+          <Av initials="SA" color="#7c3aed" />
           <Btn variant="ghost" small onClick={onLogout}>Sair</Btn>
         </div>
       </div>
 
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 24px" }}>
-        {/* Métricas */}
+      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 24px" }}>
+
+        {/* Métricas topo */}
         <div style={{ display: "flex", gap: 14, marginBottom: 28, flexWrap: "wrap" }}>
           {[
-            { label: "Escolas Ativas", value: escolas.filter(e => e.status === "ATIVA").length, color: "#22c55e", icon: "✅" },
-            { label: "Em Trial", value: escolas.filter(e => e.status === "TRIAL").length, color: "#f59e0b", icon: "🔬" },
-            { label: "Suspensas", value: escolas.filter(e => e.status === "SUSPENSA").length, color: "#ef4444", icon: "🔴" },
-            { label: "Planos PRO", value: escolas.filter(e => e.plano === "PRO").length, color: "#7c3aed", icon: "⭐" },
-            { label: "Total", value: escolas.length, color: "#2563eb", icon: "🏫" },
+            { label: "Escolas Ativas",  value: escolas.filter(e => e.status === "ATIVA").length,    color: "#22c55e", bg: "#f0fdf4", icon: "✅" },
+            { label: "Em Trial",        value: escolas.filter(e => e.status === "TRIAL").length,    color: "#f59e0b", bg: "#fffbeb", icon: "🔬" },
+            { label: "Suspensas",       value: escolas.filter(e => e.status === "SUSPENSA").length, color: "#ef4444", bg: "#fef2f2", icon: "🔴" },
+            { label: "Planos PRO",      value: escolas.filter(e => e.plano === "PRO").length,       color: "#7c3aed", bg: "#faf5ff", icon: "⭐" },
+            { label: "Total Escolas",   value: escolas.length,                                       color: "#2563eb", bg: "#eff6ff", icon: "🏫" },
           ].map(m => (
-            <Card key={m.label} style={{ flex: 1, minWidth: 140 }}>
+            <Card key={m.label} style={{ flex: 1, minWidth: 140, background: m.bg, border: `1px solid ${m.color}30` }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
                 <span style={{ fontSize: 16 }}>{m.icon}</span>
-                <span style={{ fontSize: 11, color: "#64748b", fontWeight: 600 }}>{m.label}</span>
+                <span style={{ fontSize: 11, color: m.color, fontWeight: 700 }}>{m.label}</span>
               </div>
-              <div style={{ fontSize: 28, fontWeight: 900, color: m.color }}>{m.value}</div>
+              <div style={{ fontSize: 30, fontWeight: 900, color: m.color }}>{m.value}</div>
             </Card>
           ))}
         </div>
 
-        {/* Lista escolas */}
-        <Card>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
-            <div>
-              <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "#1e293b" }}>Escolas Cadastradas</h2>
-              <p style={{ margin: "4px 0 0", fontSize: 13, color: "#94a3b8" }}>Gerencie todas as instituições da plataforma</p>
+        {/* Abas */}
+        <div style={{ display: "flex", gap: 4, marginBottom: 20 }}>
+          {[["escolas", "🏫 Escolas"], ["ecossistema", "🧩 Ecossistema"]].map(([id, label]) => (
+            <button key={id} onClick={() => setAbaAtiva(id)} style={{ padding: "9px 20px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 13, fontWeight: abaAtiva === id ? 800 : 500, background: abaAtiva === id ? "#7c3aed" : "#fff", color: abaAtiva === id ? "#fff" : "#64748b", boxShadow: abaAtiva === id ? "0 2px 8px #7c3aed40" : "none" }}>
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* ABA ESCOLAS */}
+        {abaAtiva === "escolas" && (
+          <Card>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
+              <div>
+                <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "#1e293b" }}>Escolas Cadastradas</h2>
+                <p style={{ margin: "4px 0 0", fontSize: 13, color: "#94a3b8" }}>Gerencie todas as instituições do ecossistema NARAEDU360</p>
+              </div>
+              <div style={{ display: "flex", gap: 10 }}>
+                <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="🔍 Buscar escola..." style={{ padding: "8px 14px", border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 13, outline: "none", width: 200 }} />
+                <Btn icon="+" onClick={() => setModalNova(true)} style={{ background: "#7c3aed", border: "none" }}>Nova Escola</Btn>
+              </div>
             </div>
-            <div style={{ display: "flex", gap: 10 }}>
-              <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="🔍 Buscar escola..." style={{ padding: "8px 14px", border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 13, outline: "none", width: 200 }} />
-              <Btn icon="+" onClick={() => setModalNova(true)}>Nova Escola</Btn>
+
+            {loading ? <Loading msg="Carregando escolas..." /> : filtradas.length === 0 ? (
+              <div style={{ textAlign: "center", padding: 60, color: "#94a3b8" }}>
+                <div style={{ fontSize: 48, marginBottom: 16 }}>🏫</div>
+                <p style={{ fontSize: 16, fontWeight: 600 }}>Nenhuma escola cadastrada ainda</p>
+                <Btn onClick={() => setModalNova(true)} icon="+" style={{ background: "#7c3aed", border: "none" }}>Cadastrar primeira escola</Btn>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                {filtradas.map(escola => {
+                  const modulosAtivos = escola.modulos || ["relacionamento", "relatorios", "reunioes"];
+                  return (
+                    <div key={escola.id} style={{ display: "flex", alignItems: "center", gap: 16, padding: "18px 20px", borderRadius: 14, border: `1.5px solid ${escola.status === "SUSPENSA" ? "#fecaca" : "#e9d5ff"}`, background: escola.status === "SUSPENSA" ? "#fff5f5" : "#fff", flexWrap: "wrap" }}>
+                      <div style={{ width: 54, height: 54, borderRadius: 12, background: "#faf5ff", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", flexShrink: 0, border: "1.5px solid #e9d5ff" }}>
+                        {escola.logo_url ? <img src={escola.logo_url} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} onError={e => e.target.style.display = "none"} /> : <span style={{ fontSize: 24 }}>🏫</span>}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 180 }}>
+                        <div style={{ fontWeight: 800, fontSize: 15, color: "#1e293b" }}>{escola.nome}</div>
+                        <div style={{ fontSize: 12, color: "#64748b" }}>{escola.cidade}{escola.responsavel_nome ? ` · ${escola.responsavel_nome}` : ""}</div>
+                        {/* Módulos ativos */}
+                        <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
+                          {NARA_MODULOS.filter(m => modulosAtivos.includes(m.id)).map(m => (
+                            <span key={m.id} style={{ fontSize: 10, fontWeight: 700, color: m.cor, background: m.cor + "15", padding: "2px 8px", borderRadius: 20, border: `1px solid ${m.cor}30` }}>
+                              {m.emoji} {m.nome.replace("NARA ", "")}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                        <Badge color={planColor(escola.plano)}>{escola.plano}</Badge>
+                        <Badge color={statusColor(escola.status)}>{escola.status}</Badge>
+                        {escola.data_vencimento && <span style={{ fontSize: 11, color: "#94a3b8" }}>até {new Date(escola.data_vencimento).toLocaleDateString("pt-BR")}</span>}
+                        <Btn small variant="ghost" onClick={() => setModalModulos(escola)}>🧩 Módulos</Btn>
+                        <Btn small variant="ghost" onClick={() => setEscolaSelecionada(escola)}>Gerenciar →</Btn>
+                        <Btn small onClick={() => onEntrarEscola(escola)} style={{ background: "#7c3aed", color: "#fff", border: "none" }}>Acessar</Btn>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </Card>
+        )}
+
+        {/* ABA ECOSSISTEMA */}
+        {abaAtiva === "ecossistema" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+            <div>
+              <h2 style={{ margin: "0 0 4px", fontSize: 20, fontWeight: 900, color: "#1e293b" }}>Ecossistema NARAEDU360</h2>
+              <p style={{ margin: 0, fontSize: 13, color: "#94a3b8" }}>Visão geral de todos os módulos e adoção pelas escolas</p>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 16 }}>
+              {NARA_MODULOS.map(m => {
+                const qtd = totalModulos[m.id] || 0;
+                const pct = escolas.length > 0 ? Math.round(qtd / escolas.length * 100) : 0;
+                return (
+                  <Card key={m.id} style={{ border: `1.5px solid ${m.cor}30`, background: m.disponivel ? "#fff" : "#fafafa" }}>
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: 14, marginBottom: 14 }}>
+                      <div style={{ width: 48, height: 48, borderRadius: 12, background: m.cor + "18", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>{m.emoji}</div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 800, fontSize: 15, color: "#1e293b" }}>{m.nome}</div>
+                        <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>{m.desc}</div>
+                        {!m.disponivel && <span style={{ display: "inline-block", marginTop: 4, fontSize: 10, fontWeight: 700, color: "#94a3b8", background: "#f1f5f9", padding: "2px 8px", borderRadius: 20 }}>🚧 Em desenvolvimento</span>}
+                      </div>
+                    </div>
+                    {m.disponivel ? (
+                      <>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                          <span style={{ fontSize: 12, color: "#64748b", fontWeight: 600 }}>Adoção</span>
+                          <span style={{ fontSize: 13, fontWeight: 900, color: m.cor }}>{qtd} escola{qtd !== 1 ? "s" : ""} · {pct}%</span>
+                        </div>
+                        <div style={{ height: 6, borderRadius: 99, background: "#f1f5f9", overflow: "hidden" }}>
+                          <div style={{ height: "100%", width: `${pct}%`, background: m.cor, borderRadius: 99, transition: "width .4s" }} />
+                        </div>
+                      </>
+                    ) : (
+                      <div style={{ fontSize: 12, color: "#94a3b8", fontStyle: "italic" }}>Disponível em breve para contratação</div>
+                    )}
+                  </Card>
+                );
+              })}
             </div>
           </div>
-
-          {loading ? <Loading msg="Carregando escolas..." /> : filtradas.length === 0 ? (
-            <div style={{ textAlign: "center", padding: 60, color: "#94a3b8" }}>
-              <div style={{ fontSize: 48, marginBottom: 16 }}>🏫</div>
-              <p style={{ fontSize: 16, fontWeight: 600 }}>Nenhuma escola cadastrada ainda</p>
-              <Btn onClick={() => setModalNova(true)} icon="+">Cadastrar primeira escola</Btn>
-            </div>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {filtradas.map(escola => (
-                <div key={escola.id} style={{ display: "flex", alignItems: "center", gap: 16, padding: "16px 20px", borderRadius: 12, border: `1.5px solid ${escola.status === "SUSPENSA" ? "#fecaca" : "#f1f5f9"}`, background: escola.status === "SUSPENSA" ? "#fff5f5" : "#fafafa", flexWrap: "wrap" }}>
-                  {/* Logo ou ícone */}
-                  <div style={{ width: 52, height: 52, borderRadius: 10, background: "#2563eb18", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", flexShrink: 0 }}>
-                    {escola.logo_url ? <img src={escola.logo_url} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} onError={e => e.target.style.display = "none"} /> : <span style={{ fontSize: 24 }}>🏫</span>}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 180 }}>
-                    <div style={{ fontWeight: 800, fontSize: 16, color: "#1e293b" }}>{escola.nome}</div>
-                    <div style={{ fontSize: 13, color: "#64748b" }}>
-                      {escola.cidade}{escola.responsavel_nome ? ` · ${escola.responsavel_nome}` : ""}
-                    </div>
-                    {escola.status === "SUSPENSA" && escola.motivo_suspensao && (
-                      <div style={{ fontSize: 11, color: "#ef4444", marginTop: 2 }}>🔴 {escola.motivo_suspensao}</div>
-                    )}
-                  </div>
-                  <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                    <Badge color={planColor(escola.plano)}>{escola.plano}</Badge>
-                    <Badge color={statusColor(escola.status)}>{escola.status}</Badge>
-                    {escola.data_vencimento && <span style={{ fontSize: 11, color: "#94a3b8" }}>até {new Date(escola.data_vencimento).toLocaleDateString("pt-BR")}</span>}
-                    <Btn small variant="ghost" onClick={() => setEscolaSelecionada(escola)}>Gerenciar →</Btn>
-                    <Btn small variant="primary" onClick={() => onEntrarEscola(escola)}>Acessar</Btn>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
+        )}
       </div>
 
-      {modalNova && <ModalEscola onClose={() => setModalNova(false)} onSave={e => { setEscolas(p => [...p, e]); }} />}
+      {modalNova && <ModalEscola onClose={() => setModalNova(false)} onSave={e => setEscolas(p => [...p, e])} />}
       {escolaSelecionada && (
         <PainelEscola
           escola={escolaSelecionada}
           onClose={() => setEscolaSelecionada(null)}
           onUpdate={updated => { setEscolas(p => p.map(e => e.id === updated.id ? updated : e)); setEscolaSelecionada(updated); }}
           onEntrar={escola => { setEscolaSelecionada(null); onEntrarEscola(escola); }}
+        />
+      )}
+      {modalModulos && (
+        <ModalModulos
+          escola={modalModulos}
+          onClose={() => setModalModulos(null)}
+          onSave={updated => { setEscolas(p => p.map(e => e.id === updated.id ? updated : e)); setModalModulos(null); }}
         />
       )}
     </div>
@@ -701,19 +853,38 @@ function LoginPage({ onLogin }) {
     setLoading(false);
   };
   return (
-    <div style={{ minHeight: "100vh", background: "#f1f5f9", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontFamily: "system-ui,sans-serif" }}>
-      <div style={{ marginBottom: 28, textAlign: "center" }}>
-        <div style={{ width: 56, height: 56, borderRadius: "50%", background: "#2563eb", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px", fontSize: 26 }}>🏫</div>
-        <h1 style={{ margin: 0, fontSize: 20, fontWeight: 900, color: "#1e293b" }}>HUB DE RELACIONAMENTO</h1>
-        <p style={{ margin: "4px 0 0", color: "#94a3b8", fontSize: 13 }}>Autenticação Segura</p>
+    <div style={{ minHeight: "100vh", background: "linear-gradient(135deg, #faf5ff 0%, #f0fdf4 100%)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontFamily: "system-ui,sans-serif" }}>
+      {/* Logo e título */}
+      <div style={{ marginBottom: 32, textAlign: "center" }}>
+        <div style={{ marginBottom: 16 }}>
+          <svg width="180" height="52" viewBox="0 0 180 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <text x="0" y="40" fontFamily="system-ui,sans-serif" fontWeight="900" fontSize="36" fill="#a855f7">NARA</text>
+            <text x="93" y="40" fontFamily="system-ui,sans-serif" fontWeight="700" fontSize="26" fill="#86efac">EDU</text>
+            <text x="145" y="40" fontFamily="system-ui,sans-serif" fontWeight="900" fontSize="26" fill="#a855f7">360</text>
+          </svg>
+        </div>
+        <div style={{ display: "flex", justifyContent: "center", gap: 10, flexWrap: "wrap", marginBottom: 8 }}>
+          {[{ e: "💬", n: "Relacionamento" }, { e: "📊", n: "Relatórios" }, { e: "📅", n: "Reuniões" }].map(m => (
+            <span key={m.n} style={{ fontSize: 11, fontWeight: 600, color: "#a855f7", background: "#faf5ff", border: "1px solid #e9d5ff", padding: "3px 10px", borderRadius: 20 }}>{m.e} {m.n}</span>
+          ))}
+        </div>
+        <p style={{ margin: 0, color: "#94a3b8", fontSize: 13 }}>Ecossistema de Gestão Escolar</p>
       </div>
-      <Card style={{ width: 360, padding: 28 }}>
+
+      {/* Card de login */}
+      <div style={{ width: 380, background: "#fff", borderRadius: 20, padding: 32, boxShadow: "0 8px 40px rgba(168,85,247,.12)", border: "1.5px solid #e9d5ff" }}>
+        <h2 style={{ margin: "0 0 20px", fontSize: 16, fontWeight: 700, color: "#1e293b", textAlign: "center" }}>Acesse sua conta</h2>
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <Input label="E-mail" type="email" placeholder="nome@instituicao.edu.br" value={email} onChange={e => setEmail(e.target.value)} onKeyDown={e => e.key === "Enter" && handle()} />
           <Input label="Senha" type="password" placeholder="••••••••" value={senha} onChange={e => setSenha(e.target.value)} onKeyDown={e => e.key === "Enter" && handle()} error={erro} />
-          <Btn onClick={handle} disabled={loading} style={{ width: "100%", justifyContent: "center", marginTop: 4 }}>{loading ? "Entrando..." : "ENTRAR"}</Btn>
+          <button onClick={handle} disabled={loading}
+            style={{ width: "100%", padding: "12px", borderRadius: 10, border: "none", cursor: loading ? "not-allowed" : "pointer", fontFamily: "inherit", fontSize: 15, fontWeight: 800, color: "#fff", background: loading ? "#c4b5fd" : "linear-gradient(135deg, #a855f7, #7c3aed)", marginTop: 4, letterSpacing: 1 }}>
+            {loading ? "Entrando..." : "ENTRAR"}
+          </button>
         </div>
-      </Card>
+      </div>
+
+      <p style={{ marginTop: 24, fontSize: 11, color: "#c4b5fd" }}>© NaraEdu · Núcleo de Acompanhamento e Registro da Aprendizagem</p>
     </div>
   );
 }
