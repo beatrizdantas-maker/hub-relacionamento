@@ -1346,6 +1346,7 @@ function PerfilAluno({ aluno: alunoInicial, comunicacoes, reunioes, onClose, pro
     setAnalisando(false);
   };
   return (
+    <>
     <Overlay onClose={onClose}>
       <MBox width={720}>
         <MHead title={aluno.nome} subtitle={`${aluno.turma} · RM: ${aluno.rm}`} onClose={onClose} />
@@ -1479,6 +1480,7 @@ function PerfilAluno({ aluno: alunoInicial, comunicacoes, reunioes, onClose, pro
         }}
       />
     )}
+    </>
   );
 }
 
