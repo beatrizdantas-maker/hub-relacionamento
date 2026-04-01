@@ -1374,10 +1374,15 @@ function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos: motiv
         <MBody>
           <FBlock num="1" title="Identificação">
             <BuscaAluno alunos={alunos} value={f.alunoId} onChange={id => upd("alunoId", id)} error={err.alunoId} />
+          </FBlock>
+          <FBlock num="2" title="Detalhamento">
+            <CampoRelato value={f.detalhes} onChange={v => upd("detalhes", v)} onBlur={() => analisarComIA(f.detalhes)} />
+            {err.detalhes && <span style={{ fontSize: 11, color: "#ef4444" }}>{err.detalhes}</span>}
+            {iaAnalisando && (<div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", background: "#faf5ff", borderRadius: 10, border: "1px solid #e9d5ff" }}><div style={{ width: 16, height: 16, border: "2px solid #e9d5ff", borderTop: "2px solid #7c3aed", borderRadius: "50%", animation: "spin 1s linear infinite", flexShrink: 0 }} /><span style={{ fontSize: 13, color: "#7c3aed" }}>🤖 IA analisando o relato...</span></div>)}
+            {iaSugestao && !iaAnalisando && (<div style={{ padding: "14px 16px", background: iaSugestao.encontrado ? "#eff6ff" : "#fefce8", borderRadius: 10, border: `1.5px solid ${iaSugestao.encontrado ? "#bfdbfe" : "#fef08a"}` }}><div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}><div><div style={{ fontSize: 12, fontWeight: 700, color: iaSugestao.encontrado ? "#1d4ed8" : "#a16207", marginBottom: 4 }}>🤖 {iaSugestao.encontrado ? "IA identificou o motivo:" : "IA sugere novo motivo:"}</div><div style={{ fontSize: 14, fontWeight: 800, color: "#1e293b" }}>{iaSugestao.nome}</div><div style={{ fontSize: 12, color: iaSugestao.pontos > 0 ? "#dc2626" : "#16a34a", fontWeight: 700, marginTop: 2 }}>{iaSugestao.pontos > 0 ? `⚠️ +${iaSugestao.pontos} pts de risco` : `✅ ${Math.abs(iaSugestao.pontos)} pts de redução`}{!iaSugestao.encontrado && <span style={{ color: "#a16207", fontWeight: 600, marginLeft: 8 }}>· será criado automaticamente</span>}</div></div><div style={{ display: "flex", gap: 8 }}><Btn small variant="success" onClick={confirmarSugestao}>✅ Confirmar</Btn><Btn small variant="ghost" onClick={() => setIaSugestao(null)}>❌ Ignorar</Btn></div></div></div>)}
+            {/* Motivo da comunicação */}
             <div>
               <BuscaMotivo motivos={motivos} value={f.motivoId} onChange={id => upd("motivoId", id)} error={err.motivoId} />
-
-              {/* Campo personalizado */}
               {f.motivoId === "outro" && (
                 <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
                   <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 10 }}>
@@ -1391,11 +1396,9 @@ function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos: motiv
                       <input type="number" value={f.motivoCustomPontos} onChange={e => upd("motivoCustomPontos", e.target.value)} placeholder="Ex: 15" min="-50" max="50" style={{ padding: "9px 13px", border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 14, outline: "none", background: "#fafafa", color: "#1e293b", fontFamily: "inherit" }} />
                     </div>
                   </div>
-                  <div style={{ fontSize: 11, color: "#94a3b8" }}>💡 Valores positivos aumentam o risco. Negativos reduzem. Ex: +15 para algo ruim, -5 para algo bom.</div>
+                  <div style={{ fontSize: 11, color: "#94a3b8" }}>💡 Valores positivos aumentam o risco. Negativos reduzem.</div>
                 </div>
               )}
-
-              {/* Preview da pontuação */}
               {motivoSel && f.motivoId !== "outro" && (
                 <div style={{ marginTop: 6, padding: "6px 12px", borderRadius: 8, background: motivoSel.pontos > 0 ? "#fef2f2" : "#f0fdf4", border: `1px solid ${motivoSel.pontos > 0 ? "#fecaca" : "#bbf7d0"}`, fontSize: 12, fontWeight: 700, color: motivoSel.pontos > 0 ? "#dc2626" : "#16a34a" }}>
                   {motivoSel.pontos > 0 ? `⚠️ +${motivoSel.pontos} pontos de risco` : `✓ ${Math.abs(motivoSel.pontos)} pontos de risco reduzidos`}
@@ -1407,12 +1410,6 @@ function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos: motiv
                 </div>
               )}
             </div>
-          </FBlock>
-          <FBlock num="2" title="Detalhamento">
-            <CampoRelato value={f.detalhes} onChange={v => upd("detalhes", v)} onBlur={() => analisarComIA(f.detalhes)} />
-            {err.detalhes && <span style={{ fontSize: 11, color: "#ef4444" }}>{err.detalhes}</span>}
-            {iaAnalisando && (<div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", background: "#faf5ff", borderRadius: 10, border: "1px solid #e9d5ff" }}><div style={{ width: 16, height: 16, border: "2px solid #e9d5ff", borderTop: "2px solid #7c3aed", borderRadius: "50%", animation: "spin 1s linear infinite", flexShrink: 0 }} /><span style={{ fontSize: 13, color: "#7c3aed" }}>🤖 IA analisando o relato...</span></div>)}
-            {iaSugestao && !iaAnalisando && (<div style={{ padding: "14px 16px", background: iaSugestao.encontrado ? "#eff6ff" : "#fefce8", borderRadius: 10, border: `1.5px solid ${iaSugestao.encontrado ? "#bfdbfe" : "#fef08a"}` }}><div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}><div><div style={{ fontSize: 12, fontWeight: 700, color: iaSugestao.encontrado ? "#1d4ed8" : "#a16207", marginBottom: 4 }}>🤖 {iaSugestao.encontrado ? "IA identificou o motivo:" : "IA sugere novo motivo:"}</div><div style={{ fontSize: 14, fontWeight: 800, color: "#1e293b" }}>{iaSugestao.nome}</div><div style={{ fontSize: 12, color: iaSugestao.pontos > 0 ? "#dc2626" : "#16a34a", fontWeight: 700, marginTop: 2 }}>{iaSugestao.pontos > 0 ? `⚠️ +${iaSugestao.pontos} pts de risco` : `✅ ${Math.abs(iaSugestao.pontos)} pts de redução`}{!iaSugestao.encontrado && <span style={{ color: "#a16207", fontWeight: 600, marginLeft: 8 }}>· será criado automaticamente</span>}</div></div><div style={{ display: "flex", gap: 8 }}><Btn small variant="success" onClick={confirmarSugestao}>✅ Confirmar</Btn><Btn small variant="ghost" onClick={() => setIaSugestao(null)}>❌ Ignorar</Btn></div></div></div>)}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               <Sel label="Via de Comunicação *" error={err.via} value={f.via} onChange={e => upd("via", e.target.value)}>
                 <option value="">Selecione...</option>
