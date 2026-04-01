@@ -1271,12 +1271,40 @@ function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos: motiv
   const [saving, setSaving] = useState(false);
   const upd = (k, v) => setF(p => ({ ...p, [k]: v }));
 
-  const setorParaPerfil = { "Psicólogo": "PSICOLOGO", "Psicopedagogo": "PSICOPEDAGOGO", "Secretária": "SECRETARIA", "Professor": "PROFESSOR", "Recepção": "RECEPÇÃO", "Núcleo Pedagógico": "NUCLEO", "Direção": "DIRECAO" };
-  const equipeDoSetor = f.encDestino ? equipe.filter(u => u.perfil === setorParaPerfil[f.encDestino] && u.id !== profile.id) : equipe.filter(u => u.id !== profile.id);
+  const equipeDisponivel = equipe.filter(u => u.id !== profile.id && u.ativo !== false);
 
   const motivoSel = f.motivoId === "outro" ? { nome: f.motivoCustom, pontos: Number(f.motivoCustomPontos) || 0 } : motivos?.find(m => m.id === f.motivoId);
 
-  const validate = () => {
+  const analisarComIA = async (texto) => {
+    if (!texto || texto.trim().length < 10) return;
+    setIaAnalisando(true); setIaSugestao(null);
+    try {
+      const resp = await fetch('/api/sugerir-motivo', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ relato: texto, motivos })
+      });
+      const data = await resp.json();
+      if (!data.error) setIaSugestao(data);
+    } catch(e) { /* silencioso */ }
+    setIaAnalisando(false);
+  };
+
+  const confirmarSugestao = async () => {
+    if (!iaSugestao) return;
+    if (iaSugestao.encontrado && iaSugestao.id) {
+      upd("motivoId", iaSugestao.id);
+    } else {
+      const { data, error } = await supabase.from("motivos").insert([{
+        escola_id: escolaId || profile.escola_id,
+        nome: iaSugestao.nome, pontos: iaSugestao.pontos
+      }]).select().single();
+      if (!error && data) { setMotivos(p => [...p, data]); upd("motivoId", data.id); }
+    }
+    setIaSugestao(null);
+  };
+
+    const validate = () => {
     const e = {};
     if (!f.alunoId) e.alunoId = "Obrigatório";
     if (!f.motivoId) e.motivoId = "Selecione o motivo";
@@ -1414,24 +1442,29 @@ function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos: motiv
           </FBlock>
           <FBlock num="3" title="Encaminhamento">
             <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer", padding: 12, borderRadius: 8, border: `1.5px solid ${f.encaminhar ? "#2563eb" : "#e2e8f0"}`, background: f.encaminhar ? "#eff6ff" : "#fff" }}>
-              <input type="checkbox" checked={f.encaminhar} onChange={e => upd("encaminhar", e.target.checked)} style={{ marginTop: 2 }} />
-              <div><div style={{ fontWeight: 600, color: "#1e293b", fontSize: 14 }}>Encaminhar para outro setor</div><div style={{ fontSize: 12, color: "#94a3b8" }}>Exige ação ou acompanhamento de terceiros.</div></div>
+              <input type="checkbox" checked={f.encaminhar} onChange={e => { upd("encaminhar", e.target.checked); if(!e.target.checked){upd("encResponsavelId","");upd("encResponsavelNome","");upd("encDestino","");upd("encObs","");} }} style={{ marginTop: 2 }} />
+              <div><div style={{ fontWeight: 600, color: "#1e293b", fontSize: 14 }}>Encaminhar para um responsável</div><div style={{ fontSize: 12, color: "#94a3b8" }}>Exige ação ou acompanhamento de outra pessoa.</div></div>
             </label>
             {f.encaminhar && (
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                  <Sel label="Setor de Destino *" error={err.encDestino} value={f.encDestino} onChange={e => { upd("encDestino", e.target.value); upd("encResponsavelId", ""); upd("encResponsavelNome", ""); }}>
-                    <option value="">Selecione...</option>
-                    {SETORES.map(s => <option key={s}>{s}</option>)}
-                  </Sel>
-                  <Sel label={`Responsável *${f.encDestino && equipeDoSetor.length > 0 ? ` (${equipeDoSetor.length})` : ""}`} error={err.encResponsavel} value={f.encResponsavelId} onChange={e => { const u = equipe.find(x => x.id === e.target.value); upd("encResponsavelId", e.target.value); upd("encResponsavelNome", u?.nome || ""); }}>
-                    <option value="">Selecione...</option>
-                    {equipeDoSetor.map(u => <option key={u.id} value={u.id}>{u.nome}</option>)}
-                  </Sel>
-                </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: "#475569" }}>Observações para o destino</label>
-                  <textarea value={f.encObs} onChange={e => upd("encObs", e.target.value)} placeholder="Instruções..." rows={2} style={{ padding: "9px 13px", border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 14, outline: "none", background: "#fafafa", fontFamily: "inherit", resize: "vertical", boxSizing: "border-box", width: "100%" }} />
+                  <label style={{ fontSize: 12, fontWeight: 600, color: err.encResponsavel ? "#ef4444" : "#475569" }}>
+                    Responsável * <span style={{ fontWeight: 400, color: "#94a3b8" }}>({equipe.filter(u=>u.id!==profile.id&&u.ativo!==false).length} disponíveis)</span>
+                  </label>
+                  <select value={f.encResponsavelId} onChange={e => { const u=equipe.find(x=>x.id===e.target.value); upd("encResponsavelId",e.target.value); upd("encResponsavelNome",u?.nome||""); upd("encDestino",u?perfilLabel(u.perfil):""); }}
+                    style={{ padding:"9px 13px", border:`1.5px solid ${err.encResponsavel?"#ef4444":"#e2e8f0"}`, borderRadius:8, fontSize:14, outline:"none", background:"#fafafa", color:"#1e293b", fontFamily:"inherit", width:"100%" }}>
+                    <option value="">Selecione o responsável...</option>
+                    {equipe.filter(u=>u.id!==profile.id&&u.ativo!==false).map(u=>(
+                      <option key={u.id} value={u.id}>{u.nome} — {perfilLabel(u.perfil)}{u.cargo?` (${u.cargo})":""}</option>
+                    ))}
+                  </select>
+                  {err.encResponsavel && <span style={{ fontSize:11, color:"#ef4444" }}>{err.encResponsavel}</span>}
+                  {f.encResponsavelId && <div style={{ padding:"8px 12px", background:"#eff6ff", borderRadius:8, fontSize:13, color:"#1d4ed8", marginTop:4 }}>✅ Encaminhar para <strong>{f.encResponsavelNome}</strong></div>}
+                </div>
+                <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
+                  <label style={{ fontSize:12, fontWeight:600, color:"#475569" }}>Observações (opcional)</label>
+                  <textarea value={f.encObs} onChange={e=>upd("encObs",e.target.value)} placeholder="Instruções ou contexto adicional..." rows={2}
+                    style={{ padding:"9px 13px", border:"1.5px solid #e2e8f0", borderRadius:8, fontSize:14, outline:"none", background:"#fafafa", fontFamily:"inherit", resize:"vertical", boxSizing:"border-box", width:"100%" }} />
                 </div>
               </div>
             )}
