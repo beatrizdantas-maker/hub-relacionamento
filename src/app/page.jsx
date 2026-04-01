@@ -1869,7 +1869,7 @@ function PerfilAluno({ aluno: alunoInicial, comunicacoes, reunioes, onClose, pro
   const [analise, setAnalise] = useState(null);
   const [editando, setEditando] = useState(false);
   const podeEditar = profile.perfil === "DIRECAO" || profile.perfil === "SECRETARIA" || profile.perfil === "SUPER_ADMIN";
-  const isCan = (c) => profile.perfil === "DIRECAO" || profile.perfil === "SUPER_ADMIN" || c.autor_id === profile.id || c.enc_responsavel_id === profile.id || (window._cienciaMap && window._cienciaMap[c.id] && window._cienciaMap[c.id].includes(profile.id));
+  const isCan = (c) => profile.perfil === "DIRECAO" || profile.perfil === "SUPER_ADMIN" || c.autor_id === profile.id || c.enc_responsavel_id === profile.id ;
   const coms = comunicacoes.filter(c => c.aluno_id === aluno.id && isCan(c));
   const reunioesA = reunioes.filter(r => r.convocados?.some(c => c.aluno_id === aluno.id));
   const totalP = reunioesA.reduce((s, r) => s + (r.convocados?.find(c => c.aluno_id === aluno.id)?.compareceu ? 1 : 0), 0);
