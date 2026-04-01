@@ -1270,8 +1270,8 @@ function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos: motiv
   const [err, setErr] = useState({});
   const [saving, setSaving] = useState(false);
   const upd = (k, v) => setF(p => ({ ...p, [k]: v }));
-
-  const equipeDisponivel = equipe.filter(u => u.id !== profile.id && u.ativo !== false);
+  const setorParaPerfil = { "Psicólogo": "PSICOLOGO", "Psicopedagogo": "PSICOPEDAGOGO", "Secretária": "SECRETARIA", "Professor": "PROFESSOR", "Recepção": "RECEPÇÃO", "Núcleo Pedagógico": "NUCLEO", "Direção": "DIRECAO" };
+  const equipeDisponivel = equipe.filter(u => u.id !== profile.id);
 
   const motivoSel = f.motivoId === "outro" ? { nome: f.motivoCustom, pontos: Number(f.motivoCustomPontos) || 0 } : motivos?.find(m => m.id === f.motivoId);
 
