@@ -351,6 +351,49 @@ function ModalNovoUsuario({ escola, onClose, onSave }) {
   );
 }
 
+// ── MODAL EDITAR USUÁRIO ───────────────────────────────────────────────────────
+function ModalEditarUsuario({ usuario, onClose, onSave }) {
+  const [f, setF] = useState({ nome: usuario.nome || "", perfil: usuario.perfil || "PROFESSOR", cargo: usuario.cargo || "" });
+  const [novaSenha, setNovaSenha] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState({});
+  const upd = (k, v) => setF(p => ({ ...p, [k]: v }));
+  const handle = async () => {
+    const e = {};
+    if (!f.nome.trim()) e.nome = "Obrigatório";
+    if (novaSenha && novaSenha.length < 6) e.senha = "Mínimo 6 caracteres";
+    setErr(e); if (Object.keys(e).length) return;
+    setSaving(true);
+    await supabase.from("profiles").update({ nome: f.nome.trim(), perfil: f.perfil, cargo: f.cargo, avatar: f.nome.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase() }).eq("id", usuario.id);
+    onSave({ ...usuario, nome: f.nome, perfil: f.perfil, cargo: f.cargo });
+    setSaving(false);
+  };
+  return (
+    <Overlay onClose={onClose}>
+      <MBox width={500}>
+        <MHead title="Editar Usuário" subtitle={usuario.nome} icon="✏️" onClose={onClose} />
+        <MBody>
+          <Input label="Nome completo *" error={err.nome} value={f.nome} onChange={e => upd("nome", e.target.value)} />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <Sel label="Perfil" value={f.perfil} onChange={e => upd("perfil", e.target.value)}>
+              {PERFIS.map(p => <option key={p} value={p}>{perfilLabel(p)}</option>)}
+            </Sel>
+            <Input label="Cargo (opcional)" value={f.cargo} onChange={e => upd("cargo", e.target.value)} placeholder="Ex: Coordenadora" />
+          </div>
+          <div style={{ padding: "12px 14px", background: "#f8fafc", borderRadius: 10, border: "1px solid #e2e8f0" }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#475569", marginBottom: 8 }}>🔑 Redefinir senha (opcional)</div>
+            <Input label="Nova senha" type="password" error={err.senha} value={novaSenha} onChange={e => setNovaSenha(e.target.value)} placeholder="Deixe em branco para não alterar" />
+          </div>
+        </MBody>
+        <MFoot>
+          <Btn variant="ghost" onClick={onClose}>Cancelar</Btn>
+          <Btn onClick={handle} disabled={saving}>{saving ? "Salvando..." : "Salvar Alterações"}</Btn>
+        </MFoot>
+      </MBox>
+    </Overlay>
+  );
+}
+
 // ── MODAL SUSPENDER ESCOLA ─────────────────────────────────────────────────────
 function ModalSuspender({ escola, onClose, onConfirm }) {
   const [motivo, setMotivo] = useState("");
@@ -392,6 +435,7 @@ function PainelEscola({ escola, onClose, onUpdate, onEntrar }) {
   const [modalUsuario, setModalUsuario] = useState(false);
   const [modalSuspender, setModalSuspender] = useState(false);
   const [modalEditar, setModalEditar] = useState(false);
+  const [editandoUsuario, setEditandoUsuario] = useState(null);
   const [tab, setTab] = useState("info");
 
   useEffect(() => { carregarUsuarios(); }, [escola.id]);
@@ -512,6 +556,7 @@ function PainelEscola({ escola, onClose, onUpdate, onEntrar }) {
                       </div>
                       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                         <Badge color={u.perfil === "DIRECAO" ? "#7c3aed" : "#2563eb"}>{perfilLabel(u.perfil)}</Badge>
+                        <Btn small variant="ghost" onClick={() => setEditandoUsuario(u)}>✏️ Editar</Btn>
                         {u.ativo === false ? (
                           <Btn small variant="success" onClick={() => ativarUsuario(u.id)}>Ativar</Btn>
                         ) : (
@@ -561,6 +606,7 @@ function PainelEscola({ escola, onClose, onUpdate, onEntrar }) {
         </MBody>
       </MBox>
       {modalUsuario && <ModalNovoUsuario escola={escola} onClose={() => setModalUsuario(false)} onSave={u => { setUsuarios(p => [...p, u]); }} />}
+      {editandoUsuario && <ModalEditarUsuario usuario={editandoUsuario} onClose={() => setEditandoUsuario(null)} onSave={u => { setUsuarios(p => p.map(x => x.id === u.id ? { ...x, ...u } : x)); setEditandoUsuario(null); }} />}
       {modalSuspender && <ModalSuspender escola={escola} onClose={() => setModalSuspender(false)} onConfirm={(id, status, motivo) => { onUpdate({ ...escola, status, motivo_suspensao: motivo }); onClose(); }} />}
       {modalEditar && <ModalEscola escola={escola} onClose={() => setModalEditar(false)} onSave={updated => { onUpdate(updated); setModalEditar(false); }} />}
     </Overlay>
@@ -1942,6 +1988,7 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
     { id: "encaminhamentos", icon: "📨", label: "Encaminhamentos" },
     { id: "reunioes", icon: "📅", label: "Reuniões" },
     { id: "retencao", icon: "📉", label: "Retenção" },
+    ...(profile.perfil === "DIRECAO" || profile.perfil === "SUPER_ADMIN" ? [{ id: "equipe", icon: "👥", label: "Equipe" }] : []),
   ];
 
   if (loading) return <Loading msg="Carregando dados da escola..." />;
@@ -2348,7 +2395,48 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
   };
 
   // ── RETENÇÃO ──
-  const RetencaoPage = () => {
+  const EquipePage = () => {
+    const [equipeLocal, setEquipeLocal] = useState(equipe);
+    const [modalNovo, setModalNovo] = useState(false);
+    const [editando, setEditando] = useState(null);
+    const [busca, setBusca] = useState("");
+    const [salvando, setSalvando] = useState(null);
+    const filtrados = equipeLocal.filter(u => !busca || u.nome?.toLowerCase().includes(busca.toLowerCase()) || u.perfil?.toLowerCase().includes(busca.toLowerCase()));
+    const desativar = async (u) => { setSalvando(u.id); await supabase.from("profiles").update({ ativo: false }).eq("id", u.id); setEquipeLocal(p => p.map(x => x.id === u.id ? { ...x, ativo: false } : x)); setSalvando(null); };
+    const ativar = async (u) => { setSalvando(u.id); await supabase.from("profiles").update({ ativo: true }).eq("id", u.id); setEquipeLocal(p => p.map(x => x.id === u.id ? { ...x, ativo: true } : x)); setSalvando(null); };
+    const salvarEdicao = async (dados) => { await supabase.from("profiles").update({ nome: dados.nome, perfil: dados.perfil, cargo: dados.cargo, avatar: dados.nome.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase() }).eq("id", dados.id); setEquipeLocal(p => p.map(x => x.id === dados.id ? { ...x, ...dados } : x)); setEditando(null); };
+    const criarUsuario = async (f) => { const { data: signData, error } = await supabase.auth.signUp({ email: f.email, password: f.senha, options: { data: { nome: f.nome, perfil: f.perfil } } }); if (error) return error.message; if (signData.user) { const novo = { id: signData.user.id, nome: f.nome, perfil: f.perfil, cargo: f.cargo, escola_id: escola.id, ativo: true, avatar: f.nome.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase() }; await supabase.from("profiles").upsert(novo); setEquipeLocal(p => [...p, { ...novo, email: f.email }].sort((a, b) => (a.nome||"").localeCompare(b.nome||""))); } return null; };
+    return (
+      <div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+          <div><h2 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: "#1e293b" }}>👥 Equipe</h2><p style={{ margin: "4px 0 0", fontSize: 13, color: "#94a3b8" }}>{equipeLocal.length} usuário(s)</p></div>
+          <Btn icon="+" onClick={() => setModalNovo(true)}>Novo Usuário</Btn>
+        </div>
+        <div style={{ marginBottom: 16 }}><Input placeholder="🔍 Buscar por nome ou perfil..." value={busca} onChange={e => setBusca(e.target.value)} /></div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {filtrados.length === 0 && <div style={{ textAlign: "center", padding: 40, color: "#94a3b8" }}><div style={{ fontSize: 32, marginBottom: 12 }}>👥</div><p>Nenhum usuário encontrado.</p></div>}
+          {filtrados.map(u => (
+            <div key={u.id} style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 18px", borderRadius: 12, border: `1.5px solid ${u.ativo === false ? "#fecaca" : "#e9d5ff"}`, background: u.ativo === false ? "#fef2f2" : "#fff", boxShadow: "0 1px 4px rgba(0,0,0,.04)" }}>
+              <Av initials={u.avatar || (u.nome||"?").slice(0,2).toUpperCase()} color={u.ativo === false ? "#ef4444" : "#7c3aed"} size={44} />
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 800, fontSize: 15, color: u.ativo === false ? "#94a3b8" : "#1e293b" }}>{u.nome}</div>
+                <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 2 }}>{perfilLabel(u.perfil)}{u.cargo ? ` · ${u.cargo}` : ""}{u.ativo === false && <span style={{ marginLeft: 8, color: "#ef4444", fontWeight: 700 }}>• Inativo</span>}</div>
+              </div>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <Badge color={u.perfil === "DIRECAO" ? "#7c3aed" : "#2563eb"}>{perfilLabel(u.perfil)}</Badge>
+                <Btn small variant="ghost" onClick={() => setEditando(u)}>✏️ Editar</Btn>
+                {u.ativo === false ? <Btn small variant="success" disabled={salvando===u.id} onClick={() => ativar(u)}>{salvando===u.id?"...":"Ativar"}</Btn> : <Btn small variant="danger" disabled={salvando===u.id} onClick={() => desativar(u)}>{salvando===u.id?"...":"Desativar"}</Btn>}
+              </div>
+            </div>
+          ))}
+        </div>
+        {modalNovo && <ModalNovoUsuario escola={escola} onClose={() => setModalNovo(false)} onSave={u => setEquipeLocal(p => [...p, u].sort((a,b) => (a.nome||"").localeCompare(b.nome||"")))} />}
+        {editando && (<Overlay onClose={() => setEditando(null)}><MBox width={480}><MHead title="Editar Usuário" subtitle={editando.nome} icon="✏️" onClose={() => setEditando(null)} /><MBody><Input label="Nome completo *" value={editando.nome} onChange={e => setEditando(p=>({...p,nome:e.target.value}))} /><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}><Sel label="Perfil" value={editando.perfil} onChange={e => setEditando(p=>({...p,perfil:e.target.value}))}>{PERFIS.map(p=><option key={p} value={p}>{perfilLabel(p)}</option>)}</Sel><Input label="Cargo (opcional)" value={editando.cargo||""} onChange={e => setEditando(p=>({...p,cargo:e.target.value}))} placeholder="Ex: Coordenadora" /></div></MBody><MFoot><Btn variant="ghost" onClick={() => setEditando(null)}>Cancelar</Btn><Btn onClick={() => salvarEdicao(editando)}>Salvar</Btn></MFoot></MBox></Overlay>)}
+      </div>
+    );
+  };
+
+    const RetencaoPage = () => {
     const alto = alunos.filter(a => a.risco >= 60).sort((a, b) => b.risco - a.risco);
     const medio = alunos.filter(a => a.risco >= 30 && a.risco < 60).sort((a, b) => b.risco - a.risco);
     const PainelAluno = ({ a, nivel }) => {
@@ -2428,6 +2516,7 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
           {pagina === "encaminhamentos" && <EncaminhamentosPage />}
           {pagina === "reunioes" && <ReunioesPage />}
           {pagina === "retencao" && <RetencaoPage />}
+          {pagina === "equipe" && <EquipePage />}
         </div>
       </div>
       {modalNovaCom && <ModalNovaCom onClose={() => setModalNovaCom(false)} onSave={addCom} profile={profile} alunos={alunos} equipe={equipe} motivos={motivos} escolaId={escola.id} />}
