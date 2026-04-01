@@ -2438,7 +2438,6 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
           ))}
         </nav>
         <div style={{ padding: "12px 8px", borderTop: "1px solid #f1f5f9" }}>
-          {onVoltarHub && <button onClick={onVoltarHub} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700, color: "#a855f7", background: "#faf5ff", width: "100%", marginBottom: 4, borderRadius: 8 }}>⊞ Hub NARAEDU360</button>}
           {onVoltarAdmin && <button onClick={onVoltarAdmin} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700, color: "#7c3aed", background: "transparent", width: "100%" }}>← Admin Global</button>}
           <button onClick={onLogout} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600, color: "#ef4444", background: "transparent", width: "100%" }}>↪ Sair</button>
         </div>
@@ -2571,7 +2570,6 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [escolaAtiva, setEscolaAtiva] = useState(null);
-  const [moduloAtivo, setModuloAtivo] = useState(null);
   const [iniciando, setIniciando] = useState(true);
 
   useEffect(() => {
@@ -2601,33 +2599,13 @@ export default function App() {
   const escola = escolaAtiva || profile.escolas;
   const voltarAdmin = profile.perfil === "SUPER_ADMIN" ? () => { setEscolaAtiva(null); setModuloAtivo(null); } : null;
 
-  // Se não escolheu módulo ainda → mostra o Hub
-  if (!moduloAtivo) return (
-    <NaraHub
-      user={user} profile={profile} escola={escola}
-      onEntrarModulo={setModuloAtivo}
+  return (
+    <SchoolApp
+      user={user}
+      profile={profile}
+      escola={escola}
       onLogout={handleLogout}
       onVoltarAdmin={voltarAdmin}
     />
-  );
-
-  // Módulo escolhido → entra no app correspondente
-  if (moduloAtivo === "relacionamento") {
-    return <SchoolApp user={user} profile={profile} escola={escola} onLogout={handleLogout}
-      onVoltarAdmin={voltarAdmin}
-      onVoltarHub={() => setModuloAtivo(null)}
-    />;
-  }
-
-  // Outros módulos futuros
-  return (
-    <div style={{ minHeight: "100vh", background: "#f5f3ff", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "system-ui,sans-serif" }}>
-      <div style={{ textAlign: "center" }}>
-        <div style={{ fontSize: 48, marginBottom: 16 }}>🚧</div>
-        <h2 style={{ margin: "0 0 8px", color: "#1e293b" }}>Módulo em desenvolvimento</h2>
-        <p style={{ color: "#64748b", marginBottom: 24 }}>Este módulo estará disponível em breve!</p>
-        <Btn onClick={() => setModuloAtivo(null)} style={{ background: "#7c3aed", color: "#fff", border: "none" }}>← Voltar ao Hub</Btn>
-      </div>
-    </div>
   );
 }
