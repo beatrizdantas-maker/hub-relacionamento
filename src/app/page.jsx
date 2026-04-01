@@ -2,19 +2,19 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "../lib/supabase";
 
-// ââ HELPERS ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── HELPERS ────────────────────────────────────────────────────────────────────
 const getRiscoColor = (r) => r >= 60 ? "#ef4444" : r >= 30 ? "#f59e0b" : "#22c55e";
 const getRiscoBg = (r) => r >= 60 ? "#fef2f2" : r >= 30 ? "#fffbeb" : "#f0fdf4";
-const getRiscoNivel = (r) => r >= 60 ? "ALTO" : r >= 30 ? "MÃDIO" : "BAIXO";
+const getRiscoNivel = (r) => r >= 60 ? "ALTO" : r >= 30 ? "MÉDIO" : "BAIXO";
 const getUrgColor = (u) => u === "ALTA" ? "#ef4444" : u === "MEDIA" ? "#f59e0b" : u === "BAIXA" ? "#22c55e" : "#94a3b8";
-const getStColor = (s) => s === "RESOLVIDO" ? "#22c55e" : s === "EM_ANALISE" ? "#3b82f6" : s === "CONCLUÃDO" ? "#8b5cf6" : "#f59e0b";
-const getStLabel = (s) => s === "EM_ANALISE" ? "EM ANÃLISE" : s || "PENDENTE";
+const getStColor = (s) => s === "RESOLVIDO" ? "#22c55e" : s === "EM_ANALISE" ? "#3b82f6" : s === "CONCLUÍDO" ? "#8b5cf6" : "#f59e0b";
+const getStLabel = (s) => s === "EM_ANALISE" ? "EM ANÁLISE" : s || "PENDENTE";
 const fmtDate = () => new Date().toLocaleDateString("pt-BR");
-const perfilLabel = (p) => ({ SUPER_ADMIN: "Super Admin", DIRECAO: "DireÃ§Ã£o", PSICOLOGO: "PsicÃ³logo", SECRETARIA: "SecretÃ¡ria", PROFESSOR: "Professor", NUCLEO: "NÃºcleo PedagÃ³gico", RECEPÃÃO: "RecepÃ§Ã£o", PSICOPEDAGOGO: "Psicopedagogo" }[p] || p);
-const SETORES = ["PsicÃ³logo", "Psicopedagogo", "SecretÃ¡ria", "Professor", "RecepÃ§Ã£o", "NÃºcleo PedagÃ³gico", "DireÃ§Ã£o"];
-const PERFIS = ["DIRECAO", "PSICOLOGO", "SECRETARIA", "PROFESSOR", "NUCLEO", "RECEPÃÃO", "PSICOPEDAGOGO"];
+const perfilLabel = (p) => ({ SUPER_ADMIN: "Super Admin", DIRECAO: "Direção", PSICOLOGO: "Psicólogo", SECRETARIA: "Secretária", PROFESSOR: "Professor", NUCLEO: "Núcleo Pedagógico", RECEPÇÃO: "Recepção", PSICOPEDAGOGO: "Psicopedagogo" }[p] || p);
+const SETORES = ["Psicólogo", "Psicopedagogo", "Secretária", "Professor", "Recepção", "Núcleo Pedagógico", "Direção"];
+const PERFIS = ["DIRECAO", "PSICOLOGO", "SECRETARIA", "PROFESSOR", "NUCLEO", "RECEPÇÃO", "PSICOPEDAGOGO"];
 
-// ââ UI ATOMS âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── UI ATOMS ───────────────────────────────────────────────────────────────────
 const Badge = ({ children, color = "#3b82f6" }) => (
   <span style={{ display: "inline-flex", alignItems: "center", padding: "2px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700, color, background: color + "18" }}>{children}</span>
 );
@@ -75,7 +75,7 @@ const MHead = ({ title, subtitle, icon, onClose }) => (
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>{icon && <span style={{ fontSize: 18 }}>{icon}</span>}<h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "#1e293b" }}>{title}</h2></div>
       {subtitle && <p style={{ margin: "3px 0 0", fontSize: 13, color: "#94a3b8" }}>{subtitle}</p>}
     </div>
-    <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20, color: "#94a3b8", padding: 4 }}>â</button>
+    <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20, color: "#94a3b8", padding: 4 }}>✕</button>
   </div>
 );
 const MBody = ({ children }) => (
@@ -93,7 +93,7 @@ const Loading = ({ msg = "Carregando..." }) => (
   </div>
 );
 
-// ââ MICROFONE + IA âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── MICROFONE + IA ─────────────────────────────────────────────────────────────
 function CampoRelato({ value, onChange }) {
   const [gravando, setGravando] = useState(false);
   const [transcricao, setTranscricao] = useState("");
@@ -129,7 +129,7 @@ function CampoRelato({ value, onChange }) {
         body: JSON.stringify({ texto: value }),
       });
       const data = await res.json();
-      setResumo(data.resumo || "NÃ£o foi possÃ­vel gerar o resumo.");
+      setResumo(data.resumo || "Não foi possível gerar o resumo.");
     } catch { setResumo("Erro ao conectar com a IA."); }
     setResumindo(false);
   };
@@ -137,30 +137,30 @@ function CampoRelato({ value, onChange }) {
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
       <label style={{ fontSize: 12, fontWeight: 600, color: "#475569" }}>Relato *</label>
       <div style={{ position: "relative" }}>
-        <textarea value={value} onChange={e => onChange(e.target.value)} placeholder={gravando ? "ð´ Gravando... fale agora." : "Descreva o ocorrido ou clique no microfone para gravar."} rows={gravando ? 5 : 4}
+        <textarea value={value} onChange={e => onChange(e.target.value)} placeholder={gravando ? "🔴 Gravando... fale agora." : "Descreva o ocorrido ou clique no microfone para gravar."} rows={gravando ? 5 : 4}
           style={{ width: "100%", padding: "12px 50px 12px 14px", border: `1.5px solid ${gravando ? "#ef4444" : "#e2e8f0"}`, borderRadius: 8, fontSize: gravando ? 17 : 14, outline: "none", background: gravando ? "#fff5f5" : "#fafafa", color: "#1e293b", fontFamily: "inherit", resize: "vertical", boxSizing: "border-box", transition: "all .2s" }} />
         <button type="button" onClick={gravando ? parar : iniciar} style={{ position: "absolute", right: 10, top: 10, width: 32, height: 32, borderRadius: "50%", border: "none", cursor: "pointer", background: gravando ? "#ef4444" : "#2563eb", color: "#fff", fontSize: 15, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          {gravando ? "â¹" : "ð¤"}
+          {gravando ? "⏹" : "🎤"}
         </button>
       </div>
       {gravando && <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "#fef2f2", borderRadius: 8, border: "1px solid #fecaca" }}>
         <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#ef4444" }} />
         <span style={{ fontSize: 12, color: "#dc2626", fontWeight: 600 }}>Gravando em tempo real</span>
         {transcricao && <span style={{ fontSize: 12, color: "#64748b", fontStyle: "italic" }}>"{transcricao}"</span>}
-        <Btn small variant="danger" onClick={parar} style={{ marginLeft: "auto" }}>â¹ Parar</Btn>
+        <Btn small variant="danger" onClick={parar} style={{ marginLeft: "auto" }}>⏹ Parar</Btn>
       </div>}
       {!gravando && value?.trim().length > 40 && !resumo && (
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <Btn small variant="secondary" onClick={resumir} disabled={resumindo} icon="â¨">{resumindo ? "Resumindo..." : "Resumir com IA"}</Btn>
+          <Btn small variant="secondary" onClick={resumir} disabled={resumindo} icon="✨">{resumindo ? "Resumindo..." : "Resumir com IA"}</Btn>
           <span style={{ fontSize: 11, color: "#94a3b8" }}>Gera um resumo limpo do relato</span>
         </div>
       )}
       {resumo && (
         <div style={{ padding: "14px 16px", background: "#eff6ff", borderRadius: 10, border: "1px solid #bfdbfe" }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: "#2563eb", marginBottom: 8 }}>â¨ Resumo gerado pela IA</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "#2563eb", marginBottom: 8 }}>✨ Resumo gerado pela IA</div>
           <p style={{ margin: "0 0 12px", fontSize: 14, color: "#1e293b", lineHeight: 1.6 }}>{resumo}</p>
           <div style={{ display: "flex", gap: 8 }}>
-            <Btn small onClick={() => { onChange(resumo); setResumo(""); }} icon="â">Usar este resumo</Btn>
+            <Btn small onClick={() => { onChange(resumo); setResumo(""); }} icon="✓">Usar este resumo</Btn>
             <Btn small variant="ghost" onClick={() => setResumo("")}>Manter original</Btn>
           </div>
         </div>
@@ -169,13 +169,13 @@ function CampoRelato({ value, onChange }) {
   );
 }
 
-// ââ MODAL ESCOLA COMPLETO ââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── MODAL ESCOLA COMPLETO ──────────────────────────────────────────────────────
 function ModalEscola({ escola, onClose, onSave }) {
   const editando = !!escola;
   const [f, setF] = useState({
     nome: escola?.nome || "",
     cidade: escola?.cidade || "",
-    plano: escola?.plano || "BÃSICO",
+    plano: escola?.plano || "BÁSICO",
     status: escola?.status || "ATIVA",
     subdomain: escola?.subdomain || "",
     telefone: escola?.telefone || "",
@@ -190,8 +190,8 @@ function ModalEscola({ escola, onClose, onSave }) {
 
   const validate = () => {
     const e = {};
-    if (!f.nome.trim()) e.nome = "ObrigatÃ³rio";
-    if (!f.subdomain.trim()) e.subdomain = "ObrigatÃ³rio";
+    if (!f.nome.trim()) e.nome = "Obrigatório";
+    if (!f.subdomain.trim()) e.subdomain = "Obrigatório";
     setErr(e); return Object.keys(e).length === 0;
   };
 
@@ -212,15 +212,15 @@ function ModalEscola({ escola, onClose, onSave }) {
   return (
     <Overlay onClose={onClose}>
       <MBox width={680}>
-        <MHead title={editando ? "Editar Escola" : "Cadastrar Nova Escola"} subtitle="Preencha todas as informaÃ§Ãµes da instituiÃ§Ã£o." icon="ð«" onClose={onClose} />
+        <MHead title={editando ? "Editar Escola" : "Cadastrar Nova Escola"} subtitle="Preencha todas as informações da instituição." icon="🏫" onClose={onClose} />
         <MBody>
-          {/* IdentificaÃ§Ã£o */}
+          {/* Identificação */}
           <div style={{ background: "#f8fafc", borderRadius: 12, padding: 18, border: "1px solid #e2e8f0", display: "flex", flexDirection: "column", gap: 12 }}>
-            <div style={{ fontWeight: 700, color: "#1e293b", fontSize: 14, marginBottom: 4 }}>ð IdentificaÃ§Ã£o</div>
+            <div style={{ fontWeight: 700, color: "#1e293b", fontSize: 14, marginBottom: 4 }}>📋 Identificação</div>
             <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 12 }}>
-              <Input label="Nome da InstituiÃ§Ã£o *" error={err.nome} value={f.nome} onChange={e => upd("nome", e.target.value)} placeholder="Ex: ColÃ©gio ABC" />
+              <Input label="Nome da Instituição *" error={err.nome} value={f.nome} onChange={e => upd("nome", e.target.value)} placeholder="Ex: Colégio ABC" />
               <Sel label="Plano" value={f.plano} onChange={e => upd("plano", e.target.value)}>
-                <option>TRIAL</option><option>BÃSICO</option><option>PRO</option>
+                <option>TRIAL</option><option>BÁSICO</option><option>PRO</option>
               </Sel>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -236,18 +236,18 @@ function ModalEscola({ escola, onClose, onSave }) {
 
           {/* Link de acesso */}
           <div style={{ background: "#f8fafc", borderRadius: 12, padding: 18, border: "1px solid #e2e8f0", display: "flex", flexDirection: "column", gap: 12 }}>
-            <div style={{ fontWeight: 700, color: "#1e293b", fontSize: 14, marginBottom: 4 }}>ð Link de Acesso</div>
-            <Input label="SubdomÃ­nio / Identificador Ãºnico *" error={err.subdomain} value={f.subdomain}
+            <div style={{ fontWeight: 700, color: "#1e293b", fontSize: 14, marginBottom: 4 }}>🔗 Link de Acesso</div>
+            <Input label="Subdomínio / Identificador único *" error={err.subdomain} value={f.subdomain}
               onChange={e => upd("subdomain", e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
               placeholder="ex: unicamaster"
-              hint={f.subdomain ? `Link: hub-relacionamento.vercel.app/escola/${f.subdomain}` : "Defina o identificador Ãºnico da escola"} />
+              hint={f.subdomain ? `Link: hub-relacionamento.vercel.app/escola/${f.subdomain}` : "Defina o identificador único da escola"} />
             <Input label="Data de Vencimento do Plano" type="date" value={f.data_vencimento} onChange={e => upd("data_vencimento", e.target.value)} />
           </div>
 
           {/* Contato */}
           <div style={{ background: "#f8fafc", borderRadius: 12, padding: 18, border: "1px solid #e2e8f0", display: "flex", flexDirection: "column", gap: 12 }}>
-            <div style={{ fontWeight: 700, color: "#1e293b", fontSize: 14, marginBottom: 4 }}>ð Contato</div>
-            <Input label="Nome do ResponsÃ¡vel" value={f.responsavel_nome} onChange={e => upd("responsavel_nome", e.target.value)} placeholder="Nome completo do responsÃ¡vel pela conta" />
+            <div style={{ fontWeight: 700, color: "#1e293b", fontSize: 14, marginBottom: 4 }}>📞 Contato</div>
+            <Input label="Nome do Responsável" value={f.responsavel_nome} onChange={e => upd("responsavel_nome", e.target.value)} placeholder="Nome completo do responsável pela conta" />
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               <Input label="E-mail de Contato" type="email" value={f.email_contato} onChange={e => upd("email_contato", e.target.value)} placeholder="contato@escola.com.br" />
               <Input label="Telefone" value={f.telefone} onChange={e => upd("telefone", e.target.value)} placeholder="(00) 00000-0000" />
@@ -256,26 +256,26 @@ function ModalEscola({ escola, onClose, onSave }) {
 
           {/* Logo */}
           <div style={{ background: "#f8fafc", borderRadius: 12, padding: 18, border: "1px solid #e2e8f0", display: "flex", flexDirection: "column", gap: 12 }}>
-            <div style={{ fontWeight: 700, color: "#1e293b", fontSize: 14, marginBottom: 4 }}>ð¼ï¸ Logomarca</div>
+            <div style={{ fontWeight: 700, color: "#1e293b", fontSize: 14, marginBottom: 4 }}>🖼️ Logomarca</div>
             <Input label="URL da Logomarca" value={f.logo_url} onChange={e => upd("logo_url", e.target.value)} placeholder="https://..." hint="Cole o link direto da imagem (PNG, JPG ou SVG)" />
             {f.logo_url && (
               <div style={{ display: "flex", alignItems: "center", gap: 12, padding: 12, background: "#fff", borderRadius: 8, border: "1px solid #e2e8f0" }}>
                 <img src={f.logo_url} alt="Logo" style={{ width: 60, height: 60, objectFit: "contain", borderRadius: 8 }} onError={e => e.target.style.display = "none"} />
-                <span style={{ fontSize: 13, color: "#64748b" }}>PrÃ©-visualizaÃ§Ã£o da logomarca</span>
+                <span style={{ fontSize: 13, color: "#64748b" }}>Pré-visualização da logomarca</span>
               </div>
             )}
           </div>
         </MBody>
         <MFoot>
           <Btn variant="ghost" onClick={onClose}>Cancelar</Btn>
-          <Btn onClick={handle} disabled={saving}>{saving ? "Salvando..." : editando ? "Salvar AlteraÃ§Ãµes" : "Cadastrar Escola"}</Btn>
+          <Btn onClick={handle} disabled={saving}>{saving ? "Salvando..." : editando ? "Salvar Alterações" : "Cadastrar Escola"}</Btn>
         </MFoot>
       </MBox>
     </Overlay>
   );
 }
 
-// ââ MODAL CADASTRAR USUÃRIO NA ESCOLA ââââââââââââââââââââââââââââââââââââââââââ
+// ── MODAL CADASTRAR USUÁRIO NA ESCOLA ──────────────────────────────────────────
 function ModalNovoUsuario({ escola, onClose, onSave }) {
   const [f, setF] = useState({ nome: "", email: "", senha: "", perfil: "PROFESSOR", cargo: "" });
   const [saving, setSaving] = useState(false);
@@ -284,19 +284,19 @@ function ModalNovoUsuario({ escola, onClose, onSave }) {
 
   const handle = async () => {
     const e = {};
-    if (!f.nome.trim()) e.nome = "ObrigatÃ³rio";
-    if (!f.email.trim()) e.email = "ObrigatÃ³rio";
-    if (!f.senha || f.senha.length < 6) e.senha = "MÃ­nimo 6 caracteres";
+    if (!f.nome.trim()) e.nome = "Obrigatório";
+    if (!f.email.trim()) e.email = "Obrigatório";
+    if (!f.senha || f.senha.length < 6) e.senha = "Mínimo 6 caracteres";
     setErr(e); if (Object.keys(e).length) return;
     setSaving(true);
     try {
-      // Criar usuÃ¡rio no Supabase Auth
+      // Criar usuário no Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.admin?.createUser?.({
         email: f.email, password: f.senha, email_confirm: true,
         user_metadata: { nome: f.nome, perfil: f.perfil }
       });
 
-      // Como admin.createUser pode nÃ£o estar disponÃ­vel no client, usamos signUp
+      // Como admin.createUser pode não estar disponível no client, usamos signUp
       if (authError || !authData) {
         // Fallback: criar via signup normal
         const { data: signData, error: signError } = await supabase.auth.signUp({
@@ -320,38 +320,38 @@ function ModalNovoUsuario({ escola, onClose, onSave }) {
         });
         onSave({ id: authData.user.id, email: f.email, ...f, escola_id: escola.id });
       }
-    } catch (ex) { setErr({ email: "Erro ao criar usuÃ¡rio: " + ex.message }); }
+    } catch (ex) { setErr({ email: "Erro ao criar usuário: " + ex.message }); }
     setSaving(false); onClose();
   };
 
   return (
     <Overlay onClose={onClose}>
       <MBox width={520}>
-        <MHead title="Cadastrar UsuÃ¡rio" subtitle={`Escola: ${escola.nome}`} icon="ð¤" onClose={onClose} />
+        <MHead title="Cadastrar Usuário" subtitle={`Escola: ${escola.nome}`} icon="👤" onClose={onClose} />
         <MBody>
-          <Input label="Nome completo *" error={err.nome} value={f.nome} onChange={e => upd("nome", e.target.value)} placeholder="Nome do usuÃ¡rio" />
+          <Input label="Nome completo *" error={err.nome} value={f.nome} onChange={e => upd("nome", e.target.value)} placeholder="Nome do usuário" />
           <Input label="E-mail *" type="email" error={err.email} value={f.email} onChange={e => upd("email", e.target.value)} placeholder="usuario@escola.com.br" />
-          <Input label="Senha *" type="password" error={err.senha} value={f.senha} onChange={e => upd("senha", e.target.value)} placeholder="MÃ­nimo 6 caracteres" hint="O usuÃ¡rio poderÃ¡ alterar a senha depois" />
+          <Input label="Senha *" type="password" error={err.senha} value={f.senha} onChange={e => upd("senha", e.target.value)} placeholder="Mínimo 6 caracteres" hint="O usuário poderá alterar a senha depois" />
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <Sel label="Perfil / FunÃ§Ã£o" value={f.perfil} onChange={e => upd("perfil", e.target.value)}>
+            <Sel label="Perfil / Função" value={f.perfil} onChange={e => upd("perfil", e.target.value)}>
               {PERFIS.map(p => <option key={p} value={p}>{perfilLabel(p)}</option>)}
             </Sel>
             <Input label="Cargo (opcional)" value={f.cargo} onChange={e => upd("cargo", e.target.value)} placeholder="Ex: Coordenadora" />
           </div>
           <div style={{ padding: "12px 16px", background: "#fffbeb", borderRadius: 10, border: "1px solid #fef3c7", fontSize: 13, color: "#92400e" }}>
-            â ï¸ O usuÃ¡rio receberÃ¡ um e-mail de confirmaÃ§Ã£o. PeÃ§a para ele confirmar antes de usar o sistema.
+            ⚠️ O usuário receberá um e-mail de confirmação. Peça para ele confirmar antes de usar o sistema.
           </div>
         </MBody>
         <MFoot>
           <Btn variant="ghost" onClick={onClose}>Cancelar</Btn>
-          <Btn onClick={handle} disabled={saving}>{saving ? "Criando..." : "Criar UsuÃ¡rio"}</Btn>
+          <Btn onClick={handle} disabled={saving}>{saving ? "Criando..." : "Criar Usuário"}</Btn>
         </MFoot>
       </MBox>
     </Overlay>
   );
 }
 
-// ââ MODAL SUSPENDER ESCOLA âââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── MODAL SUSPENDER ESCOLA ─────────────────────────────────────────────────────
 function ModalSuspender({ escola, onClose, onConfirm }) {
   const [motivo, setMotivo] = useState("");
   const [saving, setSaving] = useState(false);
@@ -364,14 +364,14 @@ function ModalSuspender({ escola, onClose, onConfirm }) {
   return (
     <Overlay onClose={onClose}>
       <MBox width={480}>
-        <MHead title="Suspender Escola" icon="ð´" onClose={onClose} />
+        <MHead title="Suspender Escola" icon="🔴" onClose={onClose} />
         <MBody>
           <div style={{ padding: "14px 16px", background: "#fef2f2", borderRadius: 10, border: "1px solid #fecaca" }}>
-            <div style={{ fontWeight: 700, color: "#dc2626", marginBottom: 4 }}>â ï¸ AtenÃ§Ã£o</div>
-            <div style={{ fontSize: 13, color: "#ef4444" }}>A escola <b>{escola.nome}</b> ficarÃ¡ sem acesso ao sistema atÃ© ser reativada.</div>
+            <div style={{ fontWeight: 700, color: "#dc2626", marginBottom: 4 }}>⚠️ Atenção</div>
+            <div style={{ fontSize: 13, color: "#ef4444" }}>A escola <b>{escola.nome}</b> ficará sem acesso ao sistema até ser reativada.</div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            <label style={{ fontSize: 12, fontWeight: 600, color: "#475569" }}>Motivo da suspensÃ£o</label>
+            <label style={{ fontSize: 12, fontWeight: 600, color: "#475569" }}>Motivo da suspensão</label>
             <textarea value={motivo} onChange={e => setMotivo(e.target.value)} placeholder="Ex: Pagamento em atraso, contrato encerrado..." rows={3}
               style={{ padding: "9px 13px", border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 14, outline: "none", background: "#fafafa", fontFamily: "inherit", resize: "vertical", width: "100%", boxSizing: "border-box" }} />
           </div>
@@ -385,7 +385,7 @@ function ModalSuspender({ escola, onClose, onConfirm }) {
   );
 }
 
-// ââ PAINEL DETALHE ESCOLA ââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── PAINEL DETALHE ESCOLA ──────────────────────────────────────────────────────
 function PainelEscola({ escola, onClose, onUpdate, onEntrar }) {
   const [usuarios, setUsuarios] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -419,7 +419,7 @@ function PainelEscola({ escola, onClose, onUpdate, onEntrar }) {
   };
 
   const statusColor = s => s === "ATIVA" ? "#22c55e" : s === "TRIAL" ? "#f59e0b" : s === "SUSPENSA" ? "#ef4444" : "#94a3b8";
-  const planColor = p => p === "PRO" ? "#7c3aed" : p === "BÃSICO" ? "#2563eb" : "#f59e0b";
+  const planColor = p => p === "PRO" ? "#7c3aed" : p === "BÁSICO" ? "#2563eb" : "#f59e0b";
 
   return (
     <Overlay onClose={onClose}>
@@ -427,46 +427,46 @@ function PainelEscola({ escola, onClose, onUpdate, onEntrar }) {
         <MHead
           title={escola.nome}
           subtitle={escola.cidade}
-          icon={escola.logo_url ? undefined : "ð«"}
+          icon={escola.logo_url ? undefined : "🏫"}
           onClose={onClose}
         />
         <div style={{ padding: "0 24px", borderBottom: "1px solid #f1f5f9", display: "flex", gap: 4 }}>
-          {[["info", "ð InformaÃ§Ãµes"], ["usuarios", `ð¥ UsuÃ¡rios (${usuarios.length})`], ["acesso", "ð Acesso"]].map(([t, l]) => (
+          {[["info", "📋 Informações"], ["usuarios", `👥 Usuários (${usuarios.length})`], ["acesso", "🔗 Acesso"]].map(([t, l]) => (
             <button key={t} onClick={() => setTab(t)} style={{ padding: "10px 16px", border: "none", background: "none", cursor: "pointer", fontSize: 13, fontWeight: tab === t ? 800 : 500, color: tab === t ? "#2563eb" : "#64748b", borderBottom: tab === t ? "2px solid #2563eb" : "2px solid transparent", marginBottom: -1 }}>{l}</button>
           ))}
         </div>
         <MBody>
           {tab === "info" && (
             <>
-              {/* Status e aÃ§Ãµes rÃ¡pidas */}
+              {/* Status e ações rápidas */}
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
                 <Badge color={statusColor(escola.status)}>{escola.status}</Badge>
                 <Badge color={planColor(escola.plano)}>{escola.plano}</Badge>
                 {escola.data_vencimento && <span style={{ fontSize: 12, color: "#64748b" }}>Vence: {new Date(escola.data_vencimento).toLocaleDateString("pt-BR")}</span>}
                 <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
-                  <Btn small variant="ghost" icon="âï¸" onClick={() => setModalEditar(true)}>Editar</Btn>
-                  <Btn small variant="primary" onClick={() => onEntrar(escola)}>Acessar Sistema â</Btn>
+                  <Btn small variant="ghost" icon="✏️" onClick={() => setModalEditar(true)}>Editar</Btn>
+                  <Btn small variant="primary" onClick={() => onEntrar(escola)}>Acessar Sistema →</Btn>
                   {escola.status === "SUSPENSA" ? (
-                    <Btn small variant="success" onClick={reativar}>â Reativar</Btn>
+                    <Btn small variant="success" onClick={reativar}>✅ Reativar</Btn>
                   ) : (
-                    <Btn small variant="danger" onClick={() => setModalSuspender(true)}>ð´ Suspender</Btn>
+                    <Btn small variant="danger" onClick={() => setModalSuspender(true)}>🔴 Suspender</Btn>
                   )}
                 </div>
               </div>
 
               {escola.status === "SUSPENSA" && escola.motivo_suspensao && (
                 <div style={{ padding: "10px 14px", background: "#fef2f2", borderRadius: 8, border: "1px solid #fecaca", fontSize: 13, color: "#dc2626" }}>
-                  <b>Motivo da suspensÃ£o:</b> {escola.motivo_suspensao}
+                  <b>Motivo da suspensão:</b> {escola.motivo_suspensao}
                 </div>
               )}
 
               {/* Dados */}
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 {[
-                  { label: "ResponsÃ¡vel", value: escola.responsavel_nome || "â" },
-                  { label: "E-mail", value: escola.email_contato || "â" },
-                  { label: "Telefone", value: escola.telefone || "â" },
-                  { label: "Cidade", value: escola.cidade || "â" },
+                  { label: "Responsável", value: escola.responsavel_nome || "—" },
+                  { label: "E-mail", value: escola.email_contato || "—" },
+                  { label: "Telefone", value: escola.telefone || "—" },
+                  { label: "Cidade", value: escola.cidade || "—" },
                 ].map(m => (
                   <div key={m.label} style={{ padding: "12px 16px", background: "#f8fafc", borderRadius: 10, border: "1px solid #e2e8f0" }}>
                     <div style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600, marginBottom: 4 }}>{m.label}</div>
@@ -491,16 +491,16 @@ function PainelEscola({ escola, onClose, onUpdate, onEntrar }) {
           {tab === "usuarios" && (
             <>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontSize: 14, color: "#64748b" }}>{usuarios.length} usuÃ¡rio(s) cadastrado(s)</span>
-                <Btn small icon="+" onClick={() => setModalUsuario(true)}>Novo UsuÃ¡rio</Btn>
+                <span style={{ fontSize: 14, color: "#64748b" }}>{usuarios.length} usuário(s) cadastrado(s)</span>
+                <Btn small icon="+" onClick={() => setModalUsuario(true)}>Novo Usuário</Btn>
               </div>
-              {loading ? <Loading msg="Carregando usuÃ¡rios..." /> : (
+              {loading ? <Loading msg="Carregando usuários..." /> : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {usuarios.length === 0 && (
                     <div style={{ textAlign: "center", padding: 40, color: "#94a3b8" }}>
-                      <div style={{ fontSize: 32, marginBottom: 12 }}>ð¥</div>
-                      <p>Nenhum usuÃ¡rio cadastrado ainda.</p>
-                      <Btn onClick={() => setModalUsuario(true)} icon="+">Cadastrar primeiro usuÃ¡rio</Btn>
+                      <div style={{ fontSize: 32, marginBottom: 12 }}>👥</div>
+                      <p>Nenhum usuário cadastrado ainda.</p>
+                      <Btn onClick={() => setModalUsuario(true)} icon="+">Cadastrar primeiro usuário</Btn>
                     </div>
                   )}
                   {usuarios.map(u => (
@@ -508,7 +508,7 @@ function PainelEscola({ escola, onClose, onUpdate, onEntrar }) {
                       <Av initials={u.avatar || (u.nome || "?").slice(0, 2).toUpperCase()} color={u.ativo === false ? "#ef4444" : "#2563eb"} size={40} />
                       <div style={{ flex: 1 }}>
                         <div style={{ fontWeight: 700, fontSize: 14, color: u.ativo === false ? "#94a3b8" : "#1e293b" }}>{u.nome}</div>
-                        <div style={{ fontSize: 12, color: "#94a3b8" }}>{perfilLabel(u.perfil)}{u.cargo ? ` Â· ${u.cargo}` : ""}</div>
+                        <div style={{ fontSize: 12, color: "#94a3b8" }}>{perfilLabel(u.perfil)}{u.cargo ? ` · ${u.cargo}` : ""}</div>
                       </div>
                       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                         <Badge color={u.perfil === "DIRECAO" ? "#7c3aed" : "#2563eb"}>{perfilLabel(u.perfil)}</Badge>
@@ -528,31 +528,31 @@ function PainelEscola({ escola, onClose, onUpdate, onEntrar }) {
           {tab === "acesso" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               <div style={{ padding: "16px 20px", background: "#eff6ff", borderRadius: 12, border: "1px solid #bfdbfe" }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "#2563eb", marginBottom: 8 }}>ð Link da escola</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#2563eb", marginBottom: 8 }}>🔗 Link da escola</div>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                   <code style={{ fontSize: 14, color: "#1e293b", background: "#fff", padding: "6px 12px", borderRadius: 8, border: "1px solid #e2e8f0", flex: 1 }}>
                     hub-relacionamento.vercel.app
                   </code>
                 </div>
                 <p style={{ margin: "8px 0 0", fontSize: 12, color: "#64748b" }}>
-                  {escola.subdomain ? `Identificador da escola: ${escola.subdomain}` : "â ï¸ Nenhum subdomÃ­nio cadastrado. Edite a escola para definir um."}
+                  {escola.subdomain ? `Identificador da escola: ${escola.subdomain}` : "⚠️ Nenhum subdomínio cadastrado. Edite a escola para definir um."}
                 </p>
               </div>
               <div style={{ padding: "16px 20px", background: "#f8fafc", borderRadius: 12, border: "1px solid #e2e8f0" }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "#475569", marginBottom: 8 }}>ð Vencimento do plano</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#475569", marginBottom: 8 }}>📅 Vencimento do plano</div>
                 <div style={{ fontSize: 16, fontWeight: 900, color: escola.data_vencimento ? "#1e293b" : "#94a3b8" }}>
-                  {escola.data_vencimento ? new Date(escola.data_vencimento).toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" }) : "NÃ£o definido"}
+                  {escola.data_vencimento ? new Date(escola.data_vencimento).toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" }) : "Não definido"}
                 </div>
               </div>
               <div style={{ padding: "16px 20px", background: "#f8fafc", borderRadius: 12, border: "1px solid #e2e8f0" }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "#475569", marginBottom: 12 }}>âï¸ AÃ§Ãµes rÃ¡pidas</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#475569", marginBottom: 12 }}>⚙️ Ações rápidas</div>
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                  <Btn variant="primary" onClick={() => onEntrar(escola)}>Acessar sistema da escola â</Btn>
-                  <Btn variant="ghost" onClick={() => setModalEditar(true)}>âï¸ Editar dados</Btn>
+                  <Btn variant="primary" onClick={() => onEntrar(escola)}>Acessar sistema da escola →</Btn>
+                  <Btn variant="ghost" onClick={() => setModalEditar(true)}>✏️ Editar dados</Btn>
                   {escola.status === "SUSPENSA" ? (
-                    <Btn variant="success" onClick={reativar}>â Reativar acesso</Btn>
+                    <Btn variant="success" onClick={reativar}>✅ Reativar acesso</Btn>
                   ) : (
-                    <Btn variant="danger" onClick={() => setModalSuspender(true)}>ð´ Suspender acesso</Btn>
+                    <Btn variant="danger" onClick={() => setModalSuspender(true)}>🔴 Suspender acesso</Btn>
                   )}
                 </div>
               </div>
@@ -567,98 +567,98 @@ function PainelEscola({ escola, onClose, onUpdate, onEntrar }) {
   );
 }
 
-// ââ NARAEDU360 â MÃDULOS DO ECOSSISTEMA ââââââââââââââââââââââââââââââââââââââââ
+// ── NARAEDU360 — MÓDULOS DO ECOSSISTEMA ────────────────────────────────────────
 
-// PermissÃµes padrÃ£o por mÃ³dulo (quais perfis de escola tÃªm acesso)
+// Permissões padrão por módulo (quais perfis de escola têm acesso)
 const PERMS_PADRAO = {
-  relacionamento: ["DIRECAO","PSICOLOGO","SECRETARIA","PROFESSOR","NUCLEO","RECEPÃÃO","PSICOPEDAGOGO"],
+  relacionamento: ["DIRECAO","PSICOLOGO","SECRETARIA","PROFESSOR","NUCLEO","RECEPÇÃO","PSICOPEDAGOGO"],
   relatorios:     ["DIRECAO","SECRETARIA","NUCLEO"],
   financeiro:     ["DIRECAO","SECRETARIA"],
   secretaria:     ["DIRECAO","SECRETARIA"],
-  pro:            ["DIRECAO","PSICOLOGO","SECRETARIA","PROFESSOR","NUCLEO","RECEPÃÃO","PSICOPEDAGOGO"],
+  pro:            ["DIRECAO","PSICOLOGO","SECRETARIA","PROFESSOR","NUCLEO","RECEPÇÃO","PSICOPEDAGOGO"],
   play:           ["DIRECAO","PROFESSOR","NUCLEO","PSICOPEDAGOGO"],
   aprende:        ["DIRECAO","PROFESSOR","NUCLEO","PSICOLOGO","PSICOPEDAGOGO"],
 
-  bus:            ["DIRECAO","SECRETARIA","RECEPÃÃO"],
-  achou:          ["DIRECAO","SECRETARIA","RECEPÃÃO","PROFESSOR","NUCLEO"],
-  agenda:         ["DIRECAO","SECRETARIA","RECEPÃÃO"],
+  bus:            ["DIRECAO","SECRETARIA","RECEPÇÃO"],
+  achou:          ["DIRECAO","SECRETARIA","RECEPÇÃO","PROFESSOR","NUCLEO"],
+  agenda:         ["DIRECAO","SECRETARIA","RECEPÇÃO"],
 };
 
 const PERFIS_LABELS = {
-  DIRECAO:      { label: "DireÃ§Ã£o",           emoji: "ð«" },
-  PSICOLOGO:    { label: "PsicÃ³logo",         emoji: "ð§ " },
-  SECRETARIA:   { label: "SecretÃ¡ria",        emoji: "ð" },
-  PROFESSOR:    { label: "Professor",          emoji: "ð¨âð«" },
-  NUCLEO:       { label: "NÃºcleo PedagÃ³gico", emoji: "ð" },
-  RECEPÃÃO:     { label: "RecepÃ§Ã£o",          emoji: "ð" },
-  PSICOPEDAGOGO:{ label: "Psicopedagogo",     emoji: "ð" },
+  DIRECAO:      { label: "Direção",           emoji: "🏫" },
+  PSICOLOGO:    { label: "Psicólogo",         emoji: "🧠" },
+  SECRETARIA:   { label: "Secretária",        emoji: "📋" },
+  PROFESSOR:    { label: "Professor",          emoji: "👨‍🏫" },
+  NUCLEO:       { label: "Núcleo Pedagógico", emoji: "📚" },
+  RECEPÇÃO:     { label: "Recepção",          emoji: "📞" },
+  PSICOPEDAGOGO:{ label: "Psicopedagogo",     emoji: "🎓" },
 };
 
 // Categorias para agrupar no Hub
-const CATEGORIAS_ORDEM = ["GestÃ£o", "Colaboradores", "Alunos", "FamÃ­lias", "Escola"];
+const CATEGORIAS_ORDEM = ["Gestão", "Colaboradores", "Alunos", "Famílias", "Escola"];
 
-// Perfis disponÃ­veis no sistema
-const TODOS_PERFIS = ["DIRECAO","PSICOLOGO","SECRETARIA","PROFESSOR","NUCLEO","RECEPÃÃO","PSICOPEDAGOGO"];
+// Perfis disponíveis no sistema
+const TODOS_PERFIS = ["DIRECAO","PSICOLOGO","SECRETARIA","PROFESSOR","NUCLEO","RECEPÇÃO","PSICOPEDAGOGO"];
 
-// Tipos de usuÃ¡rio (alÃ©m dos perfis de escola)
-// ALUNO, FAMILIA sÃ£o usuÃ¡rios futuros do ecossistema
+// Tipos de usuário (além dos perfis de escola)
+// ALUNO, FAMILIA são usuários futuros do ecossistema
 
 const NARA_MODULOS = [
-  // ââ GESTÃO âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // ── GESTÃO ─────────────────────────────────────────────────────────────────
   {
     id: "relacionamento",
     nome: "NARA Relacionamento",
-    desc: "ComunicaÃ§Ã£o escola-famÃ­lia, encaminhamentos, retenÃ§Ã£o e vÃ­nculo familiar",
-    emoji: "ð¬", cor: "#7c3aed",
-    categoria: "GestÃ£o",
+    desc: "Comunicação escola-família, encaminhamentos, retenção e vínculo familiar",
+    emoji: "💬", cor: "#7c3aed",
+    categoria: "Gestão",
     disponivel: true,
     usuarios: ["equipe_escola"],
   },
   {
     id: "relatorios",
-    nome: "NARA RelatÃ³rios",
-    desc: "RelatÃ³rios pedagÃ³gicos, boletins e anÃ¡lises de desempenho",
-    emoji: "ð", cor: "#2563eb",
-    categoria: "GestÃ£o",
+    nome: "NARA Relatórios",
+    desc: "Relatórios pedagógicos, boletins e análises de desempenho",
+    emoji: "📊", cor: "#2563eb",
+    categoria: "Gestão",
     disponivel: true,
     usuarios: ["equipe_escola"],
   },
   {
     id: "financeiro",
     nome: "NARA Financeiro",
-    desc: "Mensalidades, inadimplÃªncia e bolsas",
-    emoji: "ð°", cor: "#059669",
-    categoria: "GestÃ£o",
+    desc: "Mensalidades, inadimplência e bolsas",
+    emoji: "💰", cor: "#059669",
+    categoria: "Gestão",
     disponivel: false,
     usuarios: ["equipe_escola"],
   },
   {
     id: "secretaria",
     nome: "NARA Secretaria",
-    desc: "MatrÃ­culas, documentos e declaraÃ§Ãµes",
-    emoji: "ð", cor: "#0891b2",
-    categoria: "GestÃ£o",
+    desc: "Matrículas, documentos e declarações",
+    emoji: "📋", cor: "#0891b2",
+    categoria: "Gestão",
     disponivel: false,
     usuarios: ["equipe_escola"],
   },
 
-  // ââ PROFESSORES & COLABORADORES ââââââââââââââââââââââââââââââââââââââââââââ
+  // ── PROFESSORES & COLABORADORES ────────────────────────────────────────────
   {
     id: "pro",
     nome: "NARA Pro",
-    desc: "Tudo para colaboradores: agenda, comunicados internos, RH, bem-estar e gamificaÃ§Ã£o de professores",
-    emoji: "ð©âð«", cor: "#d97706",
+    desc: "Tudo para colaboradores: agenda, comunicados internos, RH, bem-estar e gamificação de professores",
+    emoji: "👩‍🏫", cor: "#d97706",
     categoria: "Colaboradores",
     disponivel: false,
     usuarios: ["equipe_escola"],
   },
 
-  // ââ ALUNOS âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // ── ALUNOS ─────────────────────────────────────────────────────────────────
   {
     id: "play",
     nome: "NARA Play",
-    desc: "GamificaÃ§Ã£o de alunos: pontos por tipo de inteligÃªncia, conquistas, moeda NARA e recompensas reais",
-    emoji: "ð®", cor: "#7c3aed",
+    desc: "Gamificação de alunos: pontos por tipo de inteligência, conquistas, moeda NARA e recompensas reais",
+    emoji: "🎮", cor: "#7c3aed",
     categoria: "Alunos",
     disponivel: false,
     usuarios: ["aluno", "equipe_escola"],
@@ -666,39 +666,39 @@ const NARA_MODULOS = [
   {
     id: "aprende",
     nome: "NARA Aprende",
-    desc: "Atividades adaptadas para crianÃ§as tÃ­picas e neurodivergentes (TDAH, autismo, dislexia...) â ferramenta para professores",
-    emoji: "ð§©", cor: "#db2777",
+    desc: "Atividades adaptadas para crianças típicas e neurodivergentes (TDAH, autismo, dislexia...) — ferramenta para professores",
+    emoji: "🧩", cor: "#db2777",
     categoria: "Colaboradores",
     disponivel: false,
     usuarios: ["equipe_escola"],
   },
 
-  // ââ FAMÃLIAS ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // ── FAMÍLIAS ────────────────────────────────────────────────────────────────
   {
     id: "agenda",
     nome: "NARA Agenda",
-    desc: "Agenda virtual da escola para famÃ­lias â eventos, comunicados, autorizaÃ§Ã£o de saÃ­da e acompanhamento do filho",
-    emoji: "ð", cor: "#16a34a",
-    categoria: "FamÃ­lias",
+    desc: "Agenda virtual da escola para famílias — eventos, comunicados, autorização de saída e acompanhamento do filho",
+    emoji: "📆", cor: "#16a34a",
+    categoria: "Famílias",
     disponivel: false,
     usuarios: ["familia", "equipe_escola"],
   },
   {
     id: "bus",
     nome: "NARA Bus",
-    desc: "LocalizaÃ§Ã£o do transporte escolar em tempo real para as famÃ­lias",
-    emoji: "ð", cor: "#f59e0b",
-    categoria: "FamÃ­lias",
+    desc: "Localização do transporte escolar em tempo real para as famílias",
+    emoji: "🚌", cor: "#f59e0b",
+    categoria: "Famílias",
     disponivel: false,
     usuarios: ["familia", "equipe_escola"],
   },
 
-  // ââ ESCOLA (TODOS) ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // ── ESCOLA (TODOS) ──────────────────────────────────────────────────────────
   {
     id: "achou",
     nome: "NARA Achou",
-    desc: "Sistema de perdidos e achados da escola â cadastro, foto e notificaÃ§Ã£o para a famÃ­lia",
-    emoji: "ð", cor: "#64748b",
+    desc: "Sistema de perdidos e achados da escola — cadastro, foto e notificação para a família",
+    emoji: "🔍", cor: "#64748b",
     categoria: "Escola",
     disponivel: false,
     usuarios: ["equipe_escola", "familia"],
@@ -714,7 +714,7 @@ const LogoNara = ({ size = 32 }) => (
   </svg>
 );
 
-// Modal de mÃ³dulos da escola
+// Modal de módulos da escola
 function ModalModulos({ escola, onClose, onSave }) {
   const ativos = escola.modulos || ["relacionamento", "relatorios", "reunioes"];
   const [selecionados, setSelecionados] = useState(ativos);
@@ -750,10 +750,10 @@ function ModalModulos({ escola, onClose, onSave }) {
   return (
     <Overlay onClose={onClose}>
       <MBox width={680}>
-        <MHead title="MÃ³dulos e PermissÃµes" subtitle={escola.nome} icon="ð§©" onClose={onClose} />
+        <MHead title="Módulos e Permissões" subtitle={escola.nome} icon="🧩" onClose={onClose} />
         <MBody>
           <div style={{ padding: "10px 14px", background: "#faf5ff", borderRadius: 10, border: "1px solid #e9d5ff", fontSize: 13, color: "#7c3aed" }}>
-            ð¡ Ative os mÃ³dulos contratados e defina quais perfis tÃªm acesso a cada um.
+            💡 Ative os módulos contratados e defina quais perfis têm acesso a cada um.
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {NARA_MODULOS.map(m => {
@@ -763,14 +763,14 @@ function ModalModulos({ escola, onClose, onSave }) {
 
               return (
                 <div key={m.id} style={{ borderRadius: 14, border: `2px solid ${ativo ? m.cor : "#e2e8f0"}`, background: ativo ? m.cor + "08" : "#fafafa", overflow: "hidden", opacity: m.disponivel ? 1 : 0.5 }}>
-                  {/* CabeÃ§alho do mÃ³dulo */}
+                  {/* Cabeçalho do módulo */}
                   <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 18px", cursor: m.disponivel ? "pointer" : "not-allowed" }}>
                     <div onClick={() => m.disponivel && toggle(m.id)} style={{ display: "flex", alignItems: "center", gap: 14, flex: 1 }}>
                       <span style={{ fontSize: 24 }}>{m.emoji}</span>
                       <div style={{ flex: 1 }}>
                         <div style={{ fontWeight: 700, fontSize: 14, color: "#1e293b" }}>{m.nome}</div>
                         <div style={{ fontSize: 12, color: "#64748b" }}>{m.desc}
-                          {ativo && <span style={{ marginLeft: 8, color: m.cor, fontWeight: 700 }}>Â· {perfsAtivos.length} perfil(is) com acesso</span>}
+                          {ativo && <span style={{ marginLeft: 8, color: m.cor, fontWeight: 700 }}>· {perfsAtivos.length} perfil(is) com acesso</span>}
                         </div>
                       </div>
                     </div>
@@ -779,20 +779,20 @@ function ModalModulos({ escola, onClose, onSave }) {
                       {ativo && m.disponivel && (
                         <button onClick={() => setModuloExpandido(expandido ? null : m.id)}
                           style={{ fontSize: 11, fontWeight: 700, color: m.cor, background: m.cor + "15", border: "none", padding: "4px 12px", borderRadius: 20, cursor: "pointer", fontFamily: "inherit" }}>
-                          {expandido ? "â² Fechar" : "âï¸ PermissÃµes"}
+                          {expandido ? "▲ Fechar" : "⚙️ Permissões"}
                         </button>
                       )}
                       <div onClick={() => m.disponivel && toggle(m.id)}
                         style={{ width: 22, height: 22, borderRadius: "50%", border: `2px solid ${ativo ? m.cor : "#cbd5e1"}`, background: ativo ? m.cor : "transparent", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
-                        {ativo && <span style={{ color: "#fff", fontSize: 13, fontWeight: 900 }}>â</span>}
+                        {ativo && <span style={{ color: "#fff", fontSize: 13, fontWeight: 900 }}>✓</span>}
                       </div>
                     </div>
                   </div>
 
-                  {/* Painel de permissÃµes */}
+                  {/* Painel de permissões */}
                   {expandido && (
                     <div style={{ borderTop: `1px solid ${m.cor}20`, padding: "14px 18px", background: "#fff" }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: "#475569", marginBottom: 10 }}>PERFIS COM ACESSO A ESTE MÃDULO:</div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "#475569", marginBottom: 10 }}>PERFIS COM ACESSO A ESTE MÓDULO:</div>
                       <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                         {Object.entries(PERFIS_LABELS).map(([perfil, info]) => {
                           const temAcesso = perfsAtivos.includes(perfil);
@@ -800,15 +800,15 @@ function ModalModulos({ escola, onClose, onSave }) {
                             <button key={perfil} onClick={() => togglePerfil(m.id, perfil)}
                               style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 14px", borderRadius: 20, border: `1.5px solid ${temAcesso ? m.cor : "#e2e8f0"}`, background: temAcesso ? m.cor : "#f8fafc", color: temAcesso ? "#fff" : "#64748b", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", transition: "all .15s" }}>
                               <span>{info.emoji}</span> {info.label}
-                              {temAcesso && <span style={{ fontSize: 11 }}>â</span>}
+                              {temAcesso && <span style={{ fontSize: 11 }}>✓</span>}
                             </button>
                           );
                         })}
                       </div>
                       <div style={{ marginTop: 10, fontSize: 11, color: "#94a3b8" }}>
                         {perfsAtivos.length === 0
-                          ? "â ï¸ Nenhum perfil selecionado â ninguÃ©m verÃ¡ este mÃ³dulo!"
-                          : `â ${perfsAtivos.length} perfil(is) poderÃ¡(Ã£o) acessar este mÃ³dulo`}
+                          ? "⚠️ Nenhum perfil selecionado — ninguém verá este módulo!"
+                          : `✓ ${perfsAtivos.length} perfil(is) poderá(ão) acessar este módulo`}
                       </div>
                     </div>
                   )}
@@ -820,7 +820,7 @@ function ModalModulos({ escola, onClose, onSave }) {
         <MFoot>
           <Btn variant="ghost" onClick={onClose}>Cancelar</Btn>
           <Btn onClick={handle} disabled={saving} style={{ background: "#7c3aed", color: "#fff", border: "none" }}>
-            {saving ? "Salvando..." : "Salvar MÃ³dulos e PermissÃµes"}
+            {saving ? "Salvando..." : "Salvar Módulos e Permissões"}
           </Btn>
         </MFoot>
       </MBox>
@@ -828,7 +828,7 @@ function ModalModulos({ escola, onClose, onSave }) {
   );
 }
 
-// ââ SUPER ADMIN PANEL ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── SUPER ADMIN PANEL ──────────────────────────────────────────────────────────
 function SuperAdminPanel({ onLogout, onEntrarEscola }) {
   const [escolas, setEscolas] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -849,7 +849,7 @@ function SuperAdminPanel({ onLogout, onEntrarEscola }) {
 
   const filtradas = escolas.filter(e => !busca || e.nome?.toLowerCase().includes(busca.toLowerCase()) || e.cidade?.toLowerCase().includes(busca.toLowerCase()));
   const statusColor = s => s === "ATIVA" ? "#22c55e" : s === "TRIAL" ? "#f59e0b" : s === "SUSPENSA" ? "#ef4444" : "#94a3b8";
-  const planColor = p => p === "PRO" ? "#7c3aed" : p === "BÃSICO" ? "#2563eb" : "#f59e0b";
+  const planColor = p => p === "PRO" ? "#7c3aed" : p === "BÁSICO" ? "#2563eb" : "#f59e0b";
 
   const totalModulos = escolas.reduce((acc, e) => {
     (e.modulos || []).forEach(m => { acc[m] = (acc[m] || 0) + 1; });
@@ -873,14 +873,14 @@ function SuperAdminPanel({ onLogout, onEntrarEscola }) {
 
       <div style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 24px" }}>
 
-        {/* MÃ©tricas topo */}
+        {/* Métricas topo */}
         <div style={{ display: "flex", gap: 14, marginBottom: 28, flexWrap: "wrap" }}>
           {[
-            { label: "Escolas Ativas",  value: escolas.filter(e => e.status === "ATIVA").length,    color: "#22c55e", bg: "#f0fdf4", icon: "â" },
-            { label: "Em Trial",        value: escolas.filter(e => e.status === "TRIAL").length,    color: "#f59e0b", bg: "#fffbeb", icon: "ð¬" },
-            { label: "Suspensas",       value: escolas.filter(e => e.status === "SUSPENSA").length, color: "#ef4444", bg: "#fef2f2", icon: "ð´" },
-            { label: "Planos PRO",      value: escolas.filter(e => e.plano === "PRO").length,       color: "#7c3aed", bg: "#faf5ff", icon: "â­" },
-            { label: "Total Escolas",   value: escolas.length,                                       color: "#2563eb", bg: "#eff6ff", icon: "ð«" },
+            { label: "Escolas Ativas",  value: escolas.filter(e => e.status === "ATIVA").length,    color: "#22c55e", bg: "#f0fdf4", icon: "✅" },
+            { label: "Em Trial",        value: escolas.filter(e => e.status === "TRIAL").length,    color: "#f59e0b", bg: "#fffbeb", icon: "🔬" },
+            { label: "Suspensas",       value: escolas.filter(e => e.status === "SUSPENSA").length, color: "#ef4444", bg: "#fef2f2", icon: "🔴" },
+            { label: "Planos PRO",      value: escolas.filter(e => e.plano === "PRO").length,       color: "#7c3aed", bg: "#faf5ff", icon: "⭐" },
+            { label: "Total Escolas",   value: escolas.length,                                       color: "#2563eb", bg: "#eff6ff", icon: "🏫" },
           ].map(m => (
             <Card key={m.label} style={{ flex: 1, minWidth: 140, background: m.bg, border: `1px solid ${m.color}30` }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
@@ -894,7 +894,7 @@ function SuperAdminPanel({ onLogout, onEntrarEscola }) {
 
         {/* Abas */}
         <div style={{ display: "flex", gap: 4, marginBottom: 20 }}>
-          {[["escolas", "ð« Escolas"], ["ecossistema", "ð§© Ecossistema"]].map(([id, label]) => (
+          {[["escolas", "🏫 Escolas"], ["ecossistema", "🧩 Ecossistema"]].map(([id, label]) => (
             <button key={id} onClick={() => setAbaAtiva(id)} style={{ padding: "9px 20px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 13, fontWeight: abaAtiva === id ? 800 : 500, background: abaAtiva === id ? "#7c3aed" : "#fff", color: abaAtiva === id ? "#fff" : "#64748b", boxShadow: abaAtiva === id ? "0 2px 8px #7c3aed40" : "none" }}>
               {label}
             </button>
@@ -907,17 +907,17 @@ function SuperAdminPanel({ onLogout, onEntrarEscola }) {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
               <div>
                 <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "#1e293b" }}>Escolas Cadastradas</h2>
-                <p style={{ margin: "4px 0 0", fontSize: 13, color: "#94a3b8" }}>Gerencie todas as instituiÃ§Ãµes do ecossistema NARAEDU360</p>
+                <p style={{ margin: "4px 0 0", fontSize: 13, color: "#94a3b8" }}>Gerencie todas as instituições do ecossistema NARAEDU360</p>
               </div>
               <div style={{ display: "flex", gap: 10 }}>
-                <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="ð Buscar escola..." style={{ padding: "8px 14px", border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 13, outline: "none", width: 200 }} />
+                <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="🔍 Buscar escola..." style={{ padding: "8px 14px", border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 13, outline: "none", width: 200 }} />
                 <Btn icon="+" onClick={() => setModalNova(true)} style={{ background: "#7c3aed", border: "none" }}>Nova Escola</Btn>
               </div>
             </div>
 
             {loading ? <Loading msg="Carregando escolas..." /> : filtradas.length === 0 ? (
               <div style={{ textAlign: "center", padding: 60, color: "#94a3b8" }}>
-                <div style={{ fontSize: 48, marginBottom: 16 }}>ð«</div>
+                <div style={{ fontSize: 48, marginBottom: 16 }}>🏫</div>
                 <p style={{ fontSize: 16, fontWeight: 600 }}>Nenhuma escola cadastrada ainda</p>
                 <Btn onClick={() => setModalNova(true)} icon="+" style={{ background: "#7c3aed", border: "none" }}>Cadastrar primeira escola</Btn>
               </div>
@@ -928,12 +928,12 @@ function SuperAdminPanel({ onLogout, onEntrarEscola }) {
                   return (
                     <div key={escola.id} style={{ display: "flex", alignItems: "center", gap: 16, padding: "18px 20px", borderRadius: 14, border: `1.5px solid ${escola.status === "SUSPENSA" ? "#fecaca" : "#e9d5ff"}`, background: escola.status === "SUSPENSA" ? "#fff5f5" : "#fff", flexWrap: "wrap" }}>
                       <div style={{ width: 54, height: 54, borderRadius: 12, background: "#faf5ff", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", flexShrink: 0, border: "1.5px solid #e9d5ff" }}>
-                        {escola.logo_url ? <img src={escola.logo_url} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} onError={e => e.target.style.display = "none"} /> : <span style={{ fontSize: 24 }}>ð«</span>}
+                        {escola.logo_url ? <img src={escola.logo_url} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} onError={e => e.target.style.display = "none"} /> : <span style={{ fontSize: 24 }}>🏫</span>}
                       </div>
                       <div style={{ flex: 1, minWidth: 180 }}>
                         <div style={{ fontWeight: 800, fontSize: 15, color: "#1e293b" }}>{escola.nome}</div>
-                        <div style={{ fontSize: 12, color: "#64748b" }}>{escola.cidade}{escola.responsavel_nome ? ` Â· ${escola.responsavel_nome}` : ""}</div>
-                        {/* MÃ³dulos ativos */}
+                        <div style={{ fontSize: 12, color: "#64748b" }}>{escola.cidade}{escola.responsavel_nome ? ` · ${escola.responsavel_nome}` : ""}</div>
+                        {/* Módulos ativos */}
                         <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
                           {NARA_MODULOS.filter(m => modulosAtivos.includes(m.id)).map(m => (
                             <span key={m.id} style={{ fontSize: 10, fontWeight: 700, color: m.cor, background: m.cor + "15", padding: "2px 8px", borderRadius: 20, border: `1px solid ${m.cor}30` }}>
@@ -945,9 +945,9 @@ function SuperAdminPanel({ onLogout, onEntrarEscola }) {
                       <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
                         <Badge color={planColor(escola.plano)}>{escola.plano}</Badge>
                         <Badge color={statusColor(escola.status)}>{escola.status}</Badge>
-                        {escola.data_vencimento && <span style={{ fontSize: 11, color: "#94a3b8" }}>atÃ© {new Date(escola.data_vencimento).toLocaleDateString("pt-BR")}</span>}
-                        <Btn small variant="ghost" onClick={() => setModalModulos(escola)}>ð§© MÃ³dulos</Btn>
-                        <Btn small variant="ghost" onClick={() => setEscolaSelecionada(escola)}>Gerenciar â</Btn>
+                        {escola.data_vencimento && <span style={{ fontSize: 11, color: "#94a3b8" }}>até {new Date(escola.data_vencimento).toLocaleDateString("pt-BR")}</span>}
+                        <Btn small variant="ghost" onClick={() => setModalModulos(escola)}>🧩 Módulos</Btn>
+                        <Btn small variant="ghost" onClick={() => setEscolaSelecionada(escola)}>Gerenciar →</Btn>
                         <Btn small onClick={() => onEntrarEscola(escola)} style={{ background: "#7c3aed", color: "#fff", border: "none" }}>Acessar</Btn>
                       </div>
                     </div>
@@ -963,7 +963,7 @@ function SuperAdminPanel({ onLogout, onEntrarEscola }) {
           <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
             <div>
               <h2 style={{ margin: "0 0 4px", fontSize: 20, fontWeight: 900, color: "#1e293b" }}>Ecossistema NARAEDU360</h2>
-              <p style={{ margin: 0, fontSize: 13, color: "#94a3b8" }}>VisÃ£o geral de todos os mÃ³dulos e adoÃ§Ã£o pelas escolas</p>
+              <p style={{ margin: 0, fontSize: 13, color: "#94a3b8" }}>Visão geral de todos os módulos e adoção pelas escolas</p>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 16 }}>
               {NARA_MODULOS.map(m => {
@@ -976,21 +976,21 @@ function SuperAdminPanel({ onLogout, onEntrarEscola }) {
                       <div style={{ flex: 1 }}>
                         <div style={{ fontWeight: 800, fontSize: 15, color: "#1e293b" }}>{m.nome}</div>
                         <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>{m.desc}</div>
-                        {!m.disponivel && <span style={{ display: "inline-block", marginTop: 4, fontSize: 10, fontWeight: 700, color: "#94a3b8", background: "#f1f5f9", padding: "2px 8px", borderRadius: 20 }}>ð§ Em desenvolvimento</span>}
+                        {!m.disponivel && <span style={{ display: "inline-block", marginTop: 4, fontSize: 10, fontWeight: 700, color: "#94a3b8", background: "#f1f5f9", padding: "2px 8px", borderRadius: 20 }}>🚧 Em desenvolvimento</span>}
                       </div>
                     </div>
                     {m.disponivel ? (
                       <>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                          <span style={{ fontSize: 12, color: "#64748b", fontWeight: 600 }}>AdoÃ§Ã£o</span>
-                          <span style={{ fontSize: 13, fontWeight: 900, color: m.cor }}>{qtd} escola{qtd !== 1 ? "s" : ""} Â· {pct}%</span>
+                          <span style={{ fontSize: 12, color: "#64748b", fontWeight: 600 }}>Adoção</span>
+                          <span style={{ fontSize: 13, fontWeight: 900, color: m.cor }}>{qtd} escola{qtd !== 1 ? "s" : ""} · {pct}%</span>
                         </div>
                         <div style={{ height: 6, borderRadius: 99, background: "#f1f5f9", overflow: "hidden" }}>
                           <div style={{ height: "100%", width: `${pct}%`, background: m.cor, borderRadius: 99, transition: "width .4s" }} />
                         </div>
                       </>
                     ) : (
-                      <div style={{ fontSize: 12, color: "#94a3b8", fontStyle: "italic" }}>DisponÃ­vel em breve para contrataÃ§Ã£o</div>
+                      <div style={{ fontSize: 12, color: "#94a3b8", fontStyle: "italic" }}>Disponível em breve para contratação</div>
                     )}
                   </Card>
                 );
@@ -1020,7 +1020,7 @@ function SuperAdminPanel({ onLogout, onEntrarEscola }) {
   );
 }
 
-// ââ LOGIN ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── LOGIN ──────────────────────────────────────────────────────────────────────
 function LoginPage({ onLogin }) {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
@@ -1029,14 +1029,14 @@ function LoginPage({ onLogin }) {
   const handle = async () => {
     setErro(""); setLoading(true);
     const { data, error } = await supabase.auth.signInWithPassword({ email, password: senha });
-    if (error) { setErro("E-mail ou senha invÃ¡lidos."); setLoading(false); return; }
+    if (error) { setErro("E-mail ou senha inválidos."); setLoading(false); return; }
     const { data: profile } = await supabase.from("profiles").select("*, escolas(*)").eq("id", data.user.id).single();
     onLogin(data.user, profile);
     setLoading(false);
   };
   return (
     <div style={{ minHeight: "100vh", background: "linear-gradient(135deg, #faf5ff 0%, #f0fdf4 100%)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontFamily: "system-ui,sans-serif" }}>
-      {/* Logo e tÃ­tulo */}
+      {/* Logo e título */}
       <div style={{ marginBottom: 32, textAlign: "center" }}>
         <div style={{ marginBottom: 16 }}>
           <svg width="180" height="52" viewBox="0 0 180 52" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1046,11 +1046,11 @@ function LoginPage({ onLogin }) {
           </svg>
         </div>
         <div style={{ display: "flex", justifyContent: "center", gap: 10, flexWrap: "wrap", marginBottom: 8 }}>
-          {[{ e: "ð¬", n: "Relacionamento" }, { e: "ð", n: "RelatÃ³rios" }, { e: "ð", n: "ReuniÃµes" }].map(m => (
+          {[{ e: "💬", n: "Relacionamento" }, { e: "📊", n: "Relatórios" }, { e: "📅", n: "Reuniões" }].map(m => (
             <span key={m.n} style={{ fontSize: 11, fontWeight: 600, color: "#a855f7", background: "#faf5ff", border: "1px solid #e9d5ff", padding: "3px 10px", borderRadius: 20 }}>{m.e} {m.n}</span>
           ))}
         </div>
-        <p style={{ margin: 0, color: "#94a3b8", fontSize: 13 }}>Ecossistema de GestÃ£o Escolar</p>
+        <p style={{ margin: 0, color: "#94a3b8", fontSize: 13 }}>Ecossistema de Gestão Escolar</p>
       </div>
 
       {/* Card de login */}
@@ -1058,7 +1058,7 @@ function LoginPage({ onLogin }) {
         <h2 style={{ margin: "0 0 20px", fontSize: 16, fontWeight: 700, color: "#1e293b", textAlign: "center" }}>Acesse sua conta</h2>
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <Input label="E-mail" type="email" placeholder="nome@instituicao.edu.br" value={email} onChange={e => setEmail(e.target.value)} onKeyDown={e => e.key === "Enter" && handle()} />
-          <Input label="Senha" type="password" placeholder="â¢â¢â¢â¢â¢â¢â¢â¢" value={senha} onChange={e => setSenha(e.target.value)} onKeyDown={e => e.key === "Enter" && handle()} error={erro} />
+          <Input label="Senha" type="password" placeholder="••••••••" value={senha} onChange={e => setSenha(e.target.value)} onKeyDown={e => e.key === "Enter" && handle()} error={erro} />
           <button onClick={handle} disabled={loading}
             style={{ width: "100%", padding: "12px", borderRadius: 10, border: "none", cursor: loading ? "not-allowed" : "pointer", fontFamily: "inherit", fontSize: 15, fontWeight: 800, color: "#fff", background: loading ? "#c4b5fd" : "linear-gradient(135deg, #a855f7, #7c3aed)", marginTop: 4, letterSpacing: 1 }}>
             {loading ? "Entrando..." : "ENTRAR"}
@@ -1066,12 +1066,12 @@ function LoginPage({ onLogin }) {
         </div>
       </div>
 
-      <p style={{ marginTop: 24, fontSize: 11, color: "#c4b5fd" }}>Â© NaraEdu Â· NÃºcleo de Acompanhamento e Registro da Aprendizagem</p>
+      <p style={{ marginTop: 24, fontSize: 11, color: "#c4b5fd" }}>© NaraEdu · Núcleo de Acompanhamento e Registro da Aprendizagem</p>
     </div>
   );
 }
 
-// ââ BUSCA DE ALUNO COM DIGITAÃÃO ââââââââââââââââââââââââââââââââââââââââââââââ
+// ── BUSCA DE ALUNO COM DIGITAÇÃO ──────────────────────────────────────────────
 function BuscaAluno({ alunos, value, onChange, error }) {
   const [busca, setBusca] = useState("");
   const [aberto, setAberto] = useState(false);
@@ -1106,7 +1106,7 @@ function BuscaAluno({ alunos, value, onChange, error }) {
             <div style={{ fontSize: 14, fontWeight: 700, color: "#1e293b" }}>{alunoSel.nome}</div>
             <div style={{ fontSize: 11, color: "#64748b" }}>{alunoSel.turma}</div>
           </div>
-          <button onClick={limpar} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", fontSize: 16, padding: 4 }}>â</button>
+          <button onClick={limpar} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", fontSize: 16, padding: 4 }}>✕</button>
         </div>
       ) : (
         <div style={{ position: "relative" }}>
@@ -1117,7 +1117,7 @@ function BuscaAluno({ alunos, value, onChange, error }) {
             placeholder="Digite o nome do aluno para buscar..."
             style={{ width: "100%", padding: "9px 13px", border: `1.5px solid ${error ? "#ef4444" : "#e2e8f0"}`, borderRadius: 8, fontSize: 14, outline: "none", background: "#fafafa", color: "#1e293b", fontFamily: "inherit", boxSizing: "border-box" }}
           />
-          {busca && <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", fontSize: 12, color: "#94a3b8" }}>ð</span>}
+          {busca && <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", fontSize: 12, color: "#94a3b8" }}>🔍</span>}
         </div>
       )}
 
@@ -1129,7 +1129,7 @@ function BuscaAluno({ alunos, value, onChange, error }) {
               onMouseEnter={e => e.currentTarget.style.background = "#eff6ff"}
               onMouseLeave={e => e.currentTarget.style.background = "#fff"}>
               <div style={{ fontSize: 14, fontWeight: 600, color: "#1e293b" }}>{a.nome}</div>
-              <div style={{ fontSize: 11, color: "#64748b" }}>{a.turma}{a.responsavel ? ` Â· Resp.: ${a.responsavel}` : ""}</div>
+              <div style={{ fontSize: 11, color: "#64748b" }}>{a.turma}{a.responsavel ? ` · Resp.: ${a.responsavel}` : ""}</div>
             </div>
           ))}
         </div>
@@ -1146,7 +1146,7 @@ function BuscaAluno({ alunos, value, onChange, error }) {
   );
 }
 
-// ââ BLOCO NUMERADO (fora do modal para evitar remontagem a cada tecla) âââââââââ
+// ── BLOCO NUMERADO (fora do modal para evitar remontagem a cada tecla) ─────────
 const FBlock = ({ num, title, children }) => (
   <div style={{ background: "#f8fafc", borderRadius: 12, padding: 18, border: "1px solid #e2e8f0", display: "flex", flexDirection: "column", gap: 12 }}>
     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -1157,7 +1157,7 @@ const FBlock = ({ num, title, children }) => (
   </div>
 );
 
-// ââ BUSCA DE MOTIVO COM DIGITAÃÃO âââââââââââââââââââââââââââââââââââââââââââââ
+// ── BUSCA DE MOTIVO COM DIGITAÇÃO ─────────────────────────────────────────────
 function BuscaMotivo({ motivos, value, onChange, error }) {
   const [busca, setBusca] = useState("");
   const [aberto, setAberto] = useState(false);
@@ -1165,7 +1165,7 @@ function BuscaMotivo({ motivos, value, onChange, error }) {
 
   const opcoes = [
     ...(motivos || []).map(m => ({ id: m.id, nome: m.nome, pontos: m.pontos })),
-    { id: "outro", nome: "âï¸ Outro (digitar manualmente)", pontos: null },
+    { id: "outro", nome: "✏️ Outro (digitar manualmente)", pontos: null },
   ];
 
   const motivoSel = opcoes.find(m => m.id === value);
@@ -1185,7 +1185,7 @@ function BuscaMotivo({ motivos, value, onChange, error }) {
 
   return (
     <div ref={ref} style={{ display: "flex", flexDirection: "column", gap: 4, position: "relative" }}>
-      <label style={{ fontSize: 12, fontWeight: 600, color: error ? "#ef4444" : "#475569" }}>Motivo da ComunicaÃ§Ã£o *</label>
+      <label style={{ fontSize: 12, fontWeight: 600, color: error ? "#ef4444" : "#475569" }}>Motivo da Comunicação *</label>
 
       {motivoSel ? (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "9px 13px", border: `1.5px solid ${error ? "#ef4444" : "#2563eb"}`, borderRadius: 8, background: "#eff6ff" }}>
@@ -1197,7 +1197,7 @@ function BuscaMotivo({ motivos, value, onChange, error }) {
               </div>
             )}
           </div>
-          <button onClick={limpar} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", fontSize: 16, padding: 4 }}>â</button>
+          <button onClick={limpar} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", fontSize: 16, padding: 4 }}>✕</button>
         </div>
       ) : (
         <div style={{ position: "relative" }}>
@@ -1208,7 +1208,7 @@ function BuscaMotivo({ motivos, value, onChange, error }) {
             placeholder="Digite o motivo para buscar..."
             style={{ width: "100%", padding: "9px 13px", border: `1.5px solid ${error ? "#ef4444" : "#e2e8f0"}`, borderRadius: 8, fontSize: 14, outline: "none", background: "#fafafa", color: "#1e293b", fontFamily: "inherit", boxSizing: "border-box" }}
           />
-          {busca && <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", fontSize: 12, color: "#94a3b8" }}>ð</span>}
+          {busca && <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", fontSize: 12, color: "#94a3b8" }}>🔍</span>}
         </div>
       )}
 
@@ -1241,7 +1241,7 @@ function BuscaMotivo({ motivos, value, onChange, error }) {
   );
 }
 
-// ââ MODAIS SISTEMA ESCOLAR âââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── MODAIS SISTEMA ESCOLAR ─────────────────────────────────────────────────────
 function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos, escolaId }) {
   const [f, setF] = useState({ alunoId: "", titulo: "", detalhes: "", urgencia: "", comQuem: "", motivoId: "", motivoCustom: "", motivoCustomPontos: "0", encaminhar: false, encDestino: "", encResponsavelId: "", encResponsavelNome: "", encObs: "" });
   const [err, setErr] = useState({});
@@ -1252,13 +1252,13 @@ function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos, escol
 
   const validate = () => {
     const e = {};
-    if (!f.alunoId) e.alunoId = "ObrigatÃ³rio";
+    if (!f.alunoId) e.alunoId = "Obrigatório";
     if (!f.motivoId) e.motivoId = "Selecione o motivo";
     if (f.motivoId === "outro" && !f.motivoCustom?.trim()) e.motivoCustom = "Descreva o motivo";
     if (!f.detalhes.trim()) e.detalhes = "Descreva ou grave o relato";
-    if (!f.comQuem) e.comQuem = "ObrigatÃ³rio";
-    if (f.encaminhar && !f.encDestino) e.encDestino = "ObrigatÃ³rio";
-    if (f.encaminhar && !f.encResponsavelNome) e.encResponsavel = "ObrigatÃ³rio";
+    if (!f.comQuem) e.comQuem = "Obrigatório";
+    if (f.encaminhar && !f.encDestino) e.encDestino = "Obrigatório";
+    if (f.encaminhar && !f.encResponsavelNome) e.encResponsavel = "Obrigatório";
     setErr(e); return Object.keys(e).length === 0;
   };
   const handle = async () => {
@@ -1277,11 +1277,11 @@ function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos, escol
       enc_responsavel: f.encaminhar ? f.encResponsavelNome : null,
       enc_responsavel_id: f.encaminhar ? f.encResponsavelId : null,
       enc_obs: f.encObs || null, enc_status: f.encaminhar ? "PENDENTE" : null,
-      status: f.encaminhar ? "PENDENTE" : "CONCLUÃDO", com_quem: f.comQuem
+      status: f.encaminhar ? "PENDENTE" : "CONCLUÍDO", com_quem: f.comQuem
     };
     const { data, error } = await supabase.from("comunicacoes").insert([payload]).select().single();
     if (error) {
-      console.error("Erro ao salvar comunicaÃ§Ã£o:", JSON.stringify(error));
+      console.error("Erro ao salvar comunicação:", JSON.stringify(error));
       alert("Erro: " + (error.message || JSON.stringify(error)));
     }
     if (!error && data) {
@@ -1299,9 +1299,9 @@ function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos, escol
   return (
     <Overlay onClose={onClose}>
       <MBox>
-        <MHead title="Nova ComunicaÃ§Ã£o" subtitle="Registre uma nova interaÃ§Ã£o." icon="ð¨" onClose={onClose} />
+        <MHead title="Nova Comunicação" subtitle="Registre uma nova interação." icon="📨" onClose={onClose} />
         <MBody>
-          <FBlock num="1" title="IdentificaÃ§Ã£o">
+          <FBlock num="1" title="Identificação">
             <BuscaAluno alunos={alunos} value={f.alunoId} onChange={id => upd("alunoId", id)} error={err.alunoId} />
             <div>
               <BuscaMotivo motivos={motivos} value={f.motivoId} onChange={id => upd("motivoId", id)} error={err.motivoId} />
@@ -1316,23 +1316,23 @@ function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos, escol
                       {err.motivoCustom && <span style={{ fontSize: 11, color: "#ef4444" }}>{err.motivoCustom}</span>}
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                      <label style={{ fontSize: 12, fontWeight: 600, color: "#475569" }}>PontuaÃ§Ã£o de risco</label>
+                      <label style={{ fontSize: 12, fontWeight: 600, color: "#475569" }}>Pontuação de risco</label>
                       <input type="number" value={f.motivoCustomPontos} onChange={e => upd("motivoCustomPontos", e.target.value)} placeholder="Ex: 15" min="-50" max="50" style={{ padding: "9px 13px", border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 14, outline: "none", background: "#fafafa", color: "#1e293b", fontFamily: "inherit" }} />
                     </div>
                   </div>
-                  <div style={{ fontSize: 11, color: "#94a3b8" }}>ð¡ Valores positivos aumentam o risco. Negativos reduzem. Ex: +15 para algo ruim, -5 para algo bom.</div>
+                  <div style={{ fontSize: 11, color: "#94a3b8" }}>💡 Valores positivos aumentam o risco. Negativos reduzem. Ex: +15 para algo ruim, -5 para algo bom.</div>
                 </div>
               )}
 
-              {/* Preview da pontuaÃ§Ã£o */}
+              {/* Preview da pontuação */}
               {motivoSel && f.motivoId !== "outro" && (
                 <div style={{ marginTop: 6, padding: "6px 12px", borderRadius: 8, background: motivoSel.pontos > 0 ? "#fef2f2" : "#f0fdf4", border: `1px solid ${motivoSel.pontos > 0 ? "#fecaca" : "#bbf7d0"}`, fontSize: 12, fontWeight: 700, color: motivoSel.pontos > 0 ? "#dc2626" : "#16a34a" }}>
-                  {motivoSel.pontos > 0 ? `â ï¸ +${motivoSel.pontos} pontos de risco` : `â ${Math.abs(motivoSel.pontos)} pontos de risco reduzidos`}
+                  {motivoSel.pontos > 0 ? `⚠️ +${motivoSel.pontos} pontos de risco` : `✓ ${Math.abs(motivoSel.pontos)} pontos de risco reduzidos`}
                 </div>
               )}
               {f.motivoId === "outro" && f.motivoCustomPontos && (
                 <div style={{ marginTop: 6, padding: "6px 12px", borderRadius: 8, background: Number(f.motivoCustomPontos) > 0 ? "#fef2f2" : "#f0fdf4", border: `1px solid ${Number(f.motivoCustomPontos) > 0 ? "#fecaca" : "#bbf7d0"}`, fontSize: 12, fontWeight: 700, color: Number(f.motivoCustomPontos) > 0 ? "#dc2626" : "#16a34a" }}>
-                  {Number(f.motivoCustomPontos) > 0 ? `â ï¸ +${f.motivoCustomPontos} pontos de risco` : `â ${Math.abs(Number(f.motivoCustomPontos))} pontos de risco reduzidos`}
+                  {Number(f.motivoCustomPontos) > 0 ? `⚠️ +${f.motivoCustomPontos} pontos de risco` : `✓ ${Math.abs(Number(f.motivoCustomPontos))} pontos de risco reduzidos`}
                 </div>
               )}
             </div>
@@ -1341,15 +1341,15 @@ function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos, escol
             <CampoRelato value={f.detalhes} onChange={v => upd("detalhes", v)} />
             {err.detalhes && <span style={{ fontSize: 11, color: "#ef4444" }}>{err.detalhes}</span>}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-              <Sel label="UrgÃªncia" value={f.urgencia} onChange={e => upd("urgencia", e.target.value)}>
-                <option value="">â Sem urgÃªncia â</option>
+              <Sel label="Urgência" value={f.urgencia} onChange={e => upd("urgencia", e.target.value)}>
+                <option value="">— Sem urgência —</option>
                 <option value="BAIXA">BAIXA</option>
-                <option value="MEDIA">MÃDIA</option>
+                <option value="MEDIA">MÉDIA</option>
                 <option value="ALTA">ALTA</option>
               </Sel>
-              <Sel label="ComunicaÃ§Ã£o com *" error={err.comQuem} value={f.comQuem} onChange={e => upd("comQuem", e.target.value)}>
+              <Sel label="Comunicação com *" error={err.comQuem} value={f.comQuem} onChange={e => upd("comQuem", e.target.value)}>
                 <option value="">Selecione...</option>
-                <option>ResponsÃ¡vel / FamÃ­lia</option>
+                <option>Responsável / Família</option>
                 <option>Aluno</option>
                 <option>Professor</option>
                 <option>Outro setor</option>
@@ -1359,7 +1359,7 @@ function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos, escol
           <FBlock num="3" title="Encaminhamento">
             <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer", padding: 12, borderRadius: 8, border: `1.5px solid ${f.encaminhar ? "#2563eb" : "#e2e8f0"}`, background: f.encaminhar ? "#eff6ff" : "#fff" }}>
               <input type="checkbox" checked={f.encaminhar} onChange={e => upd("encaminhar", e.target.checked)} style={{ marginTop: 2 }} />
-              <div><div style={{ fontWeight: 600, color: "#1e293b", fontSize: 14 }}>Encaminhar para outro setor</div><div style={{ fontSize: 12, color: "#94a3b8" }}>Exige aÃ§Ã£o ou acompanhamento de terceiros.</div></div>
+              <div><div style={{ fontWeight: 600, color: "#1e293b", fontSize: 14 }}>Encaminhar para outro setor</div><div style={{ fontSize: 12, color: "#94a3b8" }}>Exige ação ou acompanhamento de terceiros.</div></div>
             </label>
             {f.encaminhar && (
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -1368,14 +1368,14 @@ function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos, escol
                     <option value="">Selecione...</option>
                     {SETORES.map(s => <option key={s}>{s}</option>)}
                   </Sel>
-                  <Sel label="ResponsÃ¡vel *" error={err.encResponsavel} value={f.encResponsavelId} onChange={e => { const u = equipe.find(x => x.id === e.target.value); upd("encResponsavelId", e.target.value); upd("encResponsavelNome", u?.nome || ""); }}>
+                  <Sel label="Responsável *" error={err.encResponsavel} value={f.encResponsavelId} onChange={e => { const u = equipe.find(x => x.id === e.target.value); upd("encResponsavelId", e.target.value); upd("encResponsavelNome", u?.nome || ""); }}>
                     <option value="">Selecione...</option>
                     {equipe.filter(u => u.id !== profile.id).map(u => <option key={u.id} value={u.id}>{u.nome}</option>)}
                   </Sel>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: "#475569" }}>ObservaÃ§Ãµes para o destino</label>
-                  <textarea value={f.encObs} onChange={e => upd("encObs", e.target.value)} placeholder="InstruÃ§Ãµes..." rows={2} style={{ padding: "9px 13px", border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 14, outline: "none", background: "#fafafa", fontFamily: "inherit", resize: "vertical", boxSizing: "border-box", width: "100%" }} />
+                  <label style={{ fontSize: 12, fontWeight: 600, color: "#475569" }}>Observações para o destino</label>
+                  <textarea value={f.encObs} onChange={e => upd("encObs", e.target.value)} placeholder="Instruções..." rows={2} style={{ padding: "9px 13px", border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 14, outline: "none", background: "#fafafa", fontFamily: "inherit", resize: "vertical", boxSizing: "border-box", width: "100%" }} />
                 </div>
               </div>
             )}
@@ -1383,7 +1383,7 @@ function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos, escol
         </MBody>
         <MFoot>
           <Btn variant="ghost" onClick={onClose}>Cancelar</Btn>
-          <Btn icon="ð¨" onClick={handle} disabled={saving}>{saving ? "Salvando..." : "Registrar ComunicaÃ§Ã£o"}</Btn>
+          <Btn icon="📨" onClick={handle} disabled={saving}>{saving ? "Salvando..." : "Registrar Comunicação"}</Btn>
         </MFoot>
       </MBox>
     </Overlay>
@@ -1391,7 +1391,7 @@ function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos, escol
 }
 
 function ModalNovaReuniao({ onClose, onSave, profile, alunos, escolaId }) {
-  const [f, setF] = useState({ titulo: "", tipo: "ReuniÃ£o de Pais", data: "", descricao: "", ata: "", proximaAcao: "" });
+  const [f, setF] = useState({ titulo: "", tipo: "Reunião de Pais", data: "", descricao: "", ata: "", proximaAcao: "" });
   const [convocados, setConvocados] = useState([]);
   const [err, setErr] = useState({});
   const [saving, setSaving] = useState(false);
@@ -1422,8 +1422,8 @@ function ModalNovaReuniao({ onClose, onSave, profile, alunos, escolaId }) {
 
   const handle = async () => {
     const e = {};
-    if (!f.titulo.trim()) e.titulo = "ObrigatÃ³rio";
-    if (!f.data) e.data = "ObrigatÃ³rio";
+    if (!f.titulo.trim()) e.titulo = "Obrigatório";
+    if (!f.data) e.data = "Obrigatório";
     setErr(e); if (Object.keys(e).length) return;
     setSaving(true);
     const { data: reuniao, error } = await supabase.from("reunioes").insert([{ escola_id: escolaId || profile.escola_id, data_reuniao: new Date(f.data).toLocaleDateString("pt-BR"), tipo: f.tipo, titulo: f.titulo, descricao: f.descricao, ata: f.ata, proxima_acao: f.proximaAcao, autor_id: profile.id }]).select().single();
@@ -1439,15 +1439,15 @@ function ModalNovaReuniao({ onClose, onSave, profile, alunos, escolaId }) {
   return (
     <Overlay onClose={onClose}>
       <MBox width={700}>
-        <MHead title="Nova ReuniÃ£o" subtitle="Registre a reuniÃ£o e a presenÃ§a familiar." icon="ð" onClose={onClose} />
+        <MHead title="Nova Reunião" subtitle="Registre a reunião e a presença familiar." icon="📅" onClose={onClose} />
         <MBody>
           <div style={{ background: "#f8fafc", borderRadius: 12, padding: 18, border: "1px solid #e2e8f0", display: "flex", flexDirection: "column", gap: 12 }}>
             <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 12 }}>
-              <Input label="TÃ­tulo *" error={err.titulo} value={f.titulo} onChange={e => upd("titulo", e.target.value)} placeholder="Ex: Conselho de Classe" />
+              <Input label="Título *" error={err.titulo} value={f.titulo} onChange={e => upd("titulo", e.target.value)} placeholder="Ex: Conselho de Classe" />
               <Input label="Data *" type="date" error={err.data} value={f.data} onChange={e => upd("data", e.target.value)} />
             </div>
             <Sel label="Tipo" value={f.tipo} onChange={e => upd("tipo", e.target.value)}>
-              {["ReuniÃ£o de Pais", "ReuniÃ£o PedagÃ³gica", "ReuniÃ£o Individual", "Conselho de Classe", "ReuniÃ£o com ResponsÃ¡vel"].map(t => <option key={t}>{t}</option>)}
+              {["Reunião de Pais", "Reunião Pedagógica", "Reunião Individual", "Conselho de Classe", "Reunião com Responsável"].map(t => <option key={t}>{t}</option>)}
             </Sel>
             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
               <label style={{ fontSize: 12, fontWeight: 600, color: "#475569" }}>Pauta</label>
@@ -1456,14 +1456,14 @@ function ModalNovaReuniao({ onClose, onSave, profile, alunos, escolaId }) {
           </div>
 
           <div style={{ background: "#f8fafc", borderRadius: 12, padding: 18, border: "1px solid #e2e8f0", display: "flex", flexDirection: "column", gap: 12 }}>
-            {/* CabeÃ§alho com contador */}
+            {/* Cabeçalho com contador */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div style={{ fontWeight: 700, color: "#1e293b", fontSize: 14 }}>Lista de PresenÃ§a</div>
+              <div style={{ fontWeight: 700, color: "#1e293b", fontSize: 14 }}>Lista de Presença</div>
               {convocados.length > 0 && (
                 <div style={{ display: "flex", gap: 8 }}>
                   <Badge color="#2563eb">{convocados.length} convocados</Badge>
-                  <Badge color="#16a34a">â {convocados.filter(c => c.compareceu).length} presentes</Badge>
-                  <Badge color="#ef4444">â {convocados.filter(c => !c.compareceu).length} ausentes</Badge>
+                  <Badge color="#16a34a">✓ {convocados.filter(c => c.compareceu).length} presentes</Badge>
+                  <Badge color="#ef4444">✗ {convocados.filter(c => !c.compareceu).length} ausentes</Badge>
                 </div>
               )}
             </div>
@@ -1473,7 +1473,7 @@ function ModalNovaReuniao({ onClose, onSave, profile, alunos, escolaId }) {
               <input
                 value={busca}
                 onChange={e => setBusca(e.target.value)}
-                placeholder="ð Buscar por nome ou responsÃ¡vel..."
+                placeholder="🔍 Buscar por nome ou responsável..."
                 style={{ padding: "8px 13px", border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 13, outline: "none", background: "#fff", fontFamily: "inherit" }}
               />
               <select
@@ -1486,13 +1486,13 @@ function ModalNovaReuniao({ onClose, onSave, profile, alunos, escolaId }) {
               </select>
             </div>
 
-            {/* BotÃ£o selecionar todos da turma/filtro */}
+            {/* Botão selecionar todos da turma/filtro */}
             {alunosFiltrados.length > 0 && (
               <button
                 onClick={selecionarTurma}
                 style={{ alignSelf: "flex-start", padding: "5px 14px", borderRadius: 20, border: `1.5px solid ${todosFiltradosSel ? "#ef4444" : "#2563eb"}`, background: todosFiltradosSel ? "#fef2f2" : "#eff6ff", color: todosFiltradosSel ? "#ef4444" : "#2563eb", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
               >
-                {todosFiltradosSel ? `â Desmarcar todos (${alunosFiltrados.length})` : `â Selecionar todos (${alunosFiltrados.length})`}
+                {todosFiltradosSel ? `✕ Desmarcar todos (${alunosFiltrados.length})` : `✓ Selecionar todos (${alunosFiltrados.length})`}
               </button>
             )}
 
@@ -1512,13 +1512,13 @@ function ModalNovaReuniao({ onClose, onSave, profile, alunos, escolaId }) {
                       <div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b" }}>{a.nome}</div>
                       <div style={{ fontSize: 11, color: "#94a3b8" }}>
                         {a.turma && <span style={{ marginRight: 8, background: "#e0e7ff", color: "#3730a3", padding: "1px 7px", borderRadius: 10, fontWeight: 700 }}>{a.turma}</span>}
-                        Resp.: {a.responsavel || "â"}
+                        Resp.: {a.responsavel || "—"}
                       </div>
                     </div>
                     {conv && (
                       <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, color: conv.compareceu ? "#16a34a" : "#94a3b8", cursor: "pointer", flexShrink: 0 }}>
                         <input type="checkbox" checked={conv.compareceu} onChange={() => toggleP(a.id)} />
-                        {conv.compareceu ? "â Compareceu" : "Ausente"}
+                        {conv.compareceu ? "✓ Compareceu" : "Ausente"}
                       </label>
                     )}
                   </div>
@@ -1528,17 +1528,17 @@ function ModalNovaReuniao({ onClose, onSave, profile, alunos, escolaId }) {
           </div>
 
           <div style={{ background: "#f8fafc", borderRadius: 12, padding: 18, border: "1px solid #e2e8f0", display: "flex", flexDirection: "column", gap: 10 }}>
-            <div style={{ fontWeight: 700, color: "#1e293b", fontSize: 14 }}>Ata e PrÃ³ximos Passos</div>
+            <div style={{ fontWeight: 700, color: "#1e293b", fontSize: 14 }}>Ata e Próximos Passos</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
               <label style={{ fontSize: 12, fontWeight: 600, color: "#475569" }}>Ata / Resumo</label>
               <textarea value={f.ata} onChange={e => upd("ata", e.target.value)} placeholder="O que foi discutido e decidido..." rows={3} style={{ padding: "9px 13px", border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 14, outline: "none", background: "#fafafa", fontFamily: "inherit", resize: "vertical", width: "100%", boxSizing: "border-box" }} />
             </div>
-            <Input label="PrÃ³xima AÃ§Ã£o" value={f.proximaAcao} onChange={e => upd("proximaAcao", e.target.value)} placeholder="Ex: Contato com famÃ­lias ausentes atÃ© 10/04" />
+            <Input label="Próxima Ação" value={f.proximaAcao} onChange={e => upd("proximaAcao", e.target.value)} placeholder="Ex: Contato com famílias ausentes até 10/04" />
           </div>
         </MBody>
         <MFoot>
           <Btn variant="ghost" onClick={onClose}>Cancelar</Btn>
-          <Btn icon="ð" onClick={handle} disabled={saving}>{saving ? "Salvando..." : "Registrar ReuniÃ£o"}</Btn>
+          <Btn icon="📅" onClick={handle} disabled={saving}>{saving ? "Salvando..." : "Registrar Reunião"}</Btn>
         </MFoot>
       </MBox>
     </Overlay>
@@ -1552,7 +1552,7 @@ function ModalResolucao({ item, onClose, onResolve, alunos }) {
   const [saving, setSaving] = useState(false);
   const aluno = alunos.find(a => a.id === item.aluno_id);
   const handle = async () => {
-    if (!resolucao.trim()) { setErr("Justificativa obrigatÃ³ria."); return; }
+    if (!resolucao.trim()) { setErr("Justificativa obrigatória."); return; }
     setSaving(true);
     await supabase.from("comunicacoes").update({ enc_status: status, status, resolucao }).eq("id", item.id);
     onResolve(item.id, status, resolucao);
@@ -1561,7 +1561,7 @@ function ModalResolucao({ item, onClose, onResolve, alunos }) {
   return (
     <Overlay onClose={onClose}>
       <MBox width={500}>
-        <MHead title="Atualizar Encaminhamento" icon="ð" onClose={onClose} />
+        <MHead title="Atualizar Encaminhamento" icon="📋" onClose={onClose} />
         <MBody>
           <div style={{ padding: 14, background: "#f8fafc", borderRadius: 10, border: "1px solid #e2e8f0" }}>
             <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 4 }}>Aluno</div>
@@ -1569,12 +1569,12 @@ function ModalResolucao({ item, onClose, onResolve, alunos }) {
             <div style={{ fontSize: 13, color: "#64748b", marginTop: 4 }}>{item.titulo}</div>
           </div>
           <Sel label="Novo Status *" value={status} onChange={e => setStatus(e.target.value)}>
-            <option value="EM_ANALISE">EM ANÃLISE</option>
+            <option value="EM_ANALISE">EM ANÁLISE</option>
             <option value="RESOLVIDO">RESOLVIDO</option>
             <option value="PENDENTE">PENDENTE</option>
           </Sel>
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            <label style={{ fontSize: 12, fontWeight: 600, color: err ? "#ef4444" : "#475569" }}>Justificativa / ResoluÃ§Ã£o *</label>
+            <label style={{ fontSize: 12, fontWeight: 600, color: err ? "#ef4444" : "#475569" }}>Justificativa / Resolução *</label>
             <textarea value={resolucao} onChange={e => setResolucao(e.target.value)} placeholder="Descreva o que foi feito..." rows={4} style={{ padding: "9px 13px", border: `1.5px solid ${err ? "#ef4444" : "#e2e8f0"}`, borderRadius: 8, fontSize: 14, outline: "none", background: "#fafafa", fontFamily: "inherit", resize: "vertical", width: "100%", boxSizing: "border-box" }} />
             {err && <span style={{ fontSize: 11, color: "#ef4444" }}>{err}</span>}
           </div>
@@ -1639,23 +1639,23 @@ function ModalNovoAluno({ onClose, onSave, profile, escolaId }) {
   return (
     <Overlay onClose={onClose}>
       <MBox width={820}>
-        <MHead title="Cadastrar Alunos" subtitle="Individual ou importaÃ§Ã£o em massa." icon="ð¨âð" onClose={onClose} />
+        <MHead title="Cadastrar Alunos" subtitle="Individual ou importação em massa." icon="👨‍🎓" onClose={onClose} />
         <div style={{ display: "flex", borderBottom: "1px solid #f1f5f9", padding: "0 24px" }}>
-          {[["massa", "ð ImportaÃ§Ã£o em Massa"], ["individual", "â Individual"]].map(([m, l]) => (
+          {[["massa", "📋 Importação em Massa"], ["individual", "➕ Individual"]].map(([m, l]) => (
             <button key={m} onClick={() => setModo(m)} style={{ padding: "10px 18px", border: "none", background: "none", cursor: "pointer", fontSize: 13, fontWeight: modo === m ? 800 : 500, color: modo === m ? "#2563eb" : "#64748b", borderBottom: modo === m ? "2px solid #2563eb" : "2px solid transparent", marginBottom: -1 }}>{l}</button>
           ))}
         </div>
         <MBody>
           {modo === "massa" && (<>
             <div style={{ padding: "10px 14px", background: "#eff6ff", borderRadius: 10, border: "1px solid #bfdbfe", fontSize: 13, color: "#1d4ed8" }}>
-              ð¡ <b>Dica:</b> Copie e cole direto de uma planilha Excel na ordem: <b>Nome â ResponsÃ¡vel â Turma â Telefone</b>
+              💡 <b>Dica:</b> Copie e cole direto de uma planilha Excel na ordem: <b>Nome → Responsável → Turma → Telefone</b>
             </div>
             <div style={{ overflowX: "auto", borderRadius: 10, border: "1px solid #e2e8f0" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 600 }}>
                 <thead><tr>
                   <th style={{ ...thS, width: 36, textAlign: "center" }}>#</th>
                   <th style={{ ...thS, width: "32%" }}>Nome do Aluno *</th>
-                  <th style={{ ...thS, width: "28%" }}>Nome do ResponsÃ¡vel</th>
+                  <th style={{ ...thS, width: "28%" }}>Nome do Responsável</th>
                   <th style={{ ...thS, width: "18%" }}>Turma</th>
                   <th style={{ ...thS, width: "22%" }}>Telefone</th>
                 </tr></thead>
@@ -1665,8 +1665,8 @@ function ModalNovoAluno({ onClose, onSave, profile, escolaId }) {
                     return (<tr key={i} style={{ background: ok ? "#fafffe" : "#fff" }}>
                       <td style={{ ...tdS, textAlign: "center", fontSize: 11, color: "#94a3b8", fontWeight: 700 }}>{i + 1}</td>
                       <td style={tdS}><input value={l.nome} onChange={e => updLinha(i, "nome", e.target.value)} onPaste={e => handlePaste(e, i, "nome")} placeholder="Nome completo" style={inpS(ok)} /></td>
-                      <td style={tdS}><input value={l.responsavel} onChange={e => updLinha(i, "responsavel", e.target.value)} onPaste={e => handlePaste(e, i, "responsavel")} placeholder="Nome do responsÃ¡vel" style={inpS(false)} /></td>
-                      <td style={tdS}><input value={l.turma} onChange={e => updLinha(i, "turma", e.target.value)} onPaste={e => handlePaste(e, i, "turma")} placeholder="Ex: 3Âº A" style={inpS(false)} /></td>
+                      <td style={tdS}><input value={l.responsavel} onChange={e => updLinha(i, "responsavel", e.target.value)} onPaste={e => handlePaste(e, i, "responsavel")} placeholder="Nome do responsável" style={inpS(false)} /></td>
+                      <td style={tdS}><input value={l.turma} onChange={e => updLinha(i, "turma", e.target.value)} onPaste={e => handlePaste(e, i, "turma")} placeholder="Ex: 3º A" style={inpS(false)} /></td>
                       <td style={tdS}><input value={l.telefone} onChange={e => updLinha(i, "telefone", e.target.value)} onPaste={e => handlePaste(e, i, "telefone")} placeholder="(00) 00000-0000" style={inpS(false)} /></td>
                     </tr>);
                   })}
@@ -1676,24 +1676,24 @@ function ModalNovoAluno({ onClose, onSave, profile, escolaId }) {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <button onClick={addLinhas} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "#2563eb", fontWeight: 600, padding: 0 }}>+ Adicionar 5 linhas</button>
               <span style={{ fontSize: 13, color: linhasValidas.length > 0 ? "#16a34a" : "#64748b", fontWeight: linhasValidas.length > 0 ? 700 : 400 }}>
-                {linhasValidas.length > 0 ? `â ${linhasValidas.length} aluno(s) prontos` : "Preencha pelo menos o nome"}
+                {linhasValidas.length > 0 ? `✓ ${linhasValidas.length} aluno(s) prontos` : "Preencha pelo menos o nome"}
               </span>
             </div>
           </>)}
           {modo === "individual" && (<>
             <Input label="Nome completo *" value={f.nome} onChange={e => upd("nome", e.target.value)} placeholder="Nome do aluno" />
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-              <Input label="Turma" value={f.turma} onChange={e => upd("turma", e.target.value)} placeholder="Ex: 3Âº A" />
-              <Input label="RM / MatrÃ­cula" value={f.rm} onChange={e => upd("rm", e.target.value)} placeholder="Ex: 2024001" />
+              <Input label="Turma" value={f.turma} onChange={e => upd("turma", e.target.value)} placeholder="Ex: 3º A" />
+              <Input label="RM / Matrícula" value={f.rm} onChange={e => upd("rm", e.target.value)} placeholder="Ex: 2024001" />
             </div>
-            <Input label="Nome do ResponsÃ¡vel" value={f.responsavel} onChange={e => upd("responsavel", e.target.value)} placeholder="Nome completo do responsÃ¡vel" />
-            <Input label="Telefone do ResponsÃ¡vel" value={f.telefone} onChange={e => upd("telefone", e.target.value)} placeholder="(00) 00000-0000" />
+            <Input label="Nome do Responsável" value={f.responsavel} onChange={e => upd("responsavel", e.target.value)} placeholder="Nome completo do responsável" />
+            <Input label="Telefone do Responsável" value={f.telefone} onChange={e => upd("telefone", e.target.value)} placeholder="(00) 00000-0000" />
           </>)}
         </MBody>
         <MFoot>
           <Btn variant="ghost" onClick={onClose}>Cancelar</Btn>
           {modo === "massa" ? (
-            <Btn onClick={handleSalvarMassa} disabled={saving || linhasValidas.length === 0} icon="ð">
+            <Btn onClick={handleSalvarMassa} disabled={saving || linhasValidas.length === 0} icon="📋">
               {saving ? "Salvando..." : `Cadastrar ${linhasValidas.length > 0 ? linhasValidas.length + " " : ""}Aluno(s)`}
             </Btn>
           ) : (
@@ -1706,7 +1706,7 @@ function ModalNovoAluno({ onClose, onSave, profile, escolaId }) {
   );
 }
 
-// ââ MODAL EDITAR ALUNO âââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── MODAL EDITAR ALUNO ─────────────────────────────────────────────────────────
 function ModalEditarAluno({ aluno, onClose, onSave }) {
   const [f, setF] = useState({ nome: aluno.nome || "", turma: aluno.turma || "", rm: aluno.rm || "", responsavel: aluno.responsavel || "", telefone: aluno.telefone || "" });
   const [saving, setSaving] = useState(false);
@@ -1721,26 +1721,26 @@ function ModalEditarAluno({ aluno, onClose, onSave }) {
   return (
     <Overlay onClose={onClose}>
       <MBox width={500}>
-        <MHead title="Editar Cadastro do Aluno" icon="âï¸" subtitle={aluno.nome} onClose={onClose} />
+        <MHead title="Editar Cadastro do Aluno" icon="✏️" subtitle={aluno.nome} onClose={onClose} />
         <MBody>
           <Input label="Nome completo *" value={f.nome} onChange={e => upd("nome", e.target.value)} placeholder="Nome do aluno" />
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <Input label="Turma" value={f.turma} onChange={e => upd("turma", e.target.value)} placeholder="Ex: 3Âº A" />
-            <Input label="RM / MatrÃ­cula" value={f.rm} onChange={e => upd("rm", e.target.value)} placeholder="Ex: 2024001" />
+            <Input label="Turma" value={f.turma} onChange={e => upd("turma", e.target.value)} placeholder="Ex: 3º A" />
+            <Input label="RM / Matrícula" value={f.rm} onChange={e => upd("rm", e.target.value)} placeholder="Ex: 2024001" />
           </div>
-          <Input label="Nome do ResponsÃ¡vel" value={f.responsavel} onChange={e => upd("responsavel", e.target.value)} placeholder="Nome completo do responsÃ¡vel" />
-          <Input label="Telefone do ResponsÃ¡vel" value={f.telefone} onChange={e => upd("telefone", e.target.value)} placeholder="(00) 00000-0000" />
+          <Input label="Nome do Responsável" value={f.responsavel} onChange={e => upd("responsavel", e.target.value)} placeholder="Nome completo do responsável" />
+          <Input label="Telefone do Responsável" value={f.telefone} onChange={e => upd("telefone", e.target.value)} placeholder="(00) 00000-0000" />
         </MBody>
         <MFoot>
           <Btn variant="ghost" onClick={onClose}>Cancelar</Btn>
-          <Btn onClick={handle} disabled={saving}>{saving ? "Salvando..." : "Salvar AlteraÃ§Ãµes"}</Btn>
+          <Btn onClick={handle} disabled={saving}>{saving ? "Salvando..." : "Salvar Alterações"}</Btn>
         </MFoot>
       </MBox>
     </Overlay>
   );
 }
 
-// ââ PERFIL ALUNO âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── PERFIL ALUNO ───────────────────────────────────────────────────────────────
 function PerfilAluno({ aluno: alunoInicial, comunicacoes, reunioes, onClose, profile, onAlunoAtualizado }) {
   const [aluno, setAluno] = useState(alunoInicial);
   const [tab, setTab] = useState("timeline");
@@ -1755,7 +1755,7 @@ function PerfilAluno({ aluno: alunoInicial, comunicacoes, reunioes, onClose, pro
   const timeline = [...coms.map(c => ({ tipo: "com", data: c.data_registro, item: c })), ...reunioesA.map(r => ({ tipo: "reu", data: r.data_reuniao, item: r }))]
     .sort((a, b) => (b.data || "").split("/").reverse().join("").localeCompare((a.data || "").split("/").reverse().join("")));
 
-  const nivelColor = { "BAIXO": "#22c55e", "MÃDIO": "#f59e0b", "ALTO": "#ef4444", "CRÃTICO": "#7c3aed" };
+  const nivelColor = { "BAIXO": "#22c55e", "MÉDIO": "#f59e0b", "ALTO": "#ef4444", "CRÍTICO": "#7c3aed" };
 
   const analisarRisco = async () => {
     setAnalisando(true);
@@ -1769,7 +1769,7 @@ function PerfilAluno({ aluno: alunoInicial, comunicacoes, reunioes, onClose, pro
       const data = await res.json();
       if (data.analise) {
         setAnalise(data.analise);
-        // Salvar anÃ¡lise no banco
+        // Salvar análise no banco
         await supabase.from("analises_risco").insert([{
           escola_id: aluno.escola_id, aluno_id: aluno.id,
           nivel: data.analise.nivel, justificativa: data.analise.justificativa,
@@ -1777,23 +1777,23 @@ function PerfilAluno({ aluno: alunoInicial, comunicacoes, reunioes, onClose, pro
           gerado_por: profile.id,
         }]);
       }
-    } catch { setAnalise({ nivel: "MÃDIO", justificativa: "Erro ao conectar com a IA.", acao_sugerida: "Verifique manualmente." }); }
+    } catch { setAnalise({ nivel: "MÉDIO", justificativa: "Erro ao conectar com a IA.", acao_sugerida: "Verifique manualmente." }); }
     setAnalisando(false);
   };
   return (
     <>
     <Overlay onClose={onClose}>
       <MBox width={720}>
-        <MHead title={aluno.nome} subtitle={`${aluno.turma} Â· RM: ${aluno.rm}`} onClose={onClose} />
+        <MHead title={aluno.nome} subtitle={`${aluno.turma} · RM: ${aluno.rm}`} onClose={onClose} />
         <MBody>
-          {/* BotÃ£o editar â sÃ³ para direÃ§Ã£o e secretaria */}
+          {/* Botão editar — só para direção e secretaria */}
           {podeEditar && (
             <div style={{ display: "flex", justifyContent: "flex-end" }}>
-              <Btn small variant="ghost" icon="âï¸" onClick={() => setEditando(true)}>Editar Cadastro</Btn>
+              <Btn small variant="ghost" icon="✏️" onClick={() => setEditando(true)}>Editar Cadastro</Btn>
             </div>
           )}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10 }}>
-            {[{ label: "Risco", value: getRiscoNivel(aluno.risco), color: getRiscoColor(aluno.risco) }, { label: "Score", value: `${aluno.risco} pts`, color: getRiscoColor(aluno.risco) }, { label: "ComunicaÃ§Ãµes", value: coms.length, color: "#2563eb" }, { label: "PresenÃ§a", value: `${totalP}/${reunioesA.length}`, color: totalP < reunioesA.length / 2 ? "#ef4444" : "#22c55e" }].map(m => (
+            {[{ label: "Risco", value: getRiscoNivel(aluno.risco), color: getRiscoColor(aluno.risco) }, { label: "Score", value: `${aluno.risco} pts`, color: getRiscoColor(aluno.risco) }, { label: "Comunicações", value: coms.length, color: "#2563eb" }, { label: "Presença", value: `${totalP}/${reunioesA.length}`, color: totalP < reunioesA.length / 2 ? "#ef4444" : "#22c55e" }].map(m => (
               <div key={m.label} style={{ background: "#f8fafc", borderRadius: 10, padding: "12px 14px", border: "1px solid #e2e8f0", textAlign: "center" }}>
                 <div style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600, marginBottom: 4 }}>{m.label}</div>
                 <div style={{ fontSize: 18, fontWeight: 900, color: m.color }}>{m.value}</div>
@@ -1801,32 +1801,32 @@ function PerfilAluno({ aluno: alunoInicial, comunicacoes, reunioes, onClose, pro
             ))}
           </div>
           <div style={{ padding: "12px 16px", background: "#f0fdf4", borderRadius: 10, border: "1px solid #bbf7d0", display: "flex", gap: 24, flexWrap: "wrap" }}>
-            <div><div style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600 }}>ResponsÃ¡vel</div><div style={{ fontSize: 14, fontWeight: 700, color: "#1e293b" }}>{aluno.responsavel}</div></div>
+            <div><div style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600 }}>Responsável</div><div style={{ fontSize: 14, fontWeight: 700, color: "#1e293b" }}>{aluno.responsavel}</div></div>
             <div><div style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600 }}>Telefone</div><div style={{ fontSize: 14, fontWeight: 700, color: "#1e293b" }}>{aluno.telefone}</div></div>
           </div>
 
-          {/* AnÃ¡lise IA */}
+          {/* Análise IA */}
           <div style={{ background: "#faf5ff", borderRadius: 12, border: "1px solid #e9d5ff", padding: 16 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: analise ? 14 : 0, flexWrap: "wrap", gap: 10 }}>
               <div>
-                <div style={{ fontSize: 14, fontWeight: 800, color: "#7c3aed" }}>ð§  AnÃ¡lise de Risco com IA</div>
-                <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 2 }}>Parecer inteligente baseado em todo o histÃ³rico do aluno</div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: "#7c3aed" }}>🧠 Análise de Risco com IA</div>
+                <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 2 }}>Parecer inteligente baseado em todo o histórico do aluno</div>
               </div>
               <Btn small onClick={analisarRisco} disabled={analisando} style={{ background: "#7c3aed", color: "#fff", border: "none" }}>
-                {analisando ? "Analisando..." : analise ? "ð Reanalisar" : "ð§  Analisar com IA"}
+                {analisando ? "Analisando..." : analise ? "🔄 Reanalisar" : "🧠 Analisar com IA"}
               </Btn>
             </div>
             {analisando && (
               <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 0" }}>
                 <div style={{ width: 20, height: 20, border: "2px solid #e9d5ff", borderTop: "2px solid #7c3aed", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
-                <span style={{ fontSize: 13, color: "#7c3aed" }}>Analisando histÃ³rico completo do aluno...</span>
+                <span style={{ fontSize: 13, color: "#7c3aed" }}>Analisando histórico completo do aluno...</span>
               </div>
             )}
             {analise && !analisando && (
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                   <div style={{ padding: "6px 16px", borderRadius: 20, background: (nivelColor[analise.nivel] || "#94a3b8") + "20", color: nivelColor[analise.nivel] || "#94a3b8", fontWeight: 900, fontSize: 14 }}>
-                    {analise.nivel === "CRÃTICO" ? "ð¨" : analise.nivel === "ALTO" ? "â ï¸" : analise.nivel === "MÃDIO" ? "ð¶" : "â"} RISCO {analise.nivel}
+                    {analise.nivel === "CRÍTICO" ? "🚨" : analise.nivel === "ALTO" ? "⚠️" : analise.nivel === "MÉDIO" ? "🔶" : "✅"} RISCO {analise.nivel}
                   </div>
                 </div>
                 <div style={{ padding: "10px 14px", background: "#fff", borderRadius: 8, border: "1px solid #e9d5ff" }}>
@@ -1834,7 +1834,7 @@ function PerfilAluno({ aluno: alunoInicial, comunicacoes, reunioes, onClose, pro
                   <div style={{ fontSize: 13, color: "#1e293b", lineHeight: 1.6 }}>{analise.justificativa}</div>
                 </div>
                 <div style={{ padding: "10px 14px", background: "#fffbeb", borderRadius: 8, border: "1px solid #fef3c7" }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "#d97706", marginBottom: 4 }}>AÃÃO SUGERIDA</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#d97706", marginBottom: 4 }}>AÇÃO SUGERIDA</div>
                   <div style={{ fontSize: 13, color: "#1e293b", lineHeight: 1.6 }}>{analise.acao_sugerida}</div>
                 </div>
               </div>
@@ -1842,7 +1842,7 @@ function PerfilAluno({ aluno: alunoInicial, comunicacoes, reunioes, onClose, pro
           </div>
           <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
           <div style={{ display: "flex", gap: 4, borderBottom: "1px solid #e2e8f0" }}>
-            {[["timeline", "ð Timeline"], ["reunioes", "ð ReuniÃµes"], ["encaminhamentos", "ð¨ Encaminhamentos"]].map(([t, l]) => (
+            {[["timeline", "📋 Timeline"], ["reunioes", "📅 Reuniões"], ["encaminhamentos", "📨 Encaminhamentos"]].map(([t, l]) => (
               <button key={t} onClick={() => setTab(t)} style={{ padding: "8px 16px", border: "none", background: "none", cursor: "pointer", fontSize: 13, fontWeight: tab === t ? 800 : 500, color: tab === t ? "#2563eb" : "#64748b", borderBottom: tab === t ? "2px solid #2563eb" : "2px solid transparent", marginBottom: -1 }}>{l}</button>
             ))}
           </div>
@@ -1851,7 +1851,7 @@ function PerfilAluno({ aluno: alunoInicial, comunicacoes, reunioes, onClose, pro
               {timeline.length === 0 && <div style={{ textAlign: "center", color: "#94a3b8", padding: 32 }}>Nenhum registro encontrado.</div>}
               {timeline.map((t, i) => (
                 <div key={i} style={{ display: "flex", gap: 12, padding: "12px 14px", borderRadius: 10, border: "1px solid #f1f5f9", background: "#fafafa" }}>
-                  <span style={{ fontSize: 20 }}>{t.tipo === "com" ? "ð¬" : "ð"}</span>
+                  <span style={{ fontSize: 20 }}>{t.tipo === "com" ? "💬" : "📅"}</span>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 6 }}>
                       <div style={{ fontWeight: 700, fontSize: 14, color: "#1e293b" }}>{t.item.titulo}</div>
@@ -1862,8 +1862,8 @@ function PerfilAluno({ aluno: alunoInicial, comunicacoes, reunioes, onClose, pro
                       </div>
                     </div>
                     <div style={{ fontSize: 13, color: "#64748b", marginTop: 4 }}>{t.item.detalhes || t.item.descricao}</div>
-                    {t.tipo === "com" && t.item.resolucao && <div style={{ marginTop: 8, padding: "6px 10px", background: "#f0fdf4", borderRadius: 6, fontSize: 12, color: "#16a34a", borderLeft: "3px solid #22c55e" }}>â {t.item.resolucao}</div>}
-                    {t.tipo === "reu" && (() => { const p = t.item.convocados?.find(c => c.aluno_id === aluno.id); return <div style={{ fontSize: 12, marginTop: 4, color: p?.compareceu ? "#16a34a" : "#ef4444", fontWeight: 700 }}>{p?.compareceu ? "â ResponsÃ¡vel compareceu" : "â ResponsÃ¡vel nÃ£o compareceu"}</div>; })()}
+                    {t.tipo === "com" && t.item.resolucao && <div style={{ marginTop: 8, padding: "6px 10px", background: "#f0fdf4", borderRadius: 6, fontSize: 12, color: "#16a34a", borderLeft: "3px solid #22c55e" }}>✓ {t.item.resolucao}</div>}
+                    {t.tipo === "reu" && (() => { const p = t.item.convocados?.find(c => c.aluno_id === aluno.id); return <div style={{ fontSize: 12, marginTop: 4, color: p?.compareceu ? "#16a34a" : "#ef4444", fontWeight: 700 }}>{p?.compareceu ? "✓ Responsável compareceu" : "✗ Responsável não compareceu"}</div>; })()}
                   </div>
                 </div>
               ))}
@@ -1871,14 +1871,14 @@ function PerfilAluno({ aluno: alunoInicial, comunicacoes, reunioes, onClose, pro
           )}
           {tab === "reunioes" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {reunioesA.length === 0 && <div style={{ textAlign: "center", color: "#94a3b8", padding: 32 }}>Nenhuma reuniÃ£o registrada.</div>}
+              {reunioesA.length === 0 && <div style={{ textAlign: "center", color: "#94a3b8", padding: 32 }}>Nenhuma reunião registrada.</div>}
               {reunioesA.map(r => {
                 const p = r.convocados?.find(c => c.aluno_id === aluno.id);
                 return (
                   <div key={r.id} style={{ padding: "14px 16px", borderRadius: 10, border: "1px solid #f1f5f9", background: "#fafafa" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 6 }}>
-                      <div><div style={{ fontWeight: 700, fontSize: 14, color: "#1e293b" }}>{r.titulo}</div><div style={{ fontSize: 12, color: "#94a3b8" }}>{r.data_reuniao} Â· {r.tipo}</div></div>
-                      <Badge color={p?.compareceu ? "#16a34a" : "#ef4444"}>{p?.compareceu ? "â Presente" : "â Ausente"}</Badge>
+                      <div><div style={{ fontWeight: 700, fontSize: 14, color: "#1e293b" }}>{r.titulo}</div><div style={{ fontSize: 12, color: "#94a3b8" }}>{r.data_reuniao} · {r.tipo}</div></div>
+                      <Badge color={p?.compareceu ? "#16a34a" : "#ef4444"}>{p?.compareceu ? "✓ Presente" : "✗ Ausente"}</Badge>
                     </div>
                     {r.ata && <div style={{ fontSize: 13, color: "#64748b", marginTop: 8 }}>{r.ata}</div>}
                   </div>
@@ -1895,8 +1895,8 @@ function PerfilAluno({ aluno: alunoInicial, comunicacoes, reunioes, onClose, pro
                     <div style={{ fontWeight: 700, fontSize: 14, color: "#1e293b" }}>{c.titulo}</div>
                     <div style={{ display: "flex", gap: 6 }}>{c.urgencia && <Badge color={getUrgColor(c.urgencia)}>{c.urgencia}</Badge>}<Badge color={getStColor(c.enc_status || "PENDENTE")}>{getStLabel(c.enc_status)}</Badge></div>
                   </div>
-                  <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 4 }}>{c.data_registro} Â· {c.enc_destino} â {c.enc_responsavel}</div>
-                  {c.resolucao && <div style={{ marginTop: 8, padding: "6px 10px", background: "#f0fdf4", borderRadius: 6, fontSize: 12, color: "#16a34a" }}>â {c.resolucao}</div>}
+                  <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 4 }}>{c.data_registro} · {c.enc_destino} → {c.enc_responsavel}</div>
+                  {c.resolucao && <div style={{ marginTop: 8, padding: "6px 10px", background: "#f0fdf4", borderRadius: 6, fontSize: 12, color: "#16a34a" }}>✓ {c.resolucao}</div>}
                 </div>
               ))}
             </div>
@@ -1919,7 +1919,7 @@ function PerfilAluno({ aluno: alunoInicial, comunicacoes, reunioes, onClose, pro
   );
 }
 
-// ââ SCHOOL APP âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── SCHOOL APP ─────────────────────────────────────────────────────────────────
 function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub }) {
   const [pagina, setPagina] = useState("dashboard");
   const [alunos, setAlunos] = useState([]);
@@ -1962,18 +1962,18 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
   const comsVisiveis = comunicacoes.filter(c => isCan(c));
 
   const nav = [
-    { id: "dashboard", icon: "ð", label: "Dashboard" },
-    { id: "alunos", icon: "ð¨âð", label: "Alunos" },
-    { id: "turmas", icon: "ð«", label: "Turmas" },
-    { id: "comunicacoes", icon: "ð¬", label: "ComunicaÃ§Ãµes" },
-    { id: "encaminhamentos", icon: "ð¨", label: "Encaminhamentos" },
-    { id: "reunioes", icon: "ð", label: "ReuniÃµes" },
-    { id: "retencao", icon: "ð", label: "RetenÃ§Ã£o" },
+    { id: "dashboard", icon: "📊", label: "Dashboard" },
+    { id: "alunos", icon: "👨‍🎓", label: "Alunos" },
+    { id: "turmas", icon: "🏫", label: "Turmas" },
+    { id: "comunicacoes", icon: "💬", label: "Comunicações" },
+    { id: "encaminhamentos", icon: "📨", label: "Encaminhamentos" },
+    { id: "reunioes", icon: "📅", label: "Reuniões" },
+    { id: "retencao", icon: "📉", label: "Retenção" },
   ];
 
   if (loading) return <Loading msg="Carregando dados da escola..." />;
 
-  // ââ DASHBOARD ââ
+  // ── DASHBOARD ──
   const DashboardPage = () => {
     const alto = alunos.filter(a => a.risco >= 60);
     const medio = alunos.filter(a => a.risco >= 30 && a.risco < 60);
@@ -1981,20 +1981,20 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
     const pendentes = comsVisiveis.filter(c => c.encaminhamento && c.enc_status === "PENDENTE");
     const total = alunos.length;
     const r = 58, cx = 80, cy = 80, sw = 16, circ = 2 * Math.PI * r;
-    const segs = [{ n: baixo.length, color: "#22c55e", label: "EstÃ¡veis" }, { n: medio.length, color: "#f59e0b", label: "AtenÃ§Ã£o" }, { n: alto.length, color: "#ef4444", label: "Risco Alto" }];
+    const segs = [{ n: baixo.length, color: "#22c55e", label: "Estáveis" }, { n: medio.length, color: "#f59e0b", label: "Atenção" }, { n: alto.length, color: "#ef4444", label: "Risco Alto" }];
     let off = 0;
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
           <div>
             {escola.logo_url && <img src={escola.logo_url} alt="" style={{ height: 36, objectFit: "contain", marginBottom: 8 }} />}
-            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: "#1e293b" }}>Dashboard EstratÃ©gico</h1>
-            <p style={{ margin: "4px 0 0", fontSize: 14, color: "#94a3b8" }}>VisÃ£o 360Â° de risco, engajamento e aÃ§Ãµes preventivas.</p>
+            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: "#1e293b" }}>Dashboard Estratégico</h1>
+            <p style={{ margin: "4px 0 0", fontSize: 14, color: "#94a3b8" }}>Visão 360° de risco, engajamento e ações preventivas.</p>
           </div>
-          <Btn icon="+" onClick={() => setModalNovaCom(true)}>Nova ComunicaÃ§Ã£o</Btn>
+          <Btn icon="+" onClick={() => setModalNovaCom(true)}>Nova Comunicação</Btn>
         </div>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-          {[{ label: "Total de Alunos", value: total, icon: "ð¨âð", color: "#2563eb" }, { label: "Enc. Pendentes", value: pendentes.length, icon: "ð¨", color: "#f59e0b" }, { label: "Em Risco Alto", value: alto.length, icon: "â ï¸", color: "#ef4444" }, { label: "ComunicaÃ§Ãµes", value: comsVisiveis.length, icon: "ð¬", color: "#7c3aed" }].map(m => (
+          {[{ label: "Total de Alunos", value: total, icon: "👨‍🎓", color: "#2563eb" }, { label: "Enc. Pendentes", value: pendentes.length, icon: "📨", color: "#f59e0b" }, { label: "Em Risco Alto", value: alto.length, icon: "⚠️", color: "#ef4444" }, { label: "Comunicações", value: comsVisiveis.length, icon: "💬", color: "#7c3aed" }].map(m => (
             <Card key={m.label} style={{ flex: 1, minWidth: 160 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}><span style={{ fontSize: 18 }}>{m.icon}</span><span style={{ fontSize: 12, color: "#64748b", fontWeight: 600 }}>{m.label}</span></div>
               <div style={{ fontSize: 28, fontWeight: 900, color: m.color }}>{m.value}</div>
@@ -2003,7 +2003,7 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
           <Card>
-            <h3 style={{ margin: "0 0 16px", fontSize: 15, fontWeight: 700, color: "#1e293b" }}>ð Radar de Risco</h3>
+            <h3 style={{ margin: "0 0 16px", fontSize: 15, fontWeight: 700, color: "#1e293b" }}>📊 Radar de Risco</h3>
             <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
               <svg width={160} height={160} viewBox="0 0 160 160">
                 {total === 0 ? <circle cx={cx} cy={cy} r={r} fill="none" stroke="#e2e8f0" strokeWidth={sw} /> :
@@ -2017,8 +2017,8 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
             </div>
           </Card>
           <Card>
-            <h3 style={{ margin: "0 0 12px", fontSize: 15, fontWeight: 700, color: "#1e293b" }}>â ï¸ Alunos em Risco Alto</h3>
-            {alto.length === 0 ? <div style={{ color: "#94a3b8", textAlign: "center", padding: 24 }}>ð Nenhum aluno em risco alto!</div> : (
+            <h3 style={{ margin: "0 0 12px", fontSize: 15, fontWeight: 700, color: "#1e293b" }}>⚠️ Alunos em Risco Alto</h3>
+            {alto.length === 0 ? <div style={{ color: "#94a3b8", textAlign: "center", padding: 24 }}>🎉 Nenhum aluno em risco alto!</div> : (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {alto.slice(0, 5).map(a => (<div key={a.id} onClick={() => setAlunoSel(a)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", borderRadius: 8, border: "1px solid #fef2f2", background: "#fff5f5", cursor: "pointer" }}><div><div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b" }}>{a.nome}</div><div style={{ fontSize: 11, color: "#94a3b8" }}>{a.turma}</div></div><div style={{ fontWeight: 900, fontSize: 16, color: "#ef4444" }}>{a.risco}</div></div>))}
               </div>
@@ -2027,24 +2027,24 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
           <Card>
-            <h3 style={{ margin: "0 0 12px", fontSize: 15, fontWeight: 700, color: "#1e293b" }}>ð Encaminhamentos Pendentes</h3>
+            <h3 style={{ margin: "0 0 12px", fontSize: 15, fontWeight: 700, color: "#1e293b" }}>📋 Encaminhamentos Pendentes</h3>
             {pendentes.length === 0 ? <div style={{ color: "#94a3b8", fontSize: 13, textAlign: "center", padding: 20 }}>Nenhum pendente</div> : (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {pendentes.slice(0, 4).map(c => { const aluno = alunos.find(a => a.id === c.aluno_id); return (<div key={c.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", borderRadius: 8, background: "#fffbeb", border: "1px solid #fef3c7" }}><div><div style={{ fontSize: 12, fontWeight: 700, color: "#1e293b" }}>{c.titulo}</div><div style={{ fontSize: 11, color: "#94a3b8" }}>{aluno?.nome} â {c.enc_destino}</div></div>{c.urgencia && <Badge color={getUrgColor(c.urgencia)}>{c.urgencia}</Badge>}</div>); })}
+                {pendentes.slice(0, 4).map(c => { const aluno = alunos.find(a => a.id === c.aluno_id); return (<div key={c.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", borderRadius: 8, background: "#fffbeb", border: "1px solid #fef3c7" }}><div><div style={{ fontSize: 12, fontWeight: 700, color: "#1e293b" }}>{c.titulo}</div><div style={{ fontSize: 11, color: "#94a3b8" }}>{aluno?.nome} → {c.enc_destino}</div></div>{c.urgencia && <Badge color={getUrgColor(c.urgencia)}>{c.urgencia}</Badge>}</div>); })}
               </div>
             )}
           </Card>
           <Card>
-            <h3 style={{ margin: "0 0 12px", fontSize: 15, fontWeight: 700, color: "#1e293b" }}>ð¬ Ãltimas ComunicaÃ§Ãµes</h3>
+            <h3 style={{ margin: "0 0 12px", fontSize: 15, fontWeight: 700, color: "#1e293b" }}>💬 Últimas Comunicações</h3>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {comsVisiveis.slice(0, 5).map(c => { const aluno = alunos.find(a => a.id === c.aluno_id); return (<div key={c.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", borderRadius: 8, background: "#f8fafc", border: "1px solid #f1f5f9" }}><div><div style={{ fontSize: 12, fontWeight: 700, color: "#1e293b" }}>{c.titulo}</div><div style={{ fontSize: 11, color: "#94a3b8" }}>{aluno?.nome} Â· {c.data_registro}</div></div><Badge color={getStColor(c.status)}>{getStLabel(c.status)}</Badge></div>); })}
-              {comsVisiveis.length === 0 && <div style={{ textAlign: "center", color: "#94a3b8", fontSize: 13, padding: 20 }}>Nenhuma comunicaÃ§Ã£o ainda.</div>}
+              {comsVisiveis.slice(0, 5).map(c => { const aluno = alunos.find(a => a.id === c.aluno_id); return (<div key={c.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", borderRadius: 8, background: "#f8fafc", border: "1px solid #f1f5f9" }}><div><div style={{ fontSize: 12, fontWeight: 700, color: "#1e293b" }}>{c.titulo}</div><div style={{ fontSize: 11, color: "#94a3b8" }}>{aluno?.nome} · {c.data_registro}</div></div><Badge color={getStColor(c.status)}>{getStLabel(c.status)}</Badge></div>); })}
+              {comsVisiveis.length === 0 && <div style={{ textAlign: "center", color: "#94a3b8", fontSize: 13, padding: 20 }}>Nenhuma comunicação ainda.</div>}
             </div>
           </Card>
         </div>
         {(profile.perfil === "DIRECAO" || profile.perfil === "SUPER_ADMIN") && equipe.filter(u => u.perfil !== "DIRECAO").length > 0 && (
           <Card>
-            <div style={{ marginBottom: 16 }}><h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: "#1e293b" }}>ð¥ Desempenho por UsuÃ¡rio</h3><p style={{ margin: "4px 0 0", fontSize: 13, color: "#94a3b8" }}>VisÃ£o individual de cada profissional da equipe</p></div>
+            <div style={{ marginBottom: 16 }}><h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: "#1e293b" }}>👥 Desempenho por Usuário</h3><p style={{ margin: "4px 0 0", fontSize: 13, color: "#94a3b8" }}>Visão individual de cada profissional da equipe</p></div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(200px,1fr))", gap: 12 }}>
               {equipe.filter(u => u.perfil !== "DIRECAO" && u.perfil !== "SUPER_ADMIN").map((u, i) => {
                 const cores = ["#2563eb", "#7c3aed", "#059669", "#f59e0b", "#ef4444"];
@@ -2058,7 +2058,7 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
                       <div><div style={{ fontWeight: 700, fontSize: 13, color: "#1e293b" }}>{u.nome}</div><div style={{ fontSize: 11, color: "#94a3b8" }}>{perfilLabel(u.perfil)}</div></div>
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                      {[{ label: "ComunicaÃ§Ãµes", value: uComs.length, color: cor }, { label: "Alunos", value: new Set(uComs.map(c => c.aluno_id)).size, color: cor }, { label: "Enc. enviados", value: uComs.filter(c => c.encaminhamento).length, color: "#f59e0b" }, { label: "Resolvidos", value: uRes, color: "#22c55e" }].map(m => (
+                      {[{ label: "Comunicações", value: uComs.length, color: cor }, { label: "Alunos", value: new Set(uComs.map(c => c.aluno_id)).size, color: cor }, { label: "Enc. enviados", value: uComs.filter(c => c.encaminhamento).length, color: "#f59e0b" }, { label: "Resolvidos", value: uRes, color: "#22c55e" }].map(m => (
                         <div key={m.label} style={{ textAlign: "center", padding: "6px 4px", background: "#fff", borderRadius: 8, border: "1px solid #f1f5f9" }}>
                           <div style={{ fontSize: 16, fontWeight: 900, color: m.color }}>{m.value}</div>
                           <div style={{ fontSize: 10, color: "#94a3b8", fontWeight: 600 }}>{m.label}</div>
@@ -2075,7 +2075,7 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
     );
   };
 
-  // ââ ALUNOS ââ
+  // ── ALUNOS ──
   const AlunosPage = () => {
     const [busca, setBusca] = useState("");
     const [ord, setOrd] = useState("risco");
@@ -2083,12 +2083,12 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
-          <div><h1 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: "#1e293b" }}>ð¨âð Alunos</h1><p style={{ margin: "4px 0 0", fontSize: 14, color: "#94a3b8" }}>Base de estudantes com score de risco e histÃ³rico.</p></div>
+          <div><h1 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: "#1e293b" }}>👨‍🎓 Alunos</h1><p style={{ margin: "4px 0 0", fontSize: 14, color: "#94a3b8" }}>Base de estudantes com score de risco e histórico.</p></div>
           {(profile.perfil === "DIRECAO" || profile.perfil === "SECRETARIA" || profile.perfil === "SUPER_ADMIN") && <Btn icon="+" onClick={() => setModalNovoAluno(true)}>Cadastrar Aluno</Btn>}
         </div>
         <Card>
           <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
-            <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="ð Buscar por nome ou turma..." style={{ flex: 1, minWidth: 200, padding: "8px 14px", border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 13, outline: "none" }} />
+            <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="🔍 Buscar por nome ou turma..." style={{ flex: 1, minWidth: 200, padding: "8px 14px", border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 13, outline: "none" }} />
             <select value={ord} onChange={e => setOrd(e.target.value)} style={{ padding: "8px 14px", border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 13, outline: "none" }}>
               <option value="risco">Por risco</option><option value="nome">Por nome</option>
             </select>
@@ -2102,15 +2102,15 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
                 return (
                   <div key={a.id} onClick={() => setAlunoSel(a)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderRadius: 10, border: "1px solid #f1f5f9", background: "#fafafa", cursor: "pointer", flexWrap: "wrap" }}>
                     <Av initials={(a.nome || "?").split(" ").map(n => n[0]).slice(0, 2).join("")} color={getRiscoColor(a.risco)} />
-                    <div style={{ flex: 1, minWidth: 160 }}><div style={{ fontWeight: 700, fontSize: 14, color: "#1e293b" }}>{a.nome}</div><div style={{ fontSize: 12, color: "#94a3b8" }}>{a.turma} Â· RM: {a.rm}</div></div>
+                    <div style={{ flex: 1, minWidth: 160 }}><div style={{ fontWeight: 700, fontSize: 14, color: "#1e293b" }}>{a.nome}</div><div style={{ fontSize: 12, color: "#94a3b8" }}>{a.turma} · RM: {a.rm}</div></div>
                     <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
                       <div style={{ textAlign: "center", padding: "4px 12px", borderRadius: 8, background: getRiscoBg(a.risco), border: `1px solid ${getRiscoColor(a.risco)}30` }}>
                         <div style={{ fontSize: 16, fontWeight: 900, color: getRiscoColor(a.risco) }}>{a.risco}</div>
                         <div style={{ fontSize: 10, color: getRiscoColor(a.risco), fontWeight: 700 }}>RISCO</div>
                       </div>
                       <Badge color="#2563eb">{nC} registros</Badge>
-                      <Badge color="#7c3aed">{pR}/{rA.length} presenÃ§as</Badge>
-                      <span style={{ color: "#94a3b8" }}>â</span>
+                      <Badge color="#7c3aed">{pR}/{rA.length} presenças</Badge>
+                      <span style={{ color: "#94a3b8" }}>→</span>
                     </div>
                   </div>
                 );
@@ -2122,7 +2122,7 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
     );
   };
 
-  // ââ COMUNICAÃÃES ââ
+  // ── COMUNICAÇÕES ──
   const ComunicacoesPage = () => {
     const [busca, setBusca] = useState("");
     const [resolving, setResolving] = useState(null);
@@ -2131,13 +2131,13 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
-          <div><h1 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: "#1e293b" }}>ð¬ ComunicaÃ§Ãµes</h1><p style={{ margin: "4px 0 0", fontSize: 14, color: "#94a3b8" }}>Gerencie os registros de interaÃ§Ã£o.</p></div>
-          <Btn icon="+" onClick={() => setModalNovaCom(true)}>Nova ComunicaÃ§Ã£o</Btn>
+          <div><h1 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: "#1e293b" }}>💬 Comunicações</h1><p style={{ margin: "4px 0 0", fontSize: 14, color: "#94a3b8" }}>Gerencie os registros de interação.</p></div>
+          <Btn icon="+" onClick={() => setModalNovaCom(true)}>Nova Comunicação</Btn>
         </div>
         <Card>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
-            <h3 style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>HistÃ³rico de Registros</h3>
-            <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="ð Buscar..." style={{ padding: "8px 14px", border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 13, outline: "none", width: 240 }} />
+            <h3 style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>Histórico de Registros</h3>
+            <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="🔍 Buscar..." style={{ padding: "8px 14px", border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 13, outline: "none", width: 240 }} />
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {visiveis.length === 0 && <div style={{ textAlign: "center", color: "#94a3b8", padding: 32 }}>Nenhum registro encontrado.</div>}
@@ -2149,21 +2149,21 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
                 <div key={c.id} style={{ border: "1px solid #f1f5f9", borderRadius: 10, overflow: "hidden" }}>
                   <div onClick={() => setExpandido(exp ? null : c.id)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", background: "#fafafa", cursor: "pointer", flexWrap: "wrap" }}>
                     <div style={{ fontSize: 12, color: "#94a3b8", minWidth: 90 }}>{c.data_registro}</div>
-                    <div style={{ flex: 1, minWidth: 160 }}><div style={{ fontWeight: 700, fontSize: 14, color: "#1e293b" }}>{aluno?.nome}</div><div style={{ fontSize: 12, color: "#64748b" }}>{aluno?.turma ? `${aluno.turma} Â· ` : ""}{c.titulo}</div></div>
+                    <div style={{ flex: 1, minWidth: 160 }}><div style={{ fontWeight: 700, fontSize: 14, color: "#1e293b" }}>{aluno?.nome}</div><div style={{ fontSize: 12, color: "#64748b" }}>{aluno?.turma ? `${aluno.turma} · ` : ""}{c.titulo}</div></div>
                     <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                      {c.urgencia ? <Badge color={getUrgColor(c.urgencia)}>{c.urgencia}</Badge> : <span style={{ fontSize: 12, color: "#cbd5e1" }}>â</span>}
-                      {c.encaminhamento && <Badge color="#7c3aed">ð¨ Encaminhado</Badge>}
+                      {c.urgencia ? <Badge color={getUrgColor(c.urgencia)}>{c.urgencia}</Badge> : <span style={{ fontSize: 12, color: "#cbd5e1" }}>—</span>}
+                      {c.encaminhamento && <Badge color="#7c3aed">📨 Encaminhado</Badge>}
                       <Badge color={getStColor(c.status)}>{getStLabel(c.status)}</Badge>
                       {podeAtualizar && <Btn small variant="success" onClick={e => { e.stopPropagation(); setResolving(c); }}>Atualizar</Btn>}
-                      <span style={{ color: "#94a3b8" }}>{exp ? "â²" : "â¼"}</span>
+                      <span style={{ color: "#94a3b8" }}>{exp ? "▲" : "▼"}</span>
                     </div>
                   </div>
                   {exp && (
                     <div style={{ padding: "14px 16px", borderTop: "1px solid #f1f5f9", background: "#fff" }}>
                       <div style={{ fontSize: 13, color: "#64748b", marginBottom: 8 }}><b>Relato:</b> {c.detalhes}</div>
                       {c.com_quem && <div style={{ fontSize: 12, color: "#94a3b8" }}>Com: {c.com_quem}</div>}
-                      {c.encaminhamento && <div style={{ fontSize: 12, color: "#7c3aed", marginTop: 4 }}>â {c.enc_destino} / {c.enc_responsavel}</div>}
-                      {c.resolucao && <div style={{ marginTop: 10, padding: "8px 12px", background: "#f0fdf4", borderRadius: 8, fontSize: 13, color: "#16a34a", borderLeft: "3px solid #22c55e" }}>â {c.resolucao}</div>}
+                      {c.encaminhamento && <div style={{ fontSize: 12, color: "#7c3aed", marginTop: 4 }}>→ {c.enc_destino} / {c.enc_responsavel}</div>}
+                      {c.resolucao && <div style={{ marginTop: 10, padding: "8px 12px", background: "#f0fdf4", borderRadius: 8, fontSize: 13, color: "#16a34a", borderLeft: "3px solid #22c55e" }}>✓ {c.resolucao}</div>}
                     </div>
                   )}
                 </div>
@@ -2176,7 +2176,7 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
     );
   };
 
-  // ââ ENCAMINHAMENTOS ââ
+  // ── ENCAMINHAMENTOS ──
   const EncaminhamentosPage = () => {
     const [resolving, setResolving] = useState(null);
     const [filtro, setFiltro] = useState("TODOS");
@@ -2184,7 +2184,7 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
     const filtrados = filtro === "TODOS" ? encs : encs.filter(c => c.enc_status === filtro);
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-        <div><h1 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: "#1e293b" }}>ð¨ Encaminhamentos</h1><p style={{ margin: "4px 0 0", fontSize: 14, color: "#94a3b8" }}>Acompanhe os casos encaminhados.</p></div>
+        <div><h1 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: "#1e293b" }}>📨 Encaminhamentos</h1><p style={{ margin: "4px 0 0", fontSize: 14, color: "#94a3b8" }}>Acompanhe os casos encaminhados.</p></div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {["TODOS", "PENDENTE", "EM_ANALISE", "RESOLVIDO"].map(f => (<button key={f} onClick={() => setFiltro(f)} style={{ padding: "6px 14px", borderRadius: 20, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700, background: filtro === f ? "#2563eb" : "#f1f5f9", color: filtro === f ? "#fff" : "#64748b" }}>{getStLabel(f)} ({f === "TODOS" ? encs.length : encs.filter(c => c.enc_status === f).length})</button>))}
         </div>
@@ -2197,14 +2197,14 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
               return (
                 <div key={c.id} style={{ padding: "14px 16px", borderRadius: 10, border: "1px solid #f1f5f9", background: "#fafafa" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8 }}>
-                    <div><div style={{ fontWeight: 700, fontSize: 15, color: "#1e293b" }}>{c.titulo}</div><div style={{ fontSize: 13, color: "#64748b" }}>{aluno?.nome} Â· {aluno?.turma}</div><div style={{ fontSize: 12, color: "#94a3b8", marginTop: 4 }}>{c.data_registro} Â· Para: {c.enc_destino} â {c.enc_responsavel}</div></div>
+                    <div><div style={{ fontWeight: 700, fontSize: 15, color: "#1e293b" }}>{c.titulo}</div><div style={{ fontSize: 13, color: "#64748b" }}>{aluno?.nome} · {aluno?.turma}</div><div style={{ fontSize: 12, color: "#94a3b8", marginTop: 4 }}>{c.data_registro} · Para: {c.enc_destino} → {c.enc_responsavel}</div></div>
                     <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
                       {c.urgencia && <Badge color={getUrgColor(c.urgencia)}>{c.urgencia}</Badge>}
                       <Badge color={getStColor(c.enc_status || "PENDENTE")}>{getStLabel(c.enc_status)}</Badge>
                       {podeAtualizar && <Btn small variant="success" onClick={() => setResolving(c)}>Atualizar Status</Btn>}
                     </div>
                   </div>
-                  {c.resolucao && <div style={{ marginTop: 10, padding: "8px 12px", background: "#f0fdf4", borderRadius: 8, fontSize: 13, color: "#16a34a", borderLeft: "3px solid #22c55e" }}>â {c.resolucao}</div>}
+                  {c.resolucao && <div style={{ marginTop: 10, padding: "8px 12px", background: "#f0fdf4", borderRadius: 8, fontSize: 13, color: "#16a34a", borderLeft: "3px solid #22c55e" }}>✓ {c.resolucao}</div>}
                 </div>
               );
             })}
@@ -2215,22 +2215,22 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
     );
   };
 
-  // ââ REUNIÃES ââ
+  // ── REUNIÕES ──
   const ReunioesPage = () => {
     const [expandido, setExpandido] = useState(null);
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
-          <div><h1 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: "#1e293b" }}>ð ReuniÃµes</h1><p style={{ margin: "4px 0 0", fontSize: 14, color: "#94a3b8" }}>Registro e controle de presenÃ§a familiar.</p></div>
-          <Btn icon="+" onClick={() => setModalNovaReuniao(true)}>Nova ReuniÃ£o</Btn>
+          <div><h1 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: "#1e293b" }}>📅 Reuniões</h1><p style={{ margin: "4px 0 0", fontSize: 14, color: "#94a3b8" }}>Registro e controle de presença familiar.</p></div>
+          <Btn icon="+" onClick={() => setModalNovaReuniao(true)}>Nova Reunião</Btn>
         </div>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-          {[{ label: "Total", value: reunioes.length, color: "#2563eb" }, { label: "Convocados", value: reunioes.reduce((s, r) => s + (r.convocados?.length || 0), 0), color: "#7c3aed" }, { label: "PresenÃ§as", value: reunioes.reduce((s, r) => s + (r.convocados?.filter(c => c.compareceu).length || 0), 0), color: "#22c55e" }, { label: "AusÃªncias", value: reunioes.reduce((s, r) => s + (r.convocados?.filter(c => !c.compareceu).length || 0), 0), color: "#ef4444" }].map(m => (
+          {[{ label: "Total", value: reunioes.length, color: "#2563eb" }, { label: "Convocados", value: reunioes.reduce((s, r) => s + (r.convocados?.length || 0), 0), color: "#7c3aed" }, { label: "Presenças", value: reunioes.reduce((s, r) => s + (r.convocados?.filter(c => c.compareceu).length || 0), 0), color: "#22c55e" }, { label: "Ausências", value: reunioes.reduce((s, r) => s + (r.convocados?.filter(c => !c.compareceu).length || 0), 0), color: "#ef4444" }].map(m => (
             <Card key={m.label} style={{ flex: 1, minWidth: 130 }}><div style={{ fontSize: 11, color: "#64748b", fontWeight: 600, marginBottom: 6 }}>{m.label}</div><div style={{ fontSize: 26, fontWeight: 900, color: m.color }}>{m.value}</div></Card>
           ))}
         </div>
         <Card>
-          {reunioes.length === 0 && <div style={{ textAlign: "center", color: "#94a3b8", padding: 40 }}>Nenhuma reuniÃ£o registrada ainda.</div>}
+          {reunioes.length === 0 && <div style={{ textAlign: "center", color: "#94a3b8", padding: 40 }}>Nenhuma reunião registrada ainda.</div>}
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {reunioes.map(r => {
               const exp = expandido === r.id;
@@ -2240,32 +2240,32 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
               return (
                 <div key={r.id} style={{ border: "1px solid #f1f5f9", borderRadius: 10, overflow: "hidden" }}>
                   <div onClick={() => setExpandido(exp ? null : r.id)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", background: "#fafafa", cursor: "pointer", flexWrap: "wrap" }}>
-                    <span style={{ fontSize: 26 }}>ð</span>
-                    <div style={{ flex: 1, minWidth: 180 }}><div style={{ fontWeight: 800, fontSize: 15, color: "#1e293b" }}>{r.titulo}</div><div style={{ fontSize: 12, color: "#94a3b8" }}>{r.data_reuniao} Â· {r.tipo}</div></div>
+                    <span style={{ fontSize: 26 }}>📅</span>
+                    <div style={{ flex: 1, minWidth: 180 }}><div style={{ fontWeight: 800, fontSize: 15, color: "#1e293b" }}>{r.titulo}</div><div style={{ fontSize: 12, color: "#94a3b8" }}>{r.data_reuniao} · {r.tipo}</div></div>
                     <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                      <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 900, color: pct < 50 ? "#ef4444" : "#22c55e" }}>{pct}%</div><div style={{ fontSize: 10, color: "#94a3b8" }}>presenÃ§a</div></div>
-                      <Badge color="#22c55e">â {pres}</Badge>
-                      <Badge color="#ef4444">â {conv.length - pres}</Badge>
-                      <span style={{ color: "#94a3b8" }}>{exp ? "â²" : "â¼"}</span>
+                      <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 900, color: pct < 50 ? "#ef4444" : "#22c55e" }}>{pct}%</div><div style={{ fontSize: 10, color: "#94a3b8" }}>presença</div></div>
+                      <Badge color="#22c55e">✓ {pres}</Badge>
+                      <Badge color="#ef4444">✗ {conv.length - pres}</Badge>
+                      <span style={{ color: "#94a3b8" }}>{exp ? "▲" : "▼"}</span>
                     </div>
                   </div>
                   {exp && (
                     <div style={{ padding: "14px 16px", borderTop: "1px solid #f1f5f9" }}>
                       {r.descricao && <p style={{ margin: "0 0 12px", fontSize: 13, color: "#64748b" }}>{r.descricao}</p>}
-                      <div style={{ fontSize: 12, fontWeight: 700, color: "#475569", marginBottom: 8 }}>LISTA DE PRESENÃA</div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "#475569", marginBottom: 8 }}>LISTA DE PRESENÇA</div>
                       <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
                         {conv.map((c, i) => {
                           const aluno = alunos.find(a => a.id === c.aluno_id);
                           return (
                             <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 10px", borderRadius: 8, background: c.compareceu ? "#f0fdf4" : "#fef2f2", border: `1px solid ${c.compareceu ? "#bbf7d0" : "#fecaca"}` }}>
                               <div><div style={{ fontSize: 13, fontWeight: 600, color: "#1e293b" }}>{aluno?.nome}</div><div style={{ fontSize: 11, color: "#94a3b8" }}>Resp.: {c.responsavel}</div></div>
-                              <Badge color={c.compareceu ? "#16a34a" : "#ef4444"}>{c.compareceu ? "â Presente" : "â Ausente"}</Badge>
+                              <Badge color={c.compareceu ? "#16a34a" : "#ef4444"}>{c.compareceu ? "✓ Presente" : "✗ Ausente"}</Badge>
                             </div>
                           );
                         })}
                       </div>
                       {r.ata && <div style={{ padding: "10px 14px", background: "#f8fafc", borderRadius: 8, fontSize: 13, color: "#475569", borderLeft: "3px solid #2563eb", marginBottom: 8 }}><b>Ata:</b> {r.ata}</div>}
-                      {r.proxima_acao && <div style={{ padding: "8px 14px", background: "#fffbeb", borderRadius: 8, fontSize: 13, color: "#92400e" }}>ð {r.proxima_acao}</div>}
+                      {r.proxima_acao && <div style={{ padding: "8px 14px", background: "#fffbeb", borderRadius: 8, fontSize: 13, color: "#92400e" }}>📌 {r.proxima_acao}</div>}
                     </div>
                   )}
                 </div>
@@ -2277,7 +2277,7 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
     );
   };
 
-  // ââ TURMAS ââ
+  // ── TURMAS ──
   const TurmasPage = () => {
     const [novaT, setNovaT] = useState("");
     const [turmasList, setTurmasList] = useState(() => {
@@ -2294,17 +2294,17 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
       <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
           <div>
-            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: "#1e293b" }}>ð« Turmas</h1>
+            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: "#1e293b" }}>🏫 Turmas</h1>
             <p style={{ margin: "4px 0 0", fontSize: 14, color: "#94a3b8" }}>Visualize e gerencie os alunos por turma.</p>
           </div>
         </div>
 
-        {/* MÃ©tricas */}
+        {/* Métricas */}
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
           {[
             { label: "Total de Turmas", value: todasTurmas.length, color: "#2563eb" },
             { label: "Total de Alunos", value: alunos.length, color: "#7c3aed" },
-            { label: "MÃ©dia por Turma", value: todasTurmas.length > 0 ? Math.round(alunos.length / todasTurmas.length) : 0, color: "#059669" },
+            { label: "Média por Turma", value: todasTurmas.length > 0 ? Math.round(alunos.length / todasTurmas.length) : 0, color: "#059669" },
             { label: "Sem Turma", value: alunos.filter(a => !a.turma).length, color: "#f59e0b" },
           ].map(m => (
             <Card key={m.label} style={{ flex: 1, minWidth: 140 }}>
@@ -2318,9 +2318,9 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
         {todasTurmas.length === 0 ? (
           <Card>
             <div style={{ textAlign: "center", padding: 40, color: "#94a3b8" }}>
-              <div style={{ fontSize: 40, marginBottom: 12 }}>ð«</div>
+              <div style={{ fontSize: 40, marginBottom: 12 }}>🏫</div>
               <p style={{ fontSize: 15, fontWeight: 600 }}>Nenhuma turma cadastrada ainda</p>
-              <p style={{ fontSize: 13 }}>As turmas aparecem automaticamente quando vocÃª cadastrar alunos com a turma preenchida.</p>
+              <p style={{ fontSize: 13 }}>As turmas aparecem automaticamente quando você cadastrar alunos com a turma preenchida.</p>
               <Btn onClick={() => setModalNovoAluno(true)} icon="+" style={{ marginTop: 8 }}>Cadastrar Alunos</Btn>
             </div>
           </Card>
@@ -2334,16 +2334,16 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
               return (
                 <Card key={turma} style={{ padding: 0, overflow: "hidden" }}>
                   <div onClick={() => setTurmaExpand(exp ? null : turma)} style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px 20px", cursor: "pointer", background: exp ? "#fafeff" : "#fff" }}>
-                    <div style={{ width: 44, height: 44, borderRadius: 10, background: "#2563eb18", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>ð«</div>
+                    <div style={{ width: 44, height: 44, borderRadius: 10, background: "#2563eb18", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>🏫</div>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: 800, fontSize: 17, color: "#1e293b" }}>{turma}</div>
                       <div style={{ fontSize: 13, color: "#64748b" }}>{alunosT.length} aluno(s)</div>
                     </div>
                     <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                      {riscoAlto > 0 && <Badge color="#ef4444">â ï¸ {riscoAlto} risco alto</Badge>}
-                      {riscoMedio > 0 && <Badge color="#f59e0b">ð¶ {riscoMedio} atenÃ§Ã£o</Badge>}
-                      <Badge color="#22c55e">{alunosT.filter(a => a.risco < 30).length} estÃ¡veis</Badge>
-                      <span style={{ color: "#94a3b8", fontSize: 18 }}>{exp ? "â²" : "â¼"}</span>
+                      {riscoAlto > 0 && <Badge color="#ef4444">⚠️ {riscoAlto} risco alto</Badge>}
+                      {riscoMedio > 0 && <Badge color="#f59e0b">🔶 {riscoMedio} atenção</Badge>}
+                      <Badge color="#22c55e">{alunosT.filter(a => a.risco < 30).length} estáveis</Badge>
+                      <span style={{ color: "#94a3b8", fontSize: 18 }}>{exp ? "▲" : "▼"}</span>
                     </div>
                   </div>
                   {exp && (
@@ -2354,7 +2354,7 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
                             <Av initials={(a.nome || "?").split(" ").map(n => n[0]).slice(0, 2).join("")} color={getRiscoColor(a.risco)} size={36} />
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ fontWeight: 700, fontSize: 13, color: "#1e293b", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{a.nome}</div>
-                              <div style={{ fontSize: 11, color: "#64748b" }}>Resp.: {a.responsavel || "â"}</div>
+                              <div style={{ fontSize: 11, color: "#64748b" }}>Resp.: {a.responsavel || "—"}</div>
                             </div>
                             <div style={{ textAlign: "center", flexShrink: 0 }}>
                               <div style={{ fontSize: 15, fontWeight: 900, color: getRiscoColor(a.risco) }}>{a.risco}</div>
@@ -2374,7 +2374,7 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
     );
   };
 
-  // ââ RETENÃÃO ââ
+  // ── RETENÇÃO ──
   const RetencaoPage = () => {
     const alto = alunos.filter(a => a.risco >= 60).sort((a, b) => b.risco - a.risco);
     const medio = alunos.filter(a => a.risco >= 30 && a.risco < 60).sort((a, b) => b.risco - a.risco);
@@ -2384,31 +2384,31 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
       return (
         <div onClick={() => setAlunoSel(a)} style={{ padding: "14px 16px", borderRadius: 10, border: `1px solid ${getRiscoColor(a.risco)}30`, background: getRiscoBg(a.risco), cursor: "pointer" }}>
           <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
-            <div><div style={{ fontWeight: 800, fontSize: 15, color: "#1e293b" }}>{a.nome}</div><div style={{ fontSize: 12, color: "#94a3b8" }}>{a.turma} Â· Resp.: {a.responsavel}</div></div>
+            <div><div style={{ fontWeight: 800, fontSize: 15, color: "#1e293b" }}>{a.nome}</div><div style={{ fontSize: 12, color: "#94a3b8" }}>{a.turma} · Resp.: {a.responsavel}</div></div>
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
               <div style={{ textAlign: "center" }}><div style={{ fontSize: 22, fontWeight: 900, color: getRiscoColor(a.risco) }}>{a.risco}</div><div style={{ fontSize: 9, fontWeight: 800, color: getRiscoColor(a.risco) }}>PONTOS</div></div>
               <Badge color={getRiscoColor(a.risco)}>{nivel}</Badge>
             </div>
           </div>
           <div style={{ display: "flex", gap: 14, marginTop: 10, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 12, color: "#475569" }}>ð {coms.length} comunicaÃ§Ãµes</span>
-            <span style={{ fontSize: 12, color: "#475569" }}>ð¨ {coms.filter(c => c.encaminhamento).length} encaminhamentos</span>
-            {aus > 0 && <span style={{ fontSize: 12, color: "#ef4444" }}>â ï¸ {aus} ausÃªncias em reuniÃµes</span>}
+            <span style={{ fontSize: 12, color: "#475569" }}>📋 {coms.length} comunicações</span>
+            <span style={{ fontSize: 12, color: "#475569" }}>📨 {coms.filter(c => c.encaminhamento).length} encaminhamentos</span>
+            {aus > 0 && <span style={{ fontSize: 12, color: "#ef4444" }}>⚠️ {aus} ausências em reuniões</span>}
           </div>
         </div>
       );
     };
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-        <div><h1 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: "#1e293b" }}>ð RetenÃ§Ã£o â Radar de Risco</h1><p style={{ margin: "4px 0 0", fontSize: 14, color: "#94a3b8" }}>Alunos com maior risco de evasÃ£o.</p></div>
+        <div><h1 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: "#1e293b" }}>📉 Retenção — Radar de Risco</h1><p style={{ margin: "4px 0 0", fontSize: 14, color: "#94a3b8" }}>Alunos com maior risco de evasão.</p></div>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-          {[{ label: "Risco Alto", count: alto.length, color: "#ef4444", bg: "#fef2f2", desc: "â¥ 60 pts" }, { label: "Risco MÃ©dio", count: medio.length, color: "#f59e0b", bg: "#fffbeb", desc: "30â59 pts" }, { label: "EstÃ¡veis", count: alunos.filter(a => a.risco < 30).length, color: "#22c55e", bg: "#f0fdf4", desc: "< 30 pts" }].map(m => (
+          {[{ label: "Risco Alto", count: alto.length, color: "#ef4444", bg: "#fef2f2", desc: "≥ 60 pts" }, { label: "Risco Médio", count: medio.length, color: "#f59e0b", bg: "#fffbeb", desc: "30–59 pts" }, { label: "Estáveis", count: alunos.filter(a => a.risco < 30).length, color: "#22c55e", bg: "#f0fdf4", desc: "< 30 pts" }].map(m => (
             <Card key={m.label} style={{ flex: 1, minWidth: 160, background: m.bg, border: `1px solid ${m.color}30` }}><div style={{ fontSize: 12, fontWeight: 700, color: m.color, marginBottom: 4 }}>{m.label}</div><div style={{ fontSize: 32, fontWeight: 900, color: m.color }}>{m.count}</div><div style={{ fontSize: 11, color: m.color, opacity: 0.7 }}>{m.desc}</div></Card>
           ))}
         </div>
-        {alto.length > 0 && <div><h3 style={{ margin: "0 0 12px", fontSize: 16, fontWeight: 800, color: "#ef4444" }}>â ï¸ Risco Alto</h3><div style={{ display: "flex", flexDirection: "column", gap: 10 }}>{alto.map(a => <PainelAluno key={a.id} a={a} nivel="RISCO ALTO" />)}</div></div>}
-        {medio.length > 0 && <div><h3 style={{ margin: "0 0 12px", fontSize: 16, fontWeight: 800, color: "#f59e0b" }}>ð¶ Risco MÃ©dio</h3><div style={{ display: "flex", flexDirection: "column", gap: 10 }}>{medio.map(a => <PainelAluno key={a.id} a={a} nivel="RISCO MÃDIO" />)}</div></div>}
-        {alto.length === 0 && medio.length === 0 && <div style={{ textAlign: "center", padding: 40, color: "#94a3b8" }}>ð Nenhum aluno em risco elevado!</div>}
+        {alto.length > 0 && <div><h3 style={{ margin: "0 0 12px", fontSize: 16, fontWeight: 800, color: "#ef4444" }}>⚠️ Risco Alto</h3><div style={{ display: "flex", flexDirection: "column", gap: 10 }}>{alto.map(a => <PainelAluno key={a.id} a={a} nivel="RISCO ALTO" />)}</div></div>}
+        {medio.length > 0 && <div><h3 style={{ margin: "0 0 12px", fontSize: 16, fontWeight: 800, color: "#f59e0b" }}>🔶 Risco Médio</h3><div style={{ display: "flex", flexDirection: "column", gap: 10 }}>{medio.map(a => <PainelAluno key={a.id} a={a} nivel="RISCO MÉDIO" />)}</div></div>}
+        {alto.length === 0 && medio.length === 0 && <div style={{ textAlign: "center", padding: 40, color: "#94a3b8" }}>🎉 Nenhum aluno em risco elevado!</div>}
       </div>
     );
   };
@@ -2426,9 +2426,9 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
               <text x="145" y="40" fontFamily="system-ui,sans-serif" fontWeight="900" fontSize="26" fill="#a855f7">360</text>
             </svg>
           )}
-          <div style={{ fontSize: 10, fontWeight: 700, color: "#a855f7", marginTop: 4, letterSpacing: 0.5 }}>ð¬ NARA Relacionamento</div>
+          <div style={{ fontSize: 10, fontWeight: 700, color: "#a855f7", marginTop: 4, letterSpacing: 0.5 }}>💬 NARA Relacionamento</div>
           <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2, fontWeight: 600 }}>{escola.nome}</div>
-          {escola.status === "SUSPENSA" && <div style={{ marginTop: 4, padding: "2px 8px", background: "#fef2f2", borderRadius: 6, fontSize: 10, color: "#ef4444", fontWeight: 700 }}>ð´ SUSPENSA</div>}
+          {escola.status === "SUSPENSA" && <div style={{ marginTop: 4, padding: "2px 8px", background: "#fef2f2", borderRadius: 6, fontSize: 10, color: "#ef4444", fontWeight: 700 }}>🔴 SUSPENSA</div>}
         </div>
         <nav style={{ flex: 1, padding: "12px 8px", display: "flex", flexDirection: "column", gap: 2 }}>
           {nav.map(item => (
@@ -2438,9 +2438,9 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
           ))}
         </nav>
         <div style={{ padding: "12px 8px", borderTop: "1px solid #f1f5f9" }}>
-          {onVoltarHub && <button onClick={onVoltarHub} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700, color: "#a855f7", background: "#faf5ff", width: "100%", marginBottom: 4, borderRadius: 8 }}>â Hub NARAEDU360</button>}
-          {onVoltarAdmin && <button onClick={onVoltarAdmin} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700, color: "#7c3aed", background: "transparent", width: "100%" }}>â Admin Global</button>}
-          <button onClick={onLogout} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600, color: "#ef4444", background: "transparent", width: "100%" }}>âª Sair</button>
+          {onVoltarHub && <button onClick={onVoltarHub} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700, color: "#a855f7", background: "#faf5ff", width: "100%", marginBottom: 4, borderRadius: 8 }}>⊞ Hub NARAEDU360</button>}
+          {onVoltarAdmin && <button onClick={onVoltarAdmin} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700, color: "#7c3aed", background: "transparent", width: "100%" }}>← Admin Global</button>}
+          <button onClick={onLogout} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600, color: "#ef4444", background: "transparent", width: "100%" }}>↪ Sair</button>
         </div>
       </div>
       <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
@@ -2466,19 +2466,19 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
   );
 }
 
-// ââ NARA HUB â Tela de seleÃ§Ã£o de mÃ³dulo âââââââââââââââââââââââââââââââââââââââ
+// ── NARA HUB — Tela de seleção de módulo ───────────────────────────────────────
 function NaraHub({ user, profile, escola, onEntrarModulo, onLogout, onVoltarAdmin }) {
   const modulosAtivos = escola.modulos || ["relacionamento", "relatorios", "reunioes"];
   const permissoes = escola.permissoes || PERMS_PADRAO;
 
-  // Filtra: mÃ³dulo ativo na escola E perfil do usuÃ¡rio tem permissÃ£o
+  // Filtra: módulo ativo na escola E perfil do usuário tem permissão
   const modulosEscola = NARA_MODULOS.filter(m => {
     if (!modulosAtivos.includes(m.id)) return false;
     const perfsPermitidos = permissoes[m.id] || PERMS_PADRAO[m.id] || [];
     return perfsPermitidos.includes(profile.perfil);
   });
 
-  // MÃ³dulos ativos mas sem permissÃ£o para este perfil (nÃ£o mostra)
+  // Módulos ativos mas sem permissão para este perfil (não mostra)
   const semPermissao = NARA_MODULOS.filter(m => {
     if (!modulosAtivos.includes(m.id)) return false;
     const perfsPermitidos = permissoes[m.id] || PERMS_PADRAO[m.id] || [];
@@ -2501,23 +2501,23 @@ function NaraHub({ user, profile, escola, onEntrarModulo, onLogout, onVoltarAdmi
           {escola.logo_url && <img src={escola.logo_url} alt={escola.nome} style={{ height: 32, objectFit: "contain" }} />}
           <div style={{ textAlign: "right" }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b" }}>{profile.nome}</div>
-            <div style={{ fontSize: 11, color: "#94a3b8" }}>{perfilLabel(profile.perfil)} Â· {escola.nome}</div>
+            <div style={{ fontSize: 11, color: "#94a3b8" }}>{perfilLabel(profile.perfil)} · {escola.nome}</div>
           </div>
           <Av initials={profile.avatar || (profile.nome || "?").slice(0, 2).toUpperCase()} color="#7c3aed" />
-          {onVoltarAdmin && <Btn small variant="ghost" onClick={onVoltarAdmin} style={{ color: "#7c3aed" }}>â Admin</Btn>}
+          {onVoltarAdmin && <Btn small variant="ghost" onClick={onVoltarAdmin} style={{ color: "#7c3aed" }}>← Admin</Btn>}
           <Btn small variant="ghost" onClick={onLogout}>Sair</Btn>
         </div>
       </div>
 
-      {/* ConteÃºdo central */}
+      {/* Conteúdo central */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "40px 24px" }}>
         <div style={{ textAlign: "center", marginBottom: 40 }}>
-          <div style={{ fontSize: 36, marginBottom: 8 }}>ð</div>
+          <div style={{ fontSize: 36, marginBottom: 8 }}>👋</div>
           <h1 style={{ margin: "0 0 8px", fontSize: 26, fontWeight: 900, color: "#1e293b" }}>{saudacao}, {nome}!</h1>
-          <p style={{ margin: 0, fontSize: 15, color: "#64748b" }}>Escolha o mÃ³dulo que deseja acessar hoje</p>
+          <p style={{ margin: 0, fontSize: 15, color: "#64748b" }}>Escolha o módulo que deseja acessar hoje</p>
         </div>
 
-        {/* MÃ³dulos agrupados por categoria */}
+        {/* Módulos agrupados por categoria */}
         <div style={{ width: "100%", maxWidth: 980, display: "flex", flexDirection: "column", gap: 32 }}>
           {CATEGORIAS_ORDEM.map(cat => {
             const dosCat = modulosEscola.filter(m => m.categoria === cat);
@@ -2529,7 +2529,7 @@ function NaraHub({ user, profile, escola, onEntrarModulo, onLogout, onVoltarAdmi
                   {cat}
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 16 }}>
-                  {/* MÃ³dulos com acesso */}
+                  {/* Módulos com acesso */}
                   {dosCat.map(m => (
                     <div key={m.id} onClick={() => m.disponivel && onEntrarModulo(m.id)}
                       style={{ background: "#fff", borderRadius: 18, padding: 24, border: `2px solid ${m.cor}30`, boxShadow: "0 4px 20px rgba(0,0,0,.06)", cursor: m.disponivel ? "pointer" : "default", transition: "all .2s", position: "relative", overflow: "hidden" }}
@@ -2540,15 +2540,15 @@ function NaraHub({ user, profile, escola, onEntrarModulo, onLogout, onVoltarAdmi
                       <div style={{ fontWeight: 800, fontSize: 15, color: "#1e293b", marginBottom: 4 }}>{m.nome}</div>
                       <div style={{ fontSize: 12, color: "#64748b", lineHeight: 1.5, marginBottom: 14 }}>{m.desc}</div>
                       {m.disponivel
-                        ? <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 14px", borderRadius: 20, background: m.cor, color: "#fff", fontSize: 12, fontWeight: 700 }}>Acessar â</div>
-                        : <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 14px", borderRadius: 20, background: m.cor + "15", color: m.cor, fontSize: 12, fontWeight: 700 }}>ð§ Em breve</div>
+                        ? <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 14px", borderRadius: 20, background: m.cor, color: "#fff", fontSize: 12, fontWeight: 700 }}>Acessar →</div>
+                        : <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 14px", borderRadius: 20, background: m.cor + "15", color: m.cor, fontSize: 12, fontWeight: 700 }}>🚧 Em breve</div>
                       }
                     </div>
                   ))}
-                  {/* MÃ³dulos sem permissÃ£o ou sem contrato (em breve) */}
+                  {/* Módulos sem permissão ou sem contrato (em breve) */}
                   {emBreveCat.map(m => (
                     <div key={m.id} style={{ background: "#fafafa", borderRadius: 18, padding: 24, border: "2px dashed #e2e8f0", opacity: 0.55, position: "relative" }}>
-                      <div style={{ position: "absolute", top: 10, right: 10, fontSize: 10, fontWeight: 700, color: "#94a3b8", background: "#f1f5f9", padding: "2px 8px", borderRadius: 20 }}>NÃO CONTRATADO</div>
+                      <div style={{ position: "absolute", top: 10, right: 10, fontSize: 10, fontWeight: 700, color: "#94a3b8", background: "#f1f5f9", padding: "2px 8px", borderRadius: 20 }}>NÃO CONTRATADO</div>
                       <div style={{ fontSize: 36, marginBottom: 12, filter: "grayscale(1)" }}>{m.emoji}</div>
                       <div style={{ fontWeight: 800, fontSize: 15, color: "#94a3b8", marginBottom: 4 }}>{m.nome}</div>
                       <div style={{ fontSize: 12, color: "#cbd5e1", lineHeight: 1.5 }}>{m.desc}</div>
@@ -2561,12 +2561,12 @@ function NaraHub({ user, profile, escola, onEntrarModulo, onLogout, onVoltarAdmi
         </div>
       </div>
 
-      <p style={{ textAlign: "center", paddingBottom: 20, fontSize: 11, color: "#c4b5fd" }}>Â© NaraEdu Â· NÃºcleo de Acompanhamento e Registro da Aprendizagem</p>
+      <p style={{ textAlign: "center", paddingBottom: 20, fontSize: 11, color: "#c4b5fd" }}>© NaraEdu · Núcleo de Acompanhamento e Registro da Aprendizagem</p>
     </div>
   );
 }
 
-// ââ ROOT âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── ROOT ───────────────────────────────────────────────────────────────────────
 export default function App() {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
@@ -2594,14 +2594,14 @@ export default function App() {
     setUser(null); setProfile(null); setEscolaAtiva(null); setModuloAtivo(null);
   };
 
-  if (iniciando) return <Loading msg="Verificando sessÃ£o..." />;
+  if (iniciando) return <Loading msg="Verificando sessão..." />;
   if (!user || !profile) return <LoginPage onLogin={(u, p) => { setUser(u); setProfile(p); if (p?.perfil !== "SUPER_ADMIN" && p?.escolas) setEscolaAtiva(p.escolas); }} />;
   if (profile.perfil === "SUPER_ADMIN" && !escolaAtiva) return <SuperAdminPanel onLogout={handleLogout} onEntrarEscola={setEscolaAtiva} />;
 
   const escola = escolaAtiva || profile.escolas;
   const voltarAdmin = profile.perfil === "SUPER_ADMIN" ? () => { setEscolaAtiva(null); setModuloAtivo(null); } : null;
 
-  // Se nÃ£o escolheu mÃ³dulo ainda â mostra o Hub
+  // Se não escolheu módulo ainda → mostra o Hub
   if (!moduloAtivo) return (
     <NaraHub
       user={user} profile={profile} escola={escola}
@@ -2611,7 +2611,7 @@ export default function App() {
     />
   );
 
-  // MÃ³dulo escolhido â entra no app correspondente
+  // Módulo escolhido → entra no app correspondente
   if (moduloAtivo === "relacionamento") {
     return <SchoolApp user={user} profile={profile} escola={escola} onLogout={handleLogout}
       onVoltarAdmin={voltarAdmin}
@@ -2619,14 +2619,14 @@ export default function App() {
     />;
   }
 
-  // Outros mÃ³dulos futuros
+  // Outros módulos futuros
   return (
     <div style={{ minHeight: "100vh", background: "#f5f3ff", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "system-ui,sans-serif" }}>
       <div style={{ textAlign: "center" }}>
-        <div style={{ fontSize: 48, marginBottom: 16 }}>ð§</div>
-        <h2 style={{ margin: "0 0 8px", color: "#1e293b" }}>MÃ³dulo em desenvolvimento</h2>
-        <p style={{ color: "#64748b", marginBottom: 24 }}>Este mÃ³dulo estarÃ¡ disponÃ­vel em breve!</p>
-        <Btn onClick={() => setModuloAtivo(null)} style={{ background: "#7c3aed", color: "#fff", border: "none" }}>â Voltar ao Hub</Btn>
+        <div style={{ fontSize: 48, marginBottom: 16 }}>🚧</div>
+        <h2 style={{ margin: "0 0 8px", color: "#1e293b" }}>Módulo em desenvolvimento</h2>
+        <p style={{ color: "#64748b", marginBottom: 24 }}>Este módulo estará disponível em breve!</p>
+        <Btn onClick={() => setModuloAtivo(null)} style={{ background: "#7c3aed", color: "#fff", border: "none" }}>← Voltar ao Hub</Btn>
       </div>
     </div>
   );
