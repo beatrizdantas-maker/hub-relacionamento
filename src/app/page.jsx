@@ -568,13 +568,141 @@ function PainelEscola({ escola, onClose, onUpdate, onEntrar }) {
 }
 
 // ── NARAEDU360 — MÓDULOS DO ECOSSISTEMA ────────────────────────────────────────
+
+// Permissões padrão por módulo (quais perfis de escola têm acesso)
+const PERMS_PADRAO = {
+  relacionamento: ["DIRECAO","PSICOLOGO","SECRETARIA","PROFESSOR","NUCLEO","RECEPÇÃO","PSICOPEDAGOGO"],
+  relatorios:     ["DIRECAO","SECRETARIA","NUCLEO"],
+  financeiro:     ["DIRECAO","SECRETARIA"],
+  secretaria:     ["DIRECAO","SECRETARIA"],
+  pro:            ["DIRECAO","PSICOLOGO","SECRETARIA","PROFESSOR","NUCLEO","RECEPÇÃO","PSICOPEDAGOGO"],
+  play:           ["DIRECAO","PROFESSOR","NUCLEO","PSICOPEDAGOGO"],
+  aprende:        ["DIRECAO","PROFESSOR","NUCLEO","PSICOLOGO","PSICOPEDAGOGO"],
+
+  bus:            ["DIRECAO","SECRETARIA","RECEPÇÃO"],
+  achou:          ["DIRECAO","SECRETARIA","RECEPÇÃO","PROFESSOR","NUCLEO"],
+  agenda:         ["DIRECAO","SECRETARIA","RECEPÇÃO"],
+};
+
+const PERFIS_LABELS = {
+  DIRECAO:      { label: "Direção",           emoji: "🏫" },
+  PSICOLOGO:    { label: "Psicólogo",         emoji: "🧠" },
+  SECRETARIA:   { label: "Secretária",        emoji: "📋" },
+  PROFESSOR:    { label: "Professor",          emoji: "👨‍🏫" },
+  NUCLEO:       { label: "Núcleo Pedagógico", emoji: "📚" },
+  RECEPÇÃO:     { label: "Recepção",          emoji: "📞" },
+  PSICOPEDAGOGO:{ label: "Psicopedagogo",     emoji: "🎓" },
+};
+
+// Categorias para agrupar no Hub
+const CATEGORIAS_ORDEM = ["Gestão", "Colaboradores", "Alunos", "Famílias", "Escola"];
+
+// Perfis disponíveis no sistema
+const TODOS_PERFIS = ["DIRECAO","PSICOLOGO","SECRETARIA","PROFESSOR","NUCLEO","RECEPÇÃO","PSICOPEDAGOGO"];
+
+// Tipos de usuário (além dos perfis de escola)
+// ALUNO, FAMILIA são usuários futuros do ecossistema
+
 const NARA_MODULOS = [
-  { id: "relacionamento", nome: "NARA Relacionamento", desc: "Comunicação, encaminhamentos e retenção", emoji: "💬", cor: "#7c3aed", disponivel: true },
-  { id: "relatorios",     nome: "NARA Relatórios",     desc: "Relatórios pedagógicos e boletins",        emoji: "📊", cor: "#2563eb", disponivel: true },
-  { id: "reunioes",       nome: "NARA Reuniões",       desc: "Controle de presença e atas",              emoji: "📅", cor: "#0891b2", disponivel: true },
-  { id: "financeiro",     nome: "NARA Financeiro",     desc: "Mensalidades e inadimplência",             emoji: "💰", cor: "#059669", disponivel: false },
-  { id: "pedagogico",     nome: "NARA Pedagógico",     desc: "Currículo, planos e avaliações",           emoji: "🎓", cor: "#d97706", disponivel: false },
-  { id: "comunicados",    nome: "NARA Comunicados",    desc: "Murais e avisos para famílias",            emoji: "📢", cor: "#db2777", disponivel: false },
+  // ── GESTÃO ─────────────────────────────────────────────────────────────────
+  {
+    id: "relacionamento",
+    nome: "NARA Relacionamento",
+    desc: "Comunicação escola-família, encaminhamentos, retenção e vínculo familiar",
+    emoji: "💬", cor: "#7c3aed",
+    categoria: "Gestão",
+    disponivel: true,
+    usuarios: ["equipe_escola"],
+  },
+  {
+    id: "relatorios",
+    nome: "NARA Relatórios",
+    desc: "Relatórios pedagógicos, boletins e análises de desempenho",
+    emoji: "📊", cor: "#2563eb",
+    categoria: "Gestão",
+    disponivel: true,
+    usuarios: ["equipe_escola"],
+  },
+  {
+    id: "financeiro",
+    nome: "NARA Financeiro",
+    desc: "Mensalidades, inadimplência e bolsas",
+    emoji: "💰", cor: "#059669",
+    categoria: "Gestão",
+    disponivel: false,
+    usuarios: ["equipe_escola"],
+  },
+  {
+    id: "secretaria",
+    nome: "NARA Secretaria",
+    desc: "Matrículas, documentos e declarações",
+    emoji: "📋", cor: "#0891b2",
+    categoria: "Gestão",
+    disponivel: false,
+    usuarios: ["equipe_escola"],
+  },
+
+  // ── PROFESSORES & COLABORADORES ────────────────────────────────────────────
+  {
+    id: "pro",
+    nome: "NARA Pro",
+    desc: "Tudo para colaboradores: agenda, comunicados internos, RH, bem-estar e gamificação de professores",
+    emoji: "👩‍🏫", cor: "#d97706",
+    categoria: "Colaboradores",
+    disponivel: false,
+    usuarios: ["equipe_escola"],
+  },
+
+  // ── ALUNOS ─────────────────────────────────────────────────────────────────
+  {
+    id: "play",
+    nome: "NARA Play",
+    desc: "Gamificação de alunos: pontos por tipo de inteligência, conquistas, moeda NARA e recompensas reais",
+    emoji: "🎮", cor: "#7c3aed",
+    categoria: "Alunos",
+    disponivel: false,
+    usuarios: ["aluno", "equipe_escola"],
+  },
+  {
+    id: "aprende",
+    nome: "NARA Aprende",
+    desc: "Atividades adaptadas para crianças típicas e neurodivergentes (TDAH, autismo, dislexia...) — ferramenta para professores",
+    emoji: "🧩", cor: "#db2777",
+    categoria: "Colaboradores",
+    disponivel: false,
+    usuarios: ["equipe_escola"],
+  },
+
+  // ── FAMÍLIAS ────────────────────────────────────────────────────────────────
+  {
+    id: "agenda",
+    nome: "NARA Agenda",
+    desc: "Agenda virtual da escola para famílias — eventos, comunicados, autorização de saída e acompanhamento do filho",
+    emoji: "📆", cor: "#16a34a",
+    categoria: "Famílias",
+    disponivel: false,
+    usuarios: ["familia", "equipe_escola"],
+  },
+  {
+    id: "bus",
+    nome: "NARA Bus",
+    desc: "Localização do transporte escolar em tempo real para as famílias",
+    emoji: "🚌", cor: "#f59e0b",
+    categoria: "Famílias",
+    disponivel: false,
+    usuarios: ["familia", "equipe_escola"],
+  },
+
+  // ── ESCOLA (TODOS) ──────────────────────────────────────────────────────────
+  {
+    id: "achou",
+    nome: "NARA Achou",
+    desc: "Sistema de perdidos e achados da escola — cadastro, foto e notificação para a família",
+    emoji: "🔍", cor: "#64748b",
+    categoria: "Escola",
+    disponivel: false,
+    usuarios: ["equipe_escola", "familia"],
+  },
 ];
 
 // Logo NARAEDU360 em SVG inline
@@ -590,46 +718,100 @@ const LogoNara = ({ size = 32 }) => (
 function ModalModulos({ escola, onClose, onSave }) {
   const ativos = escola.modulos || ["relacionamento", "relatorios", "reunioes"];
   const [selecionados, setSelecionados] = useState(ativos);
+  // permissoes: { modulo_id: [perfil1, perfil2, ...] }
+  const [permissoes, setPermissoes] = useState(escola.permissoes || PERMS_PADRAO);
+  const [moduloExpandido, setModuloExpandido] = useState(null);
   const [saving, setSaving] = useState(false);
 
-  const toggle = (id) => setSelecionados(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id]);
+  const toggle = (id) => {
+    setSelecionados(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id]);
+    if (!selecionados.includes(id)) setModuloExpandido(id); // abre ao ativar
+  };
+
+  const togglePerfil = (moduloId, perfil) => {
+    setPermissoes(p => {
+      const atual = p[moduloId] || PERMS_PADRAO[moduloId] || [];
+      return {
+        ...p,
+        [moduloId]: atual.includes(perfil) ? atual.filter(x => x !== perfil) : [...atual, perfil]
+      };
+    });
+  };
 
   const handle = async () => {
     setSaving(true);
-    const { data, error } = await supabase.from("escolas").update({ modulos: selecionados }).eq("id", escola.id).select().single();
+    const { data, error } = await supabase.from("escolas")
+      .update({ modulos: selecionados, permissoes })
+      .eq("id", escola.id).select().single();
     if (!error && data) onSave(data);
     setSaving(false); onClose();
   };
 
   return (
     <Overlay onClose={onClose}>
-      <MBox width={620}>
-        <MHead title="Módulos do Ecossistema" subtitle={escola.nome} icon="🧩" onClose={onClose} />
+      <MBox width={680}>
+        <MHead title="Módulos e Permissões" subtitle={escola.nome} icon="🧩" onClose={onClose} />
         <MBody>
-          <div style={{ padding: "10px 14px", background: "#faf5ff", borderRadius: 10, border: "1px solid #e9d5ff", fontSize: 13, color: "#7c3aed", marginBottom: 4 }}>
-            💡 Ative os módulos que esta escola contratou. Cada módulo aparece no menu lateral da escola.
+          <div style={{ padding: "10px 14px", background: "#faf5ff", borderRadius: 10, border: "1px solid #e9d5ff", fontSize: 13, color: "#7c3aed" }}>
+            💡 Ative os módulos contratados e defina quais perfis têm acesso a cada um.
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {NARA_MODULOS.map(m => {
               const ativo = selecionados.includes(m.id);
+              const expandido = moduloExpandido === m.id && ativo;
+              const perfsAtivos = permissoes[m.id] || PERMS_PADRAO[m.id] || [];
+
               return (
-                <div key={m.id} onClick={() => m.disponivel && toggle(m.id)}
-                  style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 18px", borderRadius: 12,
-                    border: `2px solid ${ativo ? m.cor : "#e2e8f0"}`,
-                    background: ativo ? m.cor + "10" : "#fafafa",
-                    cursor: m.disponivel ? "pointer" : "not-allowed",
-                    opacity: m.disponivel ? 1 : 0.5 }}>
-                  <span style={{ fontSize: 24 }}>{m.emoji}</span>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, color: "#1e293b" }}>{m.nome}</div>
-                    <div style={{ fontSize: 12, color: "#64748b" }}>{m.desc}</div>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    {!m.disponivel && <span style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", background: "#f1f5f9", padding: "2px 8px", borderRadius: 20 }}>Em breve</span>}
-                    <div style={{ width: 20, height: 20, borderRadius: "50%", border: `2px solid ${ativo ? m.cor : "#cbd5e1"}`, background: ativo ? m.cor : "transparent", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      {ativo && <span style={{ color: "#fff", fontSize: 12, fontWeight: 900 }}>✓</span>}
+                <div key={m.id} style={{ borderRadius: 14, border: `2px solid ${ativo ? m.cor : "#e2e8f0"}`, background: ativo ? m.cor + "08" : "#fafafa", overflow: "hidden", opacity: m.disponivel ? 1 : 0.5 }}>
+                  {/* Cabeçalho do módulo */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 18px", cursor: m.disponivel ? "pointer" : "not-allowed" }}>
+                    <div onClick={() => m.disponivel && toggle(m.id)} style={{ display: "flex", alignItems: "center", gap: 14, flex: 1 }}>
+                      <span style={{ fontSize: 24 }}>{m.emoji}</span>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 700, fontSize: 14, color: "#1e293b" }}>{m.nome}</div>
+                        <div style={{ fontSize: 12, color: "#64748b" }}>{m.desc}
+                          {ativo && <span style={{ marginLeft: 8, color: m.cor, fontWeight: 700 }}>· {perfsAtivos.length} perfil(is) com acesso</span>}
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      {!m.disponivel && <span style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", background: "#f1f5f9", padding: "2px 8px", borderRadius: 20 }}>Em breve</span>}
+                      {ativo && m.disponivel && (
+                        <button onClick={() => setModuloExpandido(expandido ? null : m.id)}
+                          style={{ fontSize: 11, fontWeight: 700, color: m.cor, background: m.cor + "15", border: "none", padding: "4px 12px", borderRadius: 20, cursor: "pointer", fontFamily: "inherit" }}>
+                          {expandido ? "▲ Fechar" : "⚙️ Permissões"}
+                        </button>
+                      )}
+                      <div onClick={() => m.disponivel && toggle(m.id)}
+                        style={{ width: 22, height: 22, borderRadius: "50%", border: `2px solid ${ativo ? m.cor : "#cbd5e1"}`, background: ativo ? m.cor : "transparent", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
+                        {ativo && <span style={{ color: "#fff", fontSize: 13, fontWeight: 900 }}>✓</span>}
+                      </div>
                     </div>
                   </div>
+
+                  {/* Painel de permissões */}
+                  {expandido && (
+                    <div style={{ borderTop: `1px solid ${m.cor}20`, padding: "14px 18px", background: "#fff" }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "#475569", marginBottom: 10 }}>PERFIS COM ACESSO A ESTE MÓDULO:</div>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                        {Object.entries(PERFIS_LABELS).map(([perfil, info]) => {
+                          const temAcesso = perfsAtivos.includes(perfil);
+                          return (
+                            <button key={perfil} onClick={() => togglePerfil(m.id, perfil)}
+                              style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 14px", borderRadius: 20, border: `1.5px solid ${temAcesso ? m.cor : "#e2e8f0"}`, background: temAcesso ? m.cor : "#f8fafc", color: temAcesso ? "#fff" : "#64748b", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", transition: "all .15s" }}>
+                              <span>{info.emoji}</span> {info.label}
+                              {temAcesso && <span style={{ fontSize: 11 }}>✓</span>}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <div style={{ marginTop: 10, fontSize: 11, color: "#94a3b8" }}>
+                        {perfsAtivos.length === 0
+                          ? "⚠️ Nenhum perfil selecionado — ninguém verá este módulo!"
+                          : `✓ ${perfsAtivos.length} perfil(is) poderá(ão) acessar este módulo`}
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -638,7 +820,7 @@ function ModalModulos({ escola, onClose, onSave }) {
         <MFoot>
           <Btn variant="ghost" onClick={onClose}>Cancelar</Btn>
           <Btn onClick={handle} disabled={saving} style={{ background: "#7c3aed", color: "#fff", border: "none" }}>
-            {saving ? "Salvando..." : "Salvar Módulos"}
+            {saving ? "Salvando..." : "Salvar Módulos e Permissões"}
           </Btn>
         </MFoot>
       </MBox>
@@ -2287,7 +2469,21 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
 // ── NARA HUB — Tela de seleção de módulo ───────────────────────────────────────
 function NaraHub({ user, profile, escola, onEntrarModulo, onLogout, onVoltarAdmin }) {
   const modulosAtivos = escola.modulos || ["relacionamento", "relatorios", "reunioes"];
-  const modulosEscola = NARA_MODULOS.filter(m => modulosAtivos.includes(m.id));
+  const permissoes = escola.permissoes || PERMS_PADRAO;
+
+  // Filtra: módulo ativo na escola E perfil do usuário tem permissão
+  const modulosEscola = NARA_MODULOS.filter(m => {
+    if (!modulosAtivos.includes(m.id)) return false;
+    const perfsPermitidos = permissoes[m.id] || PERMS_PADRAO[m.id] || [];
+    return perfsPermitidos.includes(profile.perfil);
+  });
+
+  // Módulos ativos mas sem permissão para este perfil (não mostra)
+  const semPermissao = NARA_MODULOS.filter(m => {
+    if (!modulosAtivos.includes(m.id)) return false;
+    const perfsPermitidos = permissoes[m.id] || PERMS_PADRAO[m.id] || [];
+    return !perfsPermitidos.includes(profile.perfil);
+  });
   const hora = new Date().getHours();
   const saudacao = hora < 12 ? "Bom dia" : hora < 18 ? "Boa tarde" : "Boa noite";
   const nome = profile.nome?.split(" ")[0] || "bem-vindo";
@@ -2321,33 +2517,47 @@ function NaraHub({ user, profile, escola, onEntrarModulo, onLogout, onVoltarAdmi
           <p style={{ margin: 0, fontSize: 15, color: "#64748b" }}>Escolha o módulo que deseja acessar hoje</p>
         </div>
 
-        {/* Cards de módulos */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 20, width: "100%", maxWidth: 900 }}>
-          {modulosEscola.map(m => (
-            <div key={m.id} onClick={() => m.disponivel && onEntrarModulo(m.id)}
-              style={{ background: "#fff", borderRadius: 20, padding: 28, border: `2px solid ${m.cor}30`, boxShadow: "0 4px 20px rgba(0,0,0,.06)", cursor: m.disponivel ? "pointer" : "not-allowed", transition: "all .2s", position: "relative", overflow: "hidden" }}
-              onMouseEnter={e => { if (m.disponivel) { e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.boxShadow = `0 12px 32px ${m.cor}25`; e.currentTarget.style.borderColor = m.cor; } }}
-              onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 4px 20px rgba(0,0,0,.06)"; e.currentTarget.style.borderColor = `${m.cor}30`; }}>
-              {/* Fundo decorativo */}
-              <div style={{ position: "absolute", top: -20, right: -20, width: 100, height: 100, borderRadius: "50%", background: m.cor + "12" }} />
-              <div style={{ fontSize: 40, marginBottom: 16 }}>{m.emoji}</div>
-              <div style={{ fontWeight: 800, fontSize: 17, color: "#1e293b", marginBottom: 6 }}>{m.nome}</div>
-              <div style={{ fontSize: 13, color: "#64748b", lineHeight: 1.5, marginBottom: 16 }}>{m.desc}</div>
-              <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 16px", borderRadius: 20, background: m.cor, color: "#fff", fontSize: 12, fontWeight: 700 }}>
-                Acessar →
+        {/* Módulos agrupados por categoria */}
+        <div style={{ width: "100%", maxWidth: 980, display: "flex", flexDirection: "column", gap: 32 }}>
+          {CATEGORIAS_ORDEM.map(cat => {
+            const dosCat = modulosEscola.filter(m => m.categoria === cat);
+            const emBreveCat = NARA_MODULOS.filter(m => m.categoria === cat && !modulosAtivos.includes(m.id));
+            if (dosCat.length === 0 && emBreveCat.length === 0) return null;
+            return (
+              <div key={cat}>
+                <div style={{ fontSize: 11, fontWeight: 800, color: "#a855f7", letterSpacing: 2, marginBottom: 14, textTransform: "uppercase" }}>
+                  {cat}
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 16 }}>
+                  {/* Módulos com acesso */}
+                  {dosCat.map(m => (
+                    <div key={m.id} onClick={() => m.disponivel && onEntrarModulo(m.id)}
+                      style={{ background: "#fff", borderRadius: 18, padding: 24, border: `2px solid ${m.cor}30`, boxShadow: "0 4px 20px rgba(0,0,0,.06)", cursor: m.disponivel ? "pointer" : "default", transition: "all .2s", position: "relative", overflow: "hidden" }}
+                      onMouseEnter={e => { if (m.disponivel) { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = `0 12px 32px ${m.cor}25`; e.currentTarget.style.borderColor = m.cor; }}}
+                      onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 4px 20px rgba(0,0,0,.06)"; e.currentTarget.style.borderColor = `${m.cor}30`; }}>
+                      <div style={{ position: "absolute", top: -16, right: -16, width: 80, height: 80, borderRadius: "50%", background: m.cor + "12" }} />
+                      <div style={{ fontSize: 36, marginBottom: 12 }}>{m.emoji}</div>
+                      <div style={{ fontWeight: 800, fontSize: 15, color: "#1e293b", marginBottom: 4 }}>{m.nome}</div>
+                      <div style={{ fontSize: 12, color: "#64748b", lineHeight: 1.5, marginBottom: 14 }}>{m.desc}</div>
+                      {m.disponivel
+                        ? <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 14px", borderRadius: 20, background: m.cor, color: "#fff", fontSize: 12, fontWeight: 700 }}>Acessar →</div>
+                        : <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 14px", borderRadius: 20, background: m.cor + "15", color: m.cor, fontSize: 12, fontWeight: 700 }}>🚧 Em breve</div>
+                      }
+                    </div>
+                  ))}
+                  {/* Módulos sem permissão ou sem contrato (em breve) */}
+                  {emBreveCat.map(m => (
+                    <div key={m.id} style={{ background: "#fafafa", borderRadius: 18, padding: 24, border: "2px dashed #e2e8f0", opacity: 0.55, position: "relative" }}>
+                      <div style={{ position: "absolute", top: 10, right: 10, fontSize: 10, fontWeight: 700, color: "#94a3b8", background: "#f1f5f9", padding: "2px 8px", borderRadius: 20 }}>NÃO CONTRATADO</div>
+                      <div style={{ fontSize: 36, marginBottom: 12, filter: "grayscale(1)" }}>{m.emoji}</div>
+                      <div style={{ fontWeight: 800, fontSize: 15, color: "#94a3b8", marginBottom: 4 }}>{m.nome}</div>
+                      <div style={{ fontSize: 12, color: "#cbd5e1", lineHeight: 1.5 }}>{m.desc}</div>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
-
-          {/* Módulos futuros (em breve) */}
-          {NARA_MODULOS.filter(m => !modulosAtivos.includes(m.id)).map(m => (
-            <div key={m.id} style={{ background: "#fafafa", borderRadius: 20, padding: 28, border: "2px dashed #e2e8f0", opacity: 0.7, position: "relative", overflow: "hidden" }}>
-              <div style={{ position: "absolute", top: 12, right: 12, fontSize: 10, fontWeight: 700, color: "#94a3b8", background: "#f1f5f9", padding: "3px 10px", borderRadius: 20 }}>EM BREVE</div>
-              <div style={{ fontSize: 40, marginBottom: 16, filter: "grayscale(1)" }}>{m.emoji}</div>
-              <div style={{ fontWeight: 800, fontSize: 17, color: "#94a3b8", marginBottom: 6 }}>{m.nome}</div>
-              <div style={{ fontSize: 13, color: "#cbd5e1", lineHeight: 1.5 }}>{m.desc}</div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
