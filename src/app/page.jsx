@@ -917,7 +917,6 @@ function SuperAdminPanel({ onLogout, onEntrarEscola }) {
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 {filtradas.map(escola => {
-                  const modulosAtivos = escola.modulos || ["relacionamento", "relatorios", "reunioes"];
                   return (
                     <div key={escola.id} style={{ display: "flex", alignItems: "center", gap: 16, padding: "18px 20px", borderRadius: 14, border: `1.5px solid ${escola.status === "SUSPENSA" ? "#fecaca" : "#e9d5ff"}`, background: escola.status === "SUSPENSA" ? "#fff5f5" : "#fff", flexWrap: "wrap" }}>
                       <div style={{ width: 54, height: 54, borderRadius: 12, background: "#faf5ff", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", flexShrink: 0, border: "1.5px solid #e9d5ff" }}>
@@ -926,14 +925,6 @@ function SuperAdminPanel({ onLogout, onEntrarEscola }) {
                       <div style={{ flex: 1, minWidth: 180 }}>
                         <div style={{ fontWeight: 800, fontSize: 15, color: "#1e293b" }}>{escola.nome}</div>
                         <div style={{ fontSize: 12, color: "#64748b" }}>{escola.cidade}{escola.responsavel_nome ? ` · ${escola.responsavel_nome}` : ""}</div>
-                        {/* Módulos ativos */}
-                        <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
-                          {NARA_MODULOS.filter(m => modulosAtivos.includes(m.id)).map(m => (
-                            <span key={m.id} style={{ fontSize: 10, fontWeight: 700, color: m.cor, background: m.cor + "15", padding: "2px 8px", borderRadius: 20, border: `1px solid ${m.cor}30` }}>
-                              {m.emoji} {m.nome.replace("NARA ", "")}
-                            </span>
-                          ))}
-                        </div>
                       </div>
                       <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
                         <Badge color={planColor(escola.plano)}>{escola.plano}</Badge>
