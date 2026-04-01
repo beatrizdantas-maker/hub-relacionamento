@@ -1270,8 +1270,8 @@ function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos: motiv
   const [err, setErr] = useState({});
   const [saving, setSaving] = useState(false);
   const upd = (k, v) => setF(p => ({ ...p, [k]: v }));
-  const setorParaPerfil = { "Psicólogo": "PSICOLOGO", "Psicopedagogo": "PSICOPEDAGOGO", "Secretária": "SECRETARIA", "Professor": "PROFESSOR", "Recepção": "RECEPÇÃO", "Núcleo Pedagógico": "NUCLEO", "Direção": "DIRECAO" };
-  const equipeDisponivel = equipe.filter(u => u.id !== profile.id);
+
+  const equipeDisponivel = equipe.filter(u => u.id !== profile.id && u.ativo !== false);
 
   const motivoSel = f.motivoId === "outro" ? { nome: f.motivoCustom, pontos: Number(f.motivoCustomPontos) || 0 } : motivos?.find(m => m.id === f.motivoId);
 
@@ -2058,7 +2058,7 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
 
   const carregarTudo = async () => {
     setLoading(true);
-    const [{ data: al }, { data: co }, { data: re }, { data: eq }, { data: mo }, { data: ci }] = await Promise.all([
+    const [{ data: al }, { data: co }, { data: ci }, { data: re }, { data: eq }, { data: mo }] = await Promise.all([
       supabase.from("alunos").select("*").eq("escola_id", escola.id).order("nome"),
       supabase.from("comunicacoes").select("*").eq("escola_id", escola.id).order("created_at", { ascending: false }),
       supabase.from("comunicacoes_ciencia").select("comunicacao_id, usuario_id").eq("escola_id", escola.id),
