@@ -1738,7 +1738,7 @@ function PerfilAluno({ aluno: alunoInicial, comunicacoes, reunioes, onClose, pro
 }
 
 // ── SCHOOL APP ─────────────────────────────────────────────────────────────────
-function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin }) {
+function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub }) {
   const [pagina, setPagina] = useState("dashboard");
   const [alunos, setAlunos] = useState([]);
   const [comunicacoes, setComunicacoes] = useState([]);
@@ -2238,9 +2238,14 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin }) {
           {escola.logo_url ? (
             <img src={escola.logo_url} alt={escola.nome} style={{ height: 36, objectFit: "contain", maxWidth: "100%", marginBottom: 6 }} />
           ) : (
-            <div style={{ fontWeight: 900, fontSize: 13, color: "#2563eb", lineHeight: 1.2 }}>HUB DE<br />RELACIONAMENTO</div>
+            <svg width="120" height="28" viewBox="0 0 180 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <text x="0" y="40" fontFamily="system-ui,sans-serif" fontWeight="900" fontSize="36" fill="#a855f7">NARA</text>
+              <text x="93" y="40" fontFamily="system-ui,sans-serif" fontWeight="700" fontSize="26" fill="#86efac">EDU</text>
+              <text x="145" y="40" fontFamily="system-ui,sans-serif" fontWeight="900" fontSize="26" fill="#a855f7">360</text>
+            </svg>
           )}
-          <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4, fontWeight: 600 }}>{escola.nome}</div>
+          <div style={{ fontSize: 10, fontWeight: 700, color: "#a855f7", marginTop: 4, letterSpacing: 0.5 }}>💬 NARA Relacionamento</div>
+          <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2, fontWeight: 600 }}>{escola.nome}</div>
           {escola.status === "SUSPENSA" && <div style={{ marginTop: 4, padding: "2px 8px", background: "#fef2f2", borderRadius: 6, fontSize: 10, color: "#ef4444", fontWeight: 700 }}>🔴 SUSPENSA</div>}
         </div>
         <nav style={{ flex: 1, padding: "12px 8px", display: "flex", flexDirection: "column", gap: 2 }}>
@@ -2251,6 +2256,7 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin }) {
           ))}
         </nav>
         <div style={{ padding: "12px 8px", borderTop: "1px solid #f1f5f9" }}>
+          {onVoltarHub && <button onClick={onVoltarHub} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700, color: "#a855f7", background: "#faf5ff", width: "100%", marginBottom: 4, borderRadius: 8 }}>⊞ Hub NARAEDU360</button>}
           {onVoltarAdmin && <button onClick={onVoltarAdmin} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700, color: "#7c3aed", background: "transparent", width: "100%" }}>← Admin Global</button>}
           <button onClick={onLogout} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600, color: "#ef4444", background: "transparent", width: "100%" }}>↪ Sair</button>
         </div>
@@ -2278,11 +2284,84 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin }) {
   );
 }
 
+// ── NARA HUB — Tela de seleção de módulo ───────────────────────────────────────
+function NaraHub({ user, profile, escola, onEntrarModulo, onLogout, onVoltarAdmin }) {
+  const modulosAtivos = escola.modulos || ["relacionamento", "relatorios", "reunioes"];
+  const modulosEscola = NARA_MODULOS.filter(m => modulosAtivos.includes(m.id));
+  const hora = new Date().getHours();
+  const saudacao = hora < 12 ? "Bom dia" : hora < 18 ? "Boa tarde" : "Boa noite";
+  const nome = profile.nome?.split(" ")[0] || "bem-vindo";
+
+  return (
+    <div style={{ minHeight: "100vh", background: "linear-gradient(135deg, #faf5ff 0%, #f0fdf4 100%)", fontFamily: "system-ui,sans-serif", display: "flex", flexDirection: "column" }}>
+      {/* Topbar */}
+      <div style={{ background: "#fff", borderBottom: "1px solid #e9d5ff", padding: "0 32px", height: 60, display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
+        <svg width="150" height="38" viewBox="0 0 180 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <text x="0" y="40" fontFamily="system-ui,sans-serif" fontWeight="900" fontSize="36" fill="#a855f7">NARA</text>
+          <text x="93" y="40" fontFamily="system-ui,sans-serif" fontWeight="700" fontSize="26" fill="#86efac">EDU</text>
+          <text x="145" y="40" fontFamily="system-ui,sans-serif" fontWeight="900" fontSize="26" fill="#a855f7">360</text>
+        </svg>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          {escola.logo_url && <img src={escola.logo_url} alt={escola.nome} style={{ height: 32, objectFit: "contain" }} />}
+          <div style={{ textAlign: "right" }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b" }}>{profile.nome}</div>
+            <div style={{ fontSize: 11, color: "#94a3b8" }}>{perfilLabel(profile.perfil)} · {escola.nome}</div>
+          </div>
+          <Av initials={profile.avatar || (profile.nome || "?").slice(0, 2).toUpperCase()} color="#7c3aed" />
+          {onVoltarAdmin && <Btn small variant="ghost" onClick={onVoltarAdmin} style={{ color: "#7c3aed" }}>← Admin</Btn>}
+          <Btn small variant="ghost" onClick={onLogout}>Sair</Btn>
+        </div>
+      </div>
+
+      {/* Conteúdo central */}
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "40px 24px" }}>
+        <div style={{ textAlign: "center", marginBottom: 40 }}>
+          <div style={{ fontSize: 36, marginBottom: 8 }}>👋</div>
+          <h1 style={{ margin: "0 0 8px", fontSize: 26, fontWeight: 900, color: "#1e293b" }}>{saudacao}, {nome}!</h1>
+          <p style={{ margin: 0, fontSize: 15, color: "#64748b" }}>Escolha o módulo que deseja acessar hoje</p>
+        </div>
+
+        {/* Cards de módulos */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 20, width: "100%", maxWidth: 900 }}>
+          {modulosEscola.map(m => (
+            <div key={m.id} onClick={() => m.disponivel && onEntrarModulo(m.id)}
+              style={{ background: "#fff", borderRadius: 20, padding: 28, border: `2px solid ${m.cor}30`, boxShadow: "0 4px 20px rgba(0,0,0,.06)", cursor: m.disponivel ? "pointer" : "not-allowed", transition: "all .2s", position: "relative", overflow: "hidden" }}
+              onMouseEnter={e => { if (m.disponivel) { e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.boxShadow = `0 12px 32px ${m.cor}25`; e.currentTarget.style.borderColor = m.cor; } }}
+              onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 4px 20px rgba(0,0,0,.06)"; e.currentTarget.style.borderColor = `${m.cor}30`; }}>
+              {/* Fundo decorativo */}
+              <div style={{ position: "absolute", top: -20, right: -20, width: 100, height: 100, borderRadius: "50%", background: m.cor + "12" }} />
+              <div style={{ fontSize: 40, marginBottom: 16 }}>{m.emoji}</div>
+              <div style={{ fontWeight: 800, fontSize: 17, color: "#1e293b", marginBottom: 6 }}>{m.nome}</div>
+              <div style={{ fontSize: 13, color: "#64748b", lineHeight: 1.5, marginBottom: 16 }}>{m.desc}</div>
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 16px", borderRadius: 20, background: m.cor, color: "#fff", fontSize: 12, fontWeight: 700 }}>
+                Acessar →
+              </div>
+            </div>
+          ))}
+
+          {/* Módulos futuros (em breve) */}
+          {NARA_MODULOS.filter(m => !modulosAtivos.includes(m.id)).map(m => (
+            <div key={m.id} style={{ background: "#fafafa", borderRadius: 20, padding: 28, border: "2px dashed #e2e8f0", opacity: 0.7, position: "relative", overflow: "hidden" }}>
+              <div style={{ position: "absolute", top: 12, right: 12, fontSize: 10, fontWeight: 700, color: "#94a3b8", background: "#f1f5f9", padding: "3px 10px", borderRadius: 20 }}>EM BREVE</div>
+              <div style={{ fontSize: 40, marginBottom: 16, filter: "grayscale(1)" }}>{m.emoji}</div>
+              <div style={{ fontWeight: 800, fontSize: 17, color: "#94a3b8", marginBottom: 6 }}>{m.nome}</div>
+              <div style={{ fontSize: 13, color: "#cbd5e1", lineHeight: 1.5 }}>{m.desc}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <p style={{ textAlign: "center", paddingBottom: 20, fontSize: 11, color: "#c4b5fd" }}>© NaraEdu · Núcleo de Acompanhamento e Registro da Aprendizagem</p>
+    </div>
+  );
+}
+
 // ── ROOT ───────────────────────────────────────────────────────────────────────
 export default function App() {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [escolaAtiva, setEscolaAtiva] = useState(null);
+  const [moduloAtivo, setModuloAtivo] = useState(null);
   const [iniciando, setIniciando] = useState(true);
 
   useEffect(() => {
@@ -2295,17 +2374,50 @@ export default function App() {
       setIniciando(false);
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === "SIGNED_OUT") { setUser(null); setProfile(null); setEscolaAtiva(null); }
+      if (event === "SIGNED_OUT") { setUser(null); setProfile(null); setEscolaAtiva(null); setModuloAtivo(null); }
     });
     return () => subscription.unsubscribe();
   }, []);
 
-  const handleLogout = async () => { await supabase.auth.signOut(); setUser(null); setProfile(null); setEscolaAtiva(null); };
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setUser(null); setProfile(null); setEscolaAtiva(null); setModuloAtivo(null);
+  };
 
   if (iniciando) return <Loading msg="Verificando sessão..." />;
   if (!user || !profile) return <LoginPage onLogin={(u, p) => { setUser(u); setProfile(p); if (p?.perfil !== "SUPER_ADMIN" && p?.escolas) setEscolaAtiva(p.escolas); }} />;
   if (profile.perfil === "SUPER_ADMIN" && !escolaAtiva) return <SuperAdminPanel onLogout={handleLogout} onEntrarEscola={setEscolaAtiva} />;
 
   const escola = escolaAtiva || profile.escolas;
-  return <SchoolApp user={user} profile={profile} escola={escola} onLogout={handleLogout} onVoltarAdmin={profile.perfil === "SUPER_ADMIN" ? () => setEscolaAtiva(null) : null} />;
+  const voltarAdmin = profile.perfil === "SUPER_ADMIN" ? () => { setEscolaAtiva(null); setModuloAtivo(null); } : null;
+
+  // Se não escolheu módulo ainda → mostra o Hub
+  if (!moduloAtivo) return (
+    <NaraHub
+      user={user} profile={profile} escola={escola}
+      onEntrarModulo={setModuloAtivo}
+      onLogout={handleLogout}
+      onVoltarAdmin={voltarAdmin}
+    />
+  );
+
+  // Módulo escolhido → entra no app correspondente
+  if (moduloAtivo === "relacionamento") {
+    return <SchoolApp user={user} profile={profile} escola={escola} onLogout={handleLogout}
+      onVoltarAdmin={voltarAdmin}
+      onVoltarHub={() => setModuloAtivo(null)}
+    />;
+  }
+
+  // Outros módulos futuros
+  return (
+    <div style={{ minHeight: "100vh", background: "#f5f3ff", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "system-ui,sans-serif" }}>
+      <div style={{ textAlign: "center" }}>
+        <div style={{ fontSize: 48, marginBottom: 16 }}>🚧</div>
+        <h2 style={{ margin: "0 0 8px", color: "#1e293b" }}>Módulo em desenvolvimento</h2>
+        <p style={{ color: "#64748b", marginBottom: 24 }}>Este módulo estará disponível em breve!</p>
+        <Btn onClick={() => setModuloAtivo(null)} style={{ background: "#7c3aed", color: "#fff", border: "none" }}>← Voltar ao Hub</Btn>
+      </div>
+    </div>
+  );
 }
