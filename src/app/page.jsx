@@ -94,7 +94,7 @@ const Loading = ({ msg = "Carregando..." }) => (
 );
 
 // ── MICROFONE + IA ─────────────────────────────────────────────────────────────
-function CampoRelato({ value, onChange }) {
+function CampoRelato({ value, onChange, onBlur }) {
   const [gravando, setGravando] = useState(false);
   const [transcricao, setTranscricao] = useState("");
   const [resumindo, setResumindo] = useState(false);
@@ -137,7 +137,7 @@ function CampoRelato({ value, onChange }) {
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
       <label style={{ fontSize: 12, fontWeight: 600, color: "#475569" }}>Relato *</label>
       <div style={{ position: "relative" }}>
-        <textarea value={value} onChange={e => onChange(e.target.value)} placeholder={gravando ? "🔴 Gravando... fale agora." : "Descreva o ocorrido ou clique no microfone para gravar."} rows={gravando ? 5 : 4}
+        <textarea value={value} onChange={e => onChange(e.target.value)} placeholder={gravando ? "🔴 Gravando... fale agora." : "Descreva o ocorrido ou clique no microfone para gravar."} onBlur={onBlur} rows={gravando ? 5 : 4}
           style={{ width: "100%", padding: "12px 50px 12px 14px", border: `1.5px solid ${gravando ? "#ef4444" : "#e2e8f0"}`, borderRadius: 8, fontSize: gravando ? 17 : 14, outline: "none", background: gravando ? "#fff5f5" : "#fafafa", color: "#1e293b", fontFamily: "inherit", resize: "vertical", boxSizing: "border-box", transition: "all .2s" }} />
         <button type="button" onClick={gravando ? parar : iniciar} style={{ position: "absolute", right: 10, top: 10, width: 32, height: 32, borderRadius: "50%", border: "none", cursor: "pointer", background: gravando ? "#ef4444" : "#2563eb", color: "#fff", fontSize: 15, display: "flex", alignItems: "center", justifyContent: "center" }}>
           {gravando ? "⏹" : "🎤"}
@@ -1261,7 +1261,10 @@ function BuscaMotivo({ motivos, value, onChange, error }) {
 }
 
 // ── MODAIS SISTEMA ESCOLAR ─────────────────────────────────────────────────────
-function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos, escolaId }) {
+function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos: motivosInit, escolaId }) {
+  const [motivos, setMotivos] = useState(motivosInit || []);
+  const [iaAnalisando, setIaAnalisando] = useState(false);
+  const [iaSugestao, setIaSugestao] = useState(null);
   const [f, setF] = useState({ alunoId: "", titulo: "", detalhes: "", urgencia: "", comQuem: "", via: "", motivoId: "", motivoCustom: "", motivoCustomPontos: "0", encaminhar: false, encDestino: "", encResponsavelId: "", encResponsavelNome: "", encObs: "" });
   const [arquivo, setArquivo] = useState(null);
   const [err, setErr] = useState({});
@@ -1372,8 +1375,10 @@ function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos, escol
             </div>
           </FBlock>
           <FBlock num="2" title="Detalhamento">
-            <CampoRelato value={f.detalhes} onChange={v => upd("detalhes", v)} />
+            <CampoRelato value={f.detalhes} onChange={v => upd("detalhes", v)} onBlur={() => analisarComIA(f.detalhes)} />
             {err.detalhes && <span style={{ fontSize: 11, color: "#ef4444" }}>{err.detalhes}</span>}
+            {iaAnalisando && (<div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", background: "#faf5ff", borderRadius: 10, border: "1px solid #e9d5ff" }}><div style={{ width: 16, height: 16, border: "2px solid #e9d5ff", borderTop: "2px solid #7c3aed", borderRadius: "50%", animation: "spin 1s linear infinite", flexShrink: 0 }} /><span style={{ fontSize: 13, color: "#7c3aed" }}>🤖 IA analisando o relato...</span></div>)}
+            {iaSugestao && !iaAnalisando && (<div style={{ padding: "14px 16px", background: iaSugestao.encontrado ? "#eff6ff" : "#fefce8", borderRadius: 10, border: `1.5px solid ${iaSugestao.encontrado ? "#bfdbfe" : "#fef08a"}` }}><div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}><div><div style={{ fontSize: 12, fontWeight: 700, color: iaSugestao.encontrado ? "#1d4ed8" : "#a16207", marginBottom: 4 }}>🤖 {iaSugestao.encontrado ? "IA identificou o motivo:" : "IA sugere novo motivo:"}</div><div style={{ fontSize: 14, fontWeight: 800, color: "#1e293b" }}>{iaSugestao.nome}</div><div style={{ fontSize: 12, color: iaSugestao.pontos > 0 ? "#dc2626" : "#16a34a", fontWeight: 700, marginTop: 2 }}>{iaSugestao.pontos > 0 ? `⚠️ +${iaSugestao.pontos} pts de risco` : `✅ ${Math.abs(iaSugestao.pontos)} pts de redução`}{!iaSugestao.encontrado && <span style={{ color: "#a16207", fontWeight: 600, marginLeft: 8 }}>· será criado automaticamente</span>}</div></div><div style={{ display: "flex", gap: 8 }}><Btn small variant="success" onClick={confirmarSugestao}>✅ Confirmar</Btn><Btn small variant="ghost" onClick={() => setIaSugestao(null)}>❌ Ignorar</Btn></div></div></div>)}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               <Sel label="Via de Comunicação *" error={err.via} value={f.via} onChange={e => upd("via", e.target.value)}>
                 <option value="">Selecione...</option>
