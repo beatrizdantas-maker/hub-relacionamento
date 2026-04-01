@@ -930,7 +930,6 @@ function SuperAdminPanel({ onLogout, onEntrarEscola }) {
                         <Badge color={planColor(escola.plano)}>{escola.plano}</Badge>
                         <Badge color={statusColor(escola.status)}>{escola.status}</Badge>
                         {escola.data_vencimento && <span style={{ fontSize: 11, color: "#94a3b8" }}>até {new Date(escola.data_vencimento).toLocaleDateString("pt-BR")}</span>}
-                        <Btn small variant="ghost" onClick={() => setModalModulos(escola)}>🧩 Módulos</Btn>
                         <Btn small variant="ghost" onClick={() => setEscolaSelecionada(escola)}>Gerenciar →</Btn>
                         <Btn small onClick={() => onEntrarEscola(escola)} style={{ background: "#7c3aed", color: "#fff", border: "none" }}>Acessar</Btn>
                       </div>
@@ -1024,9 +1023,7 @@ function LoginPage({ onLogin }) {
       <div style={{ marginBottom: 32, textAlign: "center" }}>
         <div style={{marginBottom:12}}>
           <div style={{fontSize:28,fontWeight:900,color:"#7c3aed",letterSpacing:-1,fontFamily:"system-ui,sans-serif"}}>Hub de Relacionamento</div>
-          <div style={{fontSize:13,color:"#a855f7",fontWeight:600,marginTop:4}}>Escolar</div>
         </div>
-        <p style={{margin:0,color:"#94a3b8",fontSize:13}}>Comunicação escola-família</p>
       </div>
 
       {/* Card de login */}
@@ -1042,7 +1039,7 @@ function LoginPage({ onLogin }) {
         </div>
       </div>
 
-      <p style={{ marginTop: 24, fontSize: 11, color: "#c4b5fd" }}>© NaraEdu · Núcleo de Acompanhamento e Registro da Aprendizagem</p>
+      <p style={{ marginTop: 24, fontSize: 11, color: "#c4b5fd" }}>© Hub de Relacionamento Escolar</p>
     </div>
   );
 }
