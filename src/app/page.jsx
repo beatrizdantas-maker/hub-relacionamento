@@ -1313,6 +1313,7 @@ function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos: motiv
     if (!f.comQuem) e.comQuem = "Obrigatório";
     if (!f.via) e.via = "Obrigatório";
     if (f.encaminhar && !f.encDestino) e.encDestino = "Obrigatório";
+    if (f.encaminhar && !f.encDestino) e.encDestino = "Obrigatório";
     if (f.encaminhar && !f.encResponsavelNome) e.encResponsavel = "Obrigatório";
     setErr(e); return Object.keys(e).length === 0;
   };
@@ -1444,45 +1445,34 @@ function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos: motiv
             </div>
           </FBlock>
           <FBlock num="3" title="Encaminhamento">
-            {/* Dar ciência */}
-            <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
-              <label style={{ fontSize:12, fontWeight:700, color:"#475569" }}>👁️ Dar ciência para (opcional)</label>
-              <div style={{ fontSize:11, color:"#94a3b8", marginTop:-2 }}>Esses usuários poderão ver esta comunicação mesmo sem serem o responsável.</div>
-              <div style={{ display:"flex", flexWrap:"wrap", gap:8, marginTop:4 }}>
-                {equipe.filter(u=>u.id!==profile.id&&u.ativo!==false).map(u=>{
-                  const sel = f.ciencia.includes(u.id);
-                  return (
-                    <button key={u.id} type="button"
-                      onClick={()=>upd("ciencia", sel ? f.ciencia.filter(x=>x!==u.id) : [...f.ciencia, u.id])}
-                      style={{ display:"flex", alignItems:"center", gap:6, padding:"5px 12px", borderRadius:20, border:`1.5px solid ${sel?"#2563eb":"#e2e8f0"}`, background:sel?"#eff6ff":"#fafafa", color:sel?"#1d4ed8":"#475569", fontSize:12, fontWeight:sel?700:500, cursor:"pointer", transition:"all .15s" }}>
-                      {sel && <span>✓</span>}
-                      {u.nome} <span style={{color:"#94a3b8",fontWeight:400}}>({perfilLabel(u.perfil)})</span>
-                    </button>
-                  );
-                })}
-              </div>
-              {f.ciencia.length > 0 && <div style={{ fontSize:12, color:"#2563eb", fontWeight:600 }}>👁️ {f.ciencia.length} usuário(s) receberão ciência desta comunicação</div>}
-            </div>
-            <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer", padding: 12, borderRadius: 8, border: `1.5px solid ${f.encaminhar ? "#2563eb" : "#e2e8f0"}`, background: f.encaminhar ? "#eff6ff" : "#fff" }}>
-              <input type="checkbox" checked={f.encaminhar} onChange={e => { upd("encaminhar", e.target.checked); if(!e.target.checked){upd("encResponsavelId","");upd("encResponsavelNome","");upd("encDestino","");upd("encObs","");} }} style={{ marginTop: 2 }} />
-              <div><div style={{ fontWeight: 600, color: "#1e293b", fontSize: 14 }}>Encaminhar para um responsável</div><div style={{ fontSize: 12, color: "#94a3b8" }}>Exige ação ou acompanhamento de outra pessoa.</div></div>
+            <label style={{ display:"flex", alignItems:"flex-start", gap:10, cursor:"pointer", padding:12, borderRadius:8, border:`1.5px solid ${f.encaminhar?"#2563eb":"#e2e8f0"}`, background:f.encaminhar?"#eff6ff":"#fff" }}>
+              <input type="checkbox" checked={f.encaminhar} onChange={e => { upd("encaminhar", e.target.checked); if(!e.target.checked){upd("encDestino","");upd("encResponsavelId","");upd("encResponsavelNome","");upd("encObs","");} }} style={{ marginTop:2 }} />
+              <div><div style={{ fontWeight:600, color:"#1e293b", fontSize:14 }}>Encaminhar para um setor</div><div style={{ fontSize:12, color:"#94a3b8" }}>Exige ação ou acompanhamento de outra pessoa.</div></div>
             </label>
             {f.encaminhar && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: err.encResponsavel ? "#ef4444" : "#475569" }}>
-                    Responsável * <span style={{ fontWeight: 400, color: "#94a3b8" }}>({equipe.filter(u=>u.id!==profile.id&&u.ativo!==false).length} disponíveis)</span>
-                  </label>
-                  <select value={f.encResponsavelId} onChange={e => { const u=equipe.find(x=>x.id===e.target.value); upd("encResponsavelId",e.target.value); upd("encResponsavelNome",u?.nome||""); upd("encDestino",u?perfilLabel(u.perfil):""); }}
-                    style={{ padding:"9px 13px", border:`1.5px solid ${err.encResponsavel?"#ef4444":"#e2e8f0"}`, borderRadius:8, fontSize:14, outline:"none", background:"#fafafa", color:"#1e293b", fontFamily:"inherit", width:"100%" }}>
-                    <option value="">Selecione o responsável...</option>
-                    {equipe.filter(u=>u.id!==profile.id&&u.ativo!==false).map(u=>(
-                      <option key={u.id} value={u.id}>{u.nome} — {perfilLabel(u.perfil)}{u.cargo ? ` (${u.cargo})` : ""}</option>
-                    ))}
-                  </select>
-                  {err.encResponsavel && <span style={{ fontSize:11, color:"#ef4444" }}>{err.encResponsavel}</span>}
-                  {f.encResponsavelId && <div style={{ padding:"8px 12px", background:"#eff6ff", borderRadius:8, fontSize:13, color:"#1d4ed8", marginTop:4 }}>✅ Encaminhar para <strong>{f.encResponsavelNome}</strong></div>}
+              <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+                  <Sel label="Setor de Destino *" error={err.encDestino} value={f.encDestino} onChange={e => { upd("encDestino", e.target.value); upd("encResponsavelId",""); upd("encResponsavelNome",""); }}>
+                    <option value="">Selecione o setor...</option>
+                    {SETORES.map(s => <option key={s}>{s}</option>)}
+                  </Sel>
+                  <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
+                    <label style={{ fontSize:12, fontWeight:600, color:err.encResponsavel?"#ef4444":"#475569" }}>
+                      Responsável *{f.encDestino && <span style={{ fontWeight:400, color:"#94a3b8" }}> ({equipe.filter(u=>u.id!==profile.id&&u.perfil===setorParaPerfil[f.encDestino]).length} disponíveis)</span>}
+                    </label>
+                    <select value={f.encResponsavelId}
+                      onChange={e => { const u=equipe.find(x=>x.id===e.target.value); upd("encResponsavelId",e.target.value); upd("encResponsavelNome",u?.nome||""); }}
+                      disabled={!f.encDestino}
+                      style={{ padding:"9px 13px", border:`1.5px solid ${err.encResponsavel?"#ef4444":"#e2e8f0"}`, borderRadius:8, fontSize:14, outline:"none", background:f.encDestino?"#fafafa":"#f1f5f9", color:"#1e293b", fontFamily:"inherit", width:"100%", cursor:f.encDestino?"pointer":"not-allowed" }}>
+                      <option value="">{f.encDestino?"Selecione o responsável...":"Escolha o setor primeiro"}</option>
+                      {f.encDestino && equipe.filter(u=>u.id!==profile.id&&u.perfil===setorParaPerfil[f.encDestino]).map(u=>(
+                        <option key={u.id} value={u.id}>{u.nome}{u.cargo?` (undefined)`:""}</option>
+                      ))}
+                    </select>
+                    {err.encResponsavel && <span style={{ fontSize:11, color:"#ef4444" }}>{err.encResponsavel}</span>}
+                  </div>
                 </div>
+                {f.encResponsavelId && <div style={{ padding:"8px 12px", background:"#eff6ff", borderRadius:8, fontSize:13, color:"#1d4ed8" }}>✅ Encaminhar para <strong>{f.encResponsavelNome}</strong> — {f.encDestino}</div>}
                 <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
                   <label style={{ fontSize:12, fontWeight:600, color:"#475569" }}>Observações (opcional)</label>
                   <textarea value={f.encObs} onChange={e=>upd("encObs",e.target.value)} placeholder="Instruções ou contexto adicional..." rows={2}
