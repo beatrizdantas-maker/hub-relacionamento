@@ -1824,8 +1824,8 @@ function PerfilAluno({ aluno: alunoInicial, comunicacoes, reunioes, onClose, pro
             <div><div style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600 }}>Telefone</div><div style={{ fontSize: 14, fontWeight: 700, color: "#1e293b" }}>{aluno.telefone}</div></div>
           </div>
 
-          {/* Análise IA */}
-          <div style={{ background: "#faf5ff", borderRadius: 12, border: "1px solid #e9d5ff", padding: 16 }}>
+          {/* Análise IA — só para Direção */}
+          {(profile.perfil === "DIRECAO" || profile.perfil === "SUPER_ADMIN") && <div style={{ background: "#faf5ff", borderRadius: 12, border: "1px solid #e9d5ff", padding: 16 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: analise ? 14 : 0, flexWrap: "wrap", gap: 10 }}>
               <div>
                 <div style={{ fontSize: 14, fontWeight: 800, color: "#7c3aed" }}>🧠 Análise de Risco com IA</div>
@@ -1858,7 +1858,7 @@ function PerfilAluno({ aluno: alunoInicial, comunicacoes, reunioes, onClose, pro
                 </div>
               </div>
             )}
-          </div>
+          </div>}
           <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
           <div style={{ display: "flex", gap: 4, borderBottom: "1px solid #e2e8f0" }}>
             {[["timeline", "📋 Timeline"], ["reunioes", "📅 Reuniões"], ["encaminhamentos", "📨 Encaminhamentos"]].map(([t, l]) => (
