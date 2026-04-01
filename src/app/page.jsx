@@ -1265,7 +1265,7 @@ function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos: motiv
   const [motivos, setMotivos] = useState(motivosInit || []);
   const [iaAnalisando, setIaAnalisando] = useState(false);
   const [iaSugestao, setIaSugestao] = useState(null);
-  const [f, setF] = useState({ alunoId: "", titulo: "", detalhes: "", urgencia: "", comQuem: "", via: "", motivoId: "", motivoCustom: "", motivoCustomPontos: "0", encaminhar: false, encDestino: "", encResponsavelId: "", encResponsavelNome: "", encObs: "" });
+  const [f, setF] = useState({ alunoId: "", titulo: "", detalhes: "", urgencia: "", comQuem: "", via: "", motivoId: "", motivoCustom: "", motivoCustomPontos: "0", encaminhar: false, encDestino: "", encResponsavelId: "", encResponsavelNome: "", encObs: "", ciencia: [] });
   const [arquivo, setArquivo] = useState(null);
   const [err, setErr] = useState({});
   const [saving, setSaving] = useState(false);
@@ -1350,6 +1350,12 @@ function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos: motiv
       alert("Erro: " + (error.message || JSON.stringify(error)));
     }
     if (!error && data) {
+      // Salvar usuários de ciência
+      if (f.ciencia && f.ciencia.length > 0) {
+        await supabase.from("comunicacoes_ciencia").insert(
+          f.ciencia.map(uid => ({ comunicacao_id: data.id, usuario_id: uid, escola_id: escolaId || profile.escola_id }))
+        );
+      }
       // Atualizar score do aluno
       const aluno = alunos.find(a => a.id === f.alunoId);
       if (aluno && pontos !== 0) {
@@ -1441,6 +1447,25 @@ function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos: motiv
             </div>
           </FBlock>
           <FBlock num="3" title="Encaminhamento">
+            {/* Dar ciência */}
+            <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+              <label style={{ fontSize:12, fontWeight:700, color:"#475569" }}>👁️ Dar ciência para (opcional)</label>
+              <div style={{ fontSize:11, color:"#94a3b8", marginTop:-2 }}>Esses usuários poderão ver esta comunicação mesmo sem serem o responsável.</div>
+              <div style={{ display:"flex", flexWrap:"wrap", gap:8, marginTop:4 }}>
+                {equipe.filter(u=>u.id!==profile.id&&u.ativo!==false).map(u=>{
+                  const sel = f.ciencia.includes(u.id);
+                  return (
+                    <button key={u.id} type="button"
+                      onClick={()=>upd("ciencia", sel ? f.ciencia.filter(x=>x!==u.id) : [...f.ciencia, u.id])}
+                      style={{ display:"flex", alignItems:"center", gap:6, padding:"5px 12px", borderRadius:20, border:`1.5px solid ${sel?"#2563eb":"#e2e8f0"}`, background:sel?"#eff6ff":"#fafafa", color:sel?"#1d4ed8":"#475569", fontSize:12, fontWeight:sel?700:500, cursor:"pointer", transition:"all .15s" }}>
+                      {sel && <span>✓</span>}
+                      {u.nome} <span style={{color:"#94a3b8",fontWeight:400}}>({perfilLabel(u.perfil)})</span>
+                    </button>
+                  );
+                })}
+              </div>
+              {f.ciencia.length > 0 && <div style={{ fontSize:12, color:"#2563eb", fontWeight:600 }}>👁️ {f.ciencia.length} usuário(s) receberão ciência desta comunicação</div>}
+            </div>
             <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer", padding: 12, borderRadius: 8, border: `1.5px solid ${f.encaminhar ? "#2563eb" : "#e2e8f0"}`, background: f.encaminhar ? "#eff6ff" : "#fff" }}>
               <input type="checkbox" checked={f.encaminhar} onChange={e => { upd("encaminhar", e.target.checked); if(!e.target.checked){upd("encResponsavelId","");upd("encResponsavelNome","");upd("encDestino","");upd("encObs","");} }} style={{ marginTop: 2 }} />
               <div><div style={{ fontWeight: 600, color: "#1e293b", fontSize: 14 }}>Encaminhar para um responsável</div><div style={{ fontSize: 12, color: "#94a3b8" }}>Exige ação ou acompanhamento de outra pessoa.</div></div>
@@ -1837,7 +1862,7 @@ function PerfilAluno({ aluno: alunoInicial, comunicacoes, reunioes, onClose, pro
   const [analise, setAnalise] = useState(null);
   const [editando, setEditando] = useState(false);
   const podeEditar = profile.perfil === "DIRECAO" || profile.perfil === "SECRETARIA" || profile.perfil === "SUPER_ADMIN";
-  const isCan = (c) => profile.perfil === "DIRECAO" || profile.perfil === "SUPER_ADMIN" || c.autor_id === profile.id || c.enc_responsavel_id === profile.id;
+  const isCan = (c) => profile.perfil === "DIRECAO" || profile.perfil === "SUPER_ADMIN" || c.autor_id === profile.id || c.enc_responsavel_id === profile.id || (window._cienciaMap && window._cienciaMap[c.id] && window._cienciaMap[c.id].includes(profile.id));
   const coms = comunicacoes.filter(c => c.aluno_id === aluno.id && isCan(c));
   const reunioesA = reunioes.filter(r => r.convocados?.some(c => c.aluno_id === aluno.id));
   const totalP = reunioesA.reduce((s, r) => s + (r.convocados?.find(c => c.aluno_id === aluno.id)?.compareceu ? 1 : 0), 0);
@@ -2026,9 +2051,10 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
 
   const carregarTudo = async () => {
     setLoading(true);
-    const [{ data: al }, { data: co }, { data: re }, { data: eq }, { data: mo }] = await Promise.all([
+    const [{ data: al }, { data: co }, { data: re }, { data: eq }, { data: mo }, { data: ci }] = await Promise.all([
       supabase.from("alunos").select("*").eq("escola_id", escola.id).order("nome"),
       supabase.from("comunicacoes").select("*").eq("escola_id", escola.id).order("created_at", { ascending: false }),
+      supabase.from("comunicacoes_ciencia").select("comunicacao_id, usuario_id").eq("escola_id", escola.id),
       supabase.from("reunioes").select("*, reuniao_convocados(*)").eq("escola_id", escola.id).order("created_at", { ascending: false }),
       supabase.from("profiles").select("*").eq("escola_id", escola.id),
       supabase.from("motivos").select("*").or(`escola_id.eq.${escola.id},escola_id.is.null`).order("nome"),
