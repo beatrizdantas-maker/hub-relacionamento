@@ -705,14 +705,7 @@ const NARA_MODULOS = [
   },
 ];
 
-// Logo NARAEDU360 em SVG inline
-const LogoNara = ({ size = 32 }) => (
-  <svg width={size * 2.8} height={size} viewBox="0 0 140 50" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <text x="0" y="36" fontFamily="system-ui,sans-serif" fontWeight="900" fontSize="28" fill="#a855f7">NARA</text>
-    <text x="72" y="36" fontFamily="system-ui,sans-serif" fontWeight="700" fontSize="20" fill="#86efac">EDU</text>
-    <text x="112" y="36" fontFamily="system-ui,sans-serif" fontWeight="900" fontSize="20" fill="#a855f7">360</text>
-  </svg>
-);
+const LogoNara=({size=32})=>(<span style={{fontWeight:900,color:"#7c3aed",fontSize:size*0.65,fontFamily:"system-ui,sans-serif",letterSpacing:-0.5}}>Hub de Relacionamento</span>);
 
 // Modal de módulos da escola
 function ModalModulos({ escola, onClose, onSave }) {
@@ -894,7 +887,7 @@ function SuperAdminPanel({ onLogout, onEntrarEscola }) {
 
         {/* Abas */}
         <div style={{ display: "flex", gap: 4, marginBottom: 20 }}>
-          {[["escolas", "🏫 Escolas"], ["ecossistema", "🧩 Ecossistema"]].map(([id, label]) => (
+          {[["escolas", "🏫 Escolas"]].map(([id, label]) => (
             <button key={id} onClick={() => setAbaAtiva(id)} style={{ padding: "9px 20px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 13, fontWeight: abaAtiva === id ? 800 : 500, background: abaAtiva === id ? "#7c3aed" : "#fff", color: abaAtiva === id ? "#fff" : "#64748b", boxShadow: abaAtiva === id ? "0 2px 8px #7c3aed40" : "none" }}>
               {label}
             </button>
@@ -907,7 +900,7 @@ function SuperAdminPanel({ onLogout, onEntrarEscola }) {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
               <div>
                 <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "#1e293b" }}>Escolas Cadastradas</h2>
-                <p style={{ margin: "4px 0 0", fontSize: 13, color: "#94a3b8" }}>Gerencie todas as instituições do ecossistema NARAEDU360</p>
+                <p style={{ margin: "4px 0 0", fontSize: 13, color: "#94a3b8" }}>Gerencie todas as instituições cadastradas</p>
               </div>
               <div style={{ display: "flex", gap: 10 }}>
                 <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="🔍 Buscar escola..." style={{ padding: "8px 14px", border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 13, outline: "none", width: 200 }} />
@@ -1038,19 +1031,11 @@ function LoginPage({ onLogin }) {
     <div style={{ minHeight: "100vh", background: "linear-gradient(135deg, #faf5ff 0%, #f0fdf4 100%)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontFamily: "system-ui,sans-serif" }}>
       {/* Logo e título */}
       <div style={{ marginBottom: 32, textAlign: "center" }}>
-        <div style={{ marginBottom: 16 }}>
-          <svg width="180" height="52" viewBox="0 0 180 52" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <text x="0" y="40" fontFamily="system-ui,sans-serif" fontWeight="900" fontSize="36" fill="#a855f7">NARA</text>
-            <text x="93" y="40" fontFamily="system-ui,sans-serif" fontWeight="700" fontSize="26" fill="#86efac">EDU</text>
-            <text x="145" y="40" fontFamily="system-ui,sans-serif" fontWeight="900" fontSize="26" fill="#a855f7">360</text>
-          </svg>
+        <div style={{marginBottom:12}}>
+          <div style={{fontSize:28,fontWeight:900,color:"#7c3aed",letterSpacing:-1,fontFamily:"system-ui,sans-serif"}}>Hub de Relacionamento</div>
+          <div style={{fontSize:13,color:"#a855f7",fontWeight:600,marginTop:4}}>Escolar</div>
         </div>
-        <div style={{ display: "flex", justifyContent: "center", gap: 10, flexWrap: "wrap", marginBottom: 8 }}>
-          {[{ e: "💬", n: "Relacionamento" }, { e: "📊", n: "Relatórios" }, { e: "📅", n: "Reuniões" }].map(m => (
-            <span key={m.n} style={{ fontSize: 11, fontWeight: 600, color: "#a855f7", background: "#faf5ff", border: "1px solid #e9d5ff", padding: "3px 10px", borderRadius: 20 }}>{m.e} {m.n}</span>
-          ))}
-        </div>
-        <p style={{ margin: 0, color: "#94a3b8", fontSize: 13 }}>Ecossistema de Gestão Escolar</p>
+        <p style={{margin:0,color:"#94a3b8",fontSize:13}}>Comunicação escola-família</p>
       </div>
 
       {/* Card de login */}
@@ -2560,7 +2545,7 @@ function NaraHub({ user, profile, escola, onEntrarModulo, onLogout, onVoltarAdmi
         </div>
       </div>
 
-      <p style={{ textAlign: "center", paddingBottom: 20, fontSize: 11, color: "#c4b5fd" }}>© NaraEdu · Núcleo de Acompanhamento e Registro da Aprendizagem</p>
+      <p style={{ textAlign: "center", paddingBottom: 20, fontSize: 11, color: "#c4b5fd" }}>© Hub de Relacionamento Escolar</p>
     </div>
   );
 }
