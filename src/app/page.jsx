@@ -1452,7 +1452,7 @@ function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos: motiv
                 <div style={{ fontSize:11, color:"#94a3b8", marginTop:2 }}>Esses usuários poderão ver esta comunicação mesmo sem serem o responsável.</div>
               </div>
               <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
-                {equipe.filter(u=>u.id!==profile.id&&u.ativo!==false).map(u=>{
+                {equipe.filter(u=>u.id!==profile.id).map(u=>{
                   const sel = f.ciencia.includes(u.id);
                   return (
                     <button key={u.id} type="button"
@@ -1486,7 +1486,7 @@ function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos: motiv
                       style={{ padding:"9px 13px", border:`1.5px solid ${err.encResponsavel?"#ef4444":"#e2e8f0"}`, borderRadius:8, fontSize:14, outline:"none", background:f.encDestino?"#fafafa":"#f1f5f9", color:"#1e293b", fontFamily:"inherit", width:"100%", cursor:f.encDestino?"pointer":"not-allowed" }}>
                       <option value="">{f.encDestino?"Selecione o responsável...":"Escolha o setor primeiro"}</option>
                       {f.encDestino && equipe.filter(u=>u.id!==profile.id&&u.perfil===setorParaPerfil[f.encDestino]).map(u=>(
-                        <option key={u.id} value={u.id}>{u.nome}{u.cargo?` (undefined)`:""}</option>
+                        <option key={u.id} value={u.id}>{u.nome}{u.cargo ? ` (${u.cargo})` : ""}</option>
                       ))}
                     </select>
                     {err.encResponsavel && <span style={{ fontSize:11, color:"#ef4444" }}>{err.encResponsavel}</span>}
