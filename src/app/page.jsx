@@ -660,7 +660,7 @@ const NARA_MODULOS = [
     desc: "Gamificação de alunos: pontos por tipo de inteligência, conquistas, moeda NARA e recompensas reais",
     emoji: "🎮", cor: "#7c3aed",
     categoria: "Alunos",
-    disponivel: false,
+    disponivel: true,
     usuarios: ["aluno", "equipe_escola"],
   },
   {
