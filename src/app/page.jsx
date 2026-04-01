@@ -1455,7 +1455,7 @@ function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos: motiv
                     style={{ padding:"9px 13px", border:`1.5px solid ${err.encResponsavel?"#ef4444":"#e2e8f0"}`, borderRadius:8, fontSize:14, outline:"none", background:"#fafafa", color:"#1e293b", fontFamily:"inherit", width:"100%" }}>
                     <option value="">Selecione o responsável...</option>
                     {equipe.filter(u=>u.id!==profile.id&&u.ativo!==false).map(u=>(
-                      <option key={u.id} value={u.id}>{u.nome} — {perfilLabel(u.perfil)}{u.cargo?` (${u.cargo})":""}</option>
+                      <option key={u.id} value={u.id}>{u.nome} — {perfilLabel(u.perfil)}{u.cargo ? ` (${u.cargo})` : ""}</option>
                     ))}
                   </select>
                   {err.encResponsavel && <span style={{ fontSize:11, color:"#ef4444" }}>{err.encResponsavel}</span>}
