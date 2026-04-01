@@ -1262,10 +1262,14 @@ function BuscaMotivo({ motivos, value, onChange, error }) {
 
 // ── MODAIS SISTEMA ESCOLAR ─────────────────────────────────────────────────────
 function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos, escolaId }) {
-  const [f, setF] = useState({ alunoId: "", titulo: "", detalhes: "", urgencia: "", comQuem: "", motivoId: "", motivoCustom: "", motivoCustomPontos: "0", encaminhar: false, encDestino: "", encResponsavelId: "", encResponsavelNome: "", encObs: "" });
+  const [f, setF] = useState({ alunoId: "", titulo: "", detalhes: "", urgencia: "", comQuem: "", via: "", motivoId: "", motivoCustom: "", motivoCustomPontos: "0", encaminhar: false, encDestino: "", encResponsavelId: "", encResponsavelNome: "", encObs: "" });
+  const [arquivo, setArquivo] = useState(null);
   const [err, setErr] = useState({});
   const [saving, setSaving] = useState(false);
   const upd = (k, v) => setF(p => ({ ...p, [k]: v }));
+
+  const setorParaPerfil = { "Psicólogo": "PSICOLOGO", "Psicopedagogo": "PSICOPEDAGOGO", "Secretária": "SECRETARIA", "Professor": "PROFESSOR", "Recepção": "RECEPÇÃO", "Núcleo Pedagógico": "NUCLEO", "Direção": "DIRECAO" };
+  const equipeDoSetor = f.encDestino ? equipe.filter(u => u.perfil === setorParaPerfil[f.encDestino] && u.id !== profile.id) : equipe.filter(u => u.id !== profile.id);
 
   const motivoSel = f.motivoId === "outro" ? { nome: f.motivoCustom, pontos: Number(f.motivoCustomPontos) || 0 } : motivos?.find(m => m.id === f.motivoId);
 
@@ -1276,6 +1280,7 @@ function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos, escol
     if (f.motivoId === "outro" && !f.motivoCustom?.trim()) e.motivoCustom = "Descreva o motivo";
     if (!f.detalhes.trim()) e.detalhes = "Descreva ou grave o relato";
     if (!f.comQuem) e.comQuem = "Obrigatório";
+    if (!f.via) e.via = "Obrigatório";
     if (f.encaminhar && !f.encDestino) e.encDestino = "Obrigatório";
     if (f.encaminhar && !f.encResponsavelNome) e.encResponsavel = "Obrigatório";
     setErr(e); return Object.keys(e).length === 0;
@@ -1285,7 +1290,16 @@ function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos, escol
     setSaving(true);
     const pontos = f.motivoId === "outro" ? (Number(f.motivoCustomPontos) || 0) : (motivoSel?.pontos || 0);
     const nomeMotivo = f.motivoId === "outro" ? f.motivoCustom : (motivoSel?.nome || "");
-    const payload = {
+    // Upload de arquivo se houver
+    let arquivoUrl = null, arquivoNome = null;
+    if (arquivo) {
+      const ext = arquivo.name.split(".").pop();
+      const path = `${escolaId || profile.escola_id}/${Date.now()}.${ext}`;
+      const { data: upData, error: upErr } = await supabase.storage.from("comunicacoes-anexos").upload(path, arquivo);
+      if (!upErr && upData) { const { data: urlData } = supabase.storage.from("comunicacoes-anexos").getPublicUrl(path); arquivoUrl = urlData?.publicUrl || null; arquivoNome = arquivo.name; }
+    }
+
+        const payload = {
       escola_id: escolaId || profile.escola_id,
       aluno_id: f.alunoId, data_registro: fmtDate(),
       titulo: nomeMotivo, detalhes: f.detalhes,
@@ -1296,7 +1310,8 @@ function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos, escol
       enc_responsavel: f.encaminhar ? f.encResponsavelNome : null,
       enc_responsavel_id: f.encaminhar ? f.encResponsavelId : null,
       enc_obs: f.encObs || null, enc_status: f.encaminhar ? "PENDENTE" : null,
-      status: f.encaminhar ? "PENDENTE" : "CONCLUÍDO", com_quem: f.comQuem
+      status: f.encaminhar ? "PENDENTE" : "CONCLUÍDO", com_quem: f.comQuem,
+      via_comunicacao: f.via, arquivo_url: arquivoUrl, arquivo_nome: arquivoNome
     };
     const { data, error } = await supabase.from("comunicacoes").insert([payload]).select().single();
     if (error) {
@@ -1360,19 +1375,36 @@ function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos, escol
             <CampoRelato value={f.detalhes} onChange={v => upd("detalhes", v)} />
             {err.detalhes && <span style={{ fontSize: 11, color: "#ef4444" }}>{err.detalhes}</span>}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <Sel label="Via de Comunicação *" error={err.via} value={f.via} onChange={e => upd("via", e.target.value)}>
+                <option value="">Selecione...</option>
+                <option value="WhatsApp">📱 WhatsApp</option>
+                <option value="Ligação">📞 Ligação</option>
+                <option value="Presencial">🤝 Presencial</option>
+                <option value="E-mail">📧 E-mail</option>
+                <option value="Bilhete">📝 Bilhete / Agenda</option>
+                <option value="Videoconferência">💻 Videoconferência</option>
+                <option value="Outro">🔹 Outro</option>
+              </Sel>
               <Sel label="Urgência" value={f.urgencia} onChange={e => upd("urgencia", e.target.value)}>
                 <option value="">— Sem urgência —</option>
                 <option value="BAIXA">BAIXA</option>
                 <option value="MEDIA">MÉDIA</option>
                 <option value="ALTA">ALTA</option>
               </Sel>
-              <Sel label="Comunicação com *" error={err.comQuem} value={f.comQuem} onChange={e => upd("comQuem", e.target.value)}>
-                <option value="">Selecione...</option>
-                <option>Responsável / Família</option>
-                <option>Aluno</option>
-                <option>Professor</option>
-                <option>Outro setor</option>
-              </Sel>
+            </div>
+            <Sel label="Comunicação com *" error={err.comQuem} value={f.comQuem} onChange={e => upd("comQuem", e.target.value)}>
+              <option value="">Selecione...</option>
+              <option>Responsável / Família</option>
+              <option>Aluno</option>
+              <option>Professor</option>
+              <option>Outro setor</option>
+            </Sel>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: "#475569" }}>📎 Anexar arquivo (opcional)</label>
+              <div style={{ position: "relative", border: "1.5px dashed #e2e8f0", borderRadius: 8, padding: "10px 14px", background: arquivo ? "#f0fdf4" : "#fafafa", display: "flex", alignItems: "center", gap: 10 }}>
+                <input type="file" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" onChange={e => setArquivo(e.target.files?.[0] || null)} style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer", width: "100%", height: "100%" }} />
+                {arquivo ? (<><span style={{ fontSize: 18 }}>✅</span><span style={{ fontSize: 13, color: "#16a34a", fontWeight: 600 }}>{arquivo.name}</span><button onClick={e => { e.stopPropagation(); setArquivo(null); }} style={{ marginLeft: "auto", background: "none", border: "none", cursor: "pointer", color: "#ef4444", fontSize: 16 }}>✕</button></>) : (<><span style={{ fontSize: 18 }}>📎</span><span style={{ fontSize: 13, color: "#94a3b8" }}>Clique para anexar imagem, PDF ou documento</span></>)}
+              </div>
             </div>
           </FBlock>
           <FBlock num="3" title="Encaminhamento">
@@ -1383,13 +1415,13 @@ function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos, escol
             {f.encaminhar && (
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                  <Sel label="Setor de Destino *" error={err.encDestino} value={f.encDestino} onChange={e => upd("encDestino", e.target.value)}>
+                  <Sel label="Setor de Destino *" error={err.encDestino} value={f.encDestino} onChange={e => { upd("encDestino", e.target.value); upd("encResponsavelId", ""); upd("encResponsavelNome", ""); }}>
                     <option value="">Selecione...</option>
                     {SETORES.map(s => <option key={s}>{s}</option>)}
                   </Sel>
-                  <Sel label="Responsável *" error={err.encResponsavel} value={f.encResponsavelId} onChange={e => { const u = equipe.find(x => x.id === e.target.value); upd("encResponsavelId", e.target.value); upd("encResponsavelNome", u?.nome || ""); }}>
+                  <Sel label={`Responsável *${f.encDestino && equipeDoSetor.length > 0 ? ` (${equipeDoSetor.length})` : ""}`} error={err.encResponsavel} value={f.encResponsavelId} onChange={e => { const u = equipe.find(x => x.id === e.target.value); upd("encResponsavelId", e.target.value); upd("encResponsavelNome", u?.nome || ""); }}>
                     <option value="">Selecione...</option>
-                    {equipe.filter(u => u.id !== profile.id).map(u => <option key={u.id} value={u.id}>{u.nome}</option>)}
+                    {equipeDoSetor.map(u => <option key={u.id} value={u.id}>{u.nome}</option>)}
                   </Sel>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
