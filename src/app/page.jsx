@@ -10,7 +10,7 @@ const getStColor = (s) => s === "RESOLVIDO" ? "#22c55e" : s === "EM_ANALISE" ? "
 const getStLabel = (s) => s === "EM_ANALISE" ? "EM ANÁLISE" : s === "RESOLVENDO" ? "RESOLVENDO" : s || "PENDENTE";
 const fmtDate = () => new Date().toLocaleDateString("pt-BR");
 const perfilLabel = (p) => ({ SUPER_ADMIN: "Super Admin", DIRECAO: "Direção", PSICOLOGO: "Psicólogo", SECRETARIA: "Secretária", PROFESSOR: "Professor", NUCLEO: "Núcleo Pedagógico", RECEPÇÃO: "Recepção", PSICOPEDAGOGO: "Psicopedagogo", FINANCEIRO: "Financeiro", RETENCAO: "Retenção" }[p] || p);
-const SETORES = ["Psicólogo", "Psicopedagogo", "Secretária", "Professor", "Recepção", "Núcleo Pedagógico", "Direção"];
+const SETORES = ["Psicólogo", "Psicopedagogo", "Secretária", "Professor", "Recepção", "Núcleo Pedagógico", "Direção", "Financeiro", "Retenção"];
 const PERFIS = ["DIRECAO", "PSICOLOGO", "SECRETARIA", "PROFESSOR", "NUCLEO", "RECEPÇÃO", "PSICOPEDAGOGO", "FINANCEIRO", "RETENCAO"];
 
 // ── UI ATOMS ───────────────────────────────────────────────────────────────────
