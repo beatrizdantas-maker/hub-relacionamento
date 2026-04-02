@@ -1,7 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "../lib/supabase";
-
 // ── HELPERS ────────────────────────────────────────────────────────────────────
 const getRiscoColor = (r) => r >= 60 ? "#ef4444" : r >= 30 ? "#f59e0b" : "#22c55e";
 const getRiscoBg = (r) => r >= 60 ? "#fef2f2" : r >= 30 ? "#fffbeb" : "#f0fdf4";
@@ -137,7 +136,7 @@ function CampoRelato({ value, onChange, onBlur }) {
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
       <label style={{ fontSize: 12, fontWeight: 600, color: "#475569" }}>Relato *</label>
       <div style={{ position: "relative" }}>
-        <textarea value={value} onChange={e => onChange(e.target.value)} placeholder={gravando ? "🔴 Gravando... fale agora." : "Descreva o ocorrido ou clique no microfone para gravar."} onBlur={onBlur} rows={gravando ? 5 : 4}
+        <textarea value={value} onChange={e => onChange(e.target.value)} onBlur={onBlur} placeholder={gravando ? "🔴 Gravando... fale agora." : "Descreva o ocorrido ou clique no microfone para gravar."} rows={gravando ? 5 : 4}
           style={{ width: "100%", padding: "12px 50px 12px 14px", border: `1.5px solid ${gravando ? "#ef4444" : "#e2e8f0"}`, borderRadius: 8, fontSize: gravando ? 17 : 14, outline: "none", background: gravando ? "#fff5f5" : "#fafafa", color: "#1e293b", fontFamily: "inherit", resize: "vertical", boxSizing: "border-box", transition: "all .2s" }} />
         <button type="button" onClick={gravando ? parar : iniciar} style={{ position: "absolute", right: 10, top: 10, width: 32, height: 32, borderRadius: "50%", border: "none", cursor: "pointer", background: gravando ? "#ef4444" : "#2563eb", color: "#fff", fontSize: 15, display: "flex", alignItems: "center", justifyContent: "center" }}>
           {gravando ? "⏹" : "🎤"}
@@ -357,33 +356,50 @@ function ModalEditarUsuario({ usuario, onClose, onSave }) {
   const [novaSenha, setNovaSenha] = useState("");
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState({});
+  const [msg, setMsg] = useState("");
   const upd = (k, v) => setF(p => ({ ...p, [k]: v }));
+
   const handle = async () => {
     const e = {};
     if (!f.nome.trim()) e.nome = "Obrigatório";
     if (novaSenha && novaSenha.length < 6) e.senha = "Mínimo 6 caracteres";
     setErr(e); if (Object.keys(e).length) return;
     setSaving(true);
-    await supabase.from("profiles").update({ nome: f.nome.trim(), perfil: f.perfil, cargo: f.cargo, avatar: f.nome.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase() }).eq("id", usuario.id);
-    onSave({ ...usuario, nome: f.nome, perfil: f.perfil, cargo: f.cargo });
+    try {
+      // Atualizar perfil
+      const { error } = await supabase.from("profiles").update({
+        nome: f.nome.trim(), perfil: f.perfil, cargo: f.cargo,
+        avatar: f.nome.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase()
+      }).eq("id", usuario.id);
+      if (error) { setErr({ nome: error.message }); setSaving(false); return; }
+      // Redefinir senha se preenchida
+      if (novaSenha) {
+        const { error: pwErr } = await supabase.auth.admin?.updateUserById?.(usuario.id, { password: novaSenha });
+        if (pwErr) setMsg("⚠️ Perfil atualizado, mas não foi possível alterar a senha pelo cliente. Use o painel Supabase para redefinir.");
+        else setMsg("✅ Senha atualizada com sucesso!");
+      }
+      onSave({ ...usuario, nome: f.nome, perfil: f.perfil, cargo: f.cargo });
+    } catch (ex) { setErr({ nome: "Erro: " + ex.message }); }
     setSaving(false);
   };
+
   return (
     <Overlay onClose={onClose}>
       <MBox width={500}>
-        <MHead title="Editar Usuário" subtitle={usuario.nome} icon="✏️" onClose={onClose} />
+        <MHead title="Editar Usuário" subtitle={usuario.email || ""} icon="✏️" onClose={onClose} />
         <MBody>
           <Input label="Nome completo *" error={err.nome} value={f.nome} onChange={e => upd("nome", e.target.value)} />
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <Sel label="Perfil" value={f.perfil} onChange={e => upd("perfil", e.target.value)}>
+            <Sel label="Perfil / Função" value={f.perfil} onChange={e => upd("perfil", e.target.value)}>
               {PERFIS.map(p => <option key={p} value={p}>{perfilLabel(p)}</option>)}
             </Sel>
             <Input label="Cargo (opcional)" value={f.cargo} onChange={e => upd("cargo", e.target.value)} placeholder="Ex: Coordenadora" />
           </div>
-          <div style={{ padding: "12px 14px", background: "#f8fafc", borderRadius: 10, border: "1px solid #e2e8f0" }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#475569", marginBottom: 8 }}>🔑 Redefinir senha (opcional)</div>
+          <div style={{ padding: "14px 16px", background: "#f8fafc", borderRadius: 10, border: "1px solid #e2e8f0" }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#475569", marginBottom: 8 }}>🔑 Redefinir Senha (opcional)</div>
             <Input label="Nova senha" type="password" error={err.senha} value={novaSenha} onChange={e => setNovaSenha(e.target.value)} placeholder="Deixe em branco para não alterar" />
           </div>
+          {msg && <div style={{ padding: "10px 14px", background: msg.startsWith("✅") ? "#f0fdf4" : "#fffbeb", borderRadius: 8, fontSize: 13, color: msg.startsWith("✅") ? "#16a34a" : "#92400e" }}>{msg}</div>}
         </MBody>
         <MFoot>
           <Btn variant="ghost" onClick={onClose}>Cancelar</Btn>
@@ -706,7 +722,7 @@ const NARA_MODULOS = [
     desc: "Gamificação de alunos: pontos por tipo de inteligência, conquistas, moeda NARA e recompensas reais",
     emoji: "🎮", cor: "#7c3aed",
     categoria: "Alunos",
-    disponivel: false,
+    disponivel: true,
     usuarios: ["aluno", "equipe_escola"],
   },
   {
@@ -751,7 +767,12 @@ const NARA_MODULOS = [
   },
 ];
 
-const LogoNara=({size=32})=>(<span style={{fontWeight:900,color:"#7c3aed",fontSize:size*0.65,fontFamily:"system-ui,sans-serif",letterSpacing:-0.5}}>Hub de Relacionamento</span>);
+// Logo Hub de Relacionamento
+const LogoNara = ({ size = 32 }) => (
+  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+    <span style={{ fontSize: size * 0.7, fontWeight: 900, color: "#7c3aed", fontFamily: "system-ui,sans-serif", letterSpacing: -1 }}>Hub de Relacionamento</span>
+  </div>
+);
 
 // Modal de módulos da escola
 function ModalModulos({ escola, onClose, onSave }) {
@@ -976,6 +997,7 @@ function SuperAdminPanel({ onLogout, onEntrarEscola }) {
                         <Badge color={planColor(escola.plano)}>{escola.plano}</Badge>
                         <Badge color={statusColor(escola.status)}>{escola.status}</Badge>
                         {escola.data_vencimento && <span style={{ fontSize: 11, color: "#94a3b8" }}>até {new Date(escola.data_vencimento).toLocaleDateString("pt-BR")}</span>}
+                        <Btn small variant="ghost" onClick={() => setModalModulos(escola)}>🧩 Módulos</Btn>
                         <Btn small variant="ghost" onClick={() => setEscolaSelecionada(escola)}>Gerenciar →</Btn>
                         <Btn small onClick={() => onEntrarEscola(escola)} style={{ background: "#7c3aed", color: "#fff", border: "none" }}>Acessar</Btn>
                       </div>
@@ -1067,8 +1089,8 @@ function LoginPage({ onLogin }) {
     <div style={{ minHeight: "100vh", background: "linear-gradient(135deg, #faf5ff 0%, #f0fdf4 100%)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontFamily: "system-ui,sans-serif" }}>
       {/* Logo e título */}
       <div style={{ marginBottom: 32, textAlign: "center" }}>
-        <div style={{marginBottom:12}}>
-          <div style={{fontSize:28,fontWeight:900,color:"#7c3aed",letterSpacing:-1,fontFamily:"system-ui,sans-serif"}}>Hub de Relacionamento</div>
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ fontSize: 28, fontWeight: 900, color: "#7c3aed", letterSpacing: -1, fontFamily: "system-ui,sans-serif" }}>Hub de Relacionamento</div>
         </div>
       </div>
 
@@ -1263,48 +1285,55 @@ function BuscaMotivo({ motivos, value, onChange, error }) {
 // ── MODAIS SISTEMA ESCOLAR ─────────────────────────────────────────────────────
 function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos: motivosInit, escolaId }) {
   const [motivos, setMotivos] = useState(motivosInit || []);
-  const [iaAnalisando, setIaAnalisando] = useState(false);
-  const [iaSugestao, setIaSugestao] = useState(null);
   const [f, setF] = useState({ alunoId: "", titulo: "", detalhes: "", urgencia: "", comQuem: "", via: "", motivoId: "", motivoCustom: "", motivoCustomPontos: "0", encaminhar: false, encDestino: "", encResponsavelId: "", encResponsavelNome: "", encObs: "", ciencia: [] });
   const [arquivo, setArquivo] = useState(null);
   const [err, setErr] = useState({});
   const [saving, setSaving] = useState(false);
+  const [iaAnalisando, setIaAnalisando] = useState(false);
+  const [iaSugestao, setIaSugestao] = useState(null);
   const upd = (k, v) => setF(p => ({ ...p, [k]: v }));
+  const setorParaPerfil = { "Psicólogo": "PSICOLOGO", "Psicopedagogo": "PSICOPEDAGOGO", "Secretária": "SECRETARIA", "Professor": "PROFESSOR", "Recepção": "RECEPÇÃO", "Núcleo Pedagógico": "NUCLEO", "Direção": "DIRECAO" };
+  const equipeDisponivelTodos = equipe.filter(u => u.id !== profile.id);
 
-  const equipeDisponivel = equipe.filter(u => u.id !== profile.id && u.ativo !== false);
-
-  const motivoSel = f.motivoId === "outro" ? { nome: f.motivoCustom, pontos: Number(f.motivoCustomPontos) || 0 } : motivos?.find(m => m.id === f.motivoId);
-
+  // Analisar relato com IA ao sair do campo
   const analisarComIA = async (texto) => {
     if (!texto || texto.trim().length < 10) return;
     setIaAnalisando(true); setIaSugestao(null);
     try {
+      const listaMotivos = motivos.map(m => `- ${m.nome} (${m.pontos > 0 ? '+' : ''}${m.pontos} pts, id: ${m.id})`).join('\n');
       const resp = await fetch('/api/sugerir-motivo', {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ relato: texto, motivos })
       });
       const data = await resp.json();
       if (!data.error) setIaSugestao(data);
-    } catch(e) { /* silencioso */ }
+    } catch (e) { /* silencioso */ }
     setIaAnalisando(false);
   };
 
+  // Confirmar sugestão da IA
   const confirmarSugestao = async () => {
     if (!iaSugestao) return;
     if (iaSugestao.encontrado && iaSugestao.id) {
       upd("motivoId", iaSugestao.id);
     } else {
+      // Criar motivo novo no banco
       const { data, error } = await supabase.from("motivos").insert([{
         escola_id: escolaId || profile.escola_id,
         nome: iaSugestao.nome, pontos: iaSugestao.pontos
       }]).select().single();
-      if (!error && data) { setMotivos(p => [...p, data]); upd("motivoId", data.id); }
+      if (!error && data) {
+        setMotivos(p => [...p, data]);
+        upd("motivoId", data.id);
+      }
     }
     setIaSugestao(null);
   };
 
-    const validate = () => {
+  const motivoSel = f.motivoId === "outro" ? { nome: f.motivoCustom, pontos: Number(f.motivoCustomPontos) || 0 } : motivos?.find(m => m.id === f.motivoId);
+
+  const validate = () => {
     const e = {};
     if (!f.alunoId) e.alunoId = "Obrigatório";
     if (!f.motivoId) e.motivoId = "Selecione o motivo";
@@ -1312,8 +1341,6 @@ function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos: motiv
     if (!f.detalhes.trim()) e.detalhes = "Descreva ou grave o relato";
     if (!f.comQuem) e.comQuem = "Obrigatório";
     if (!f.via) e.via = "Obrigatório";
-    if (f.encaminhar && !f.encDestino) e.encDestino = "Obrigatório";
-    if (f.encaminhar && !f.encDestino) e.encDestino = "Obrigatório";
     if (f.encaminhar && !f.encResponsavelNome) e.encResponsavel = "Obrigatório";
     setErr(e); return Object.keys(e).length === 0;
   };
@@ -1322,16 +1349,21 @@ function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos: motiv
     setSaving(true);
     const pontos = f.motivoId === "outro" ? (Number(f.motivoCustomPontos) || 0) : (motivoSel?.pontos || 0);
     const nomeMotivo = f.motivoId === "outro" ? f.motivoCustom : (motivoSel?.nome || "");
+
     // Upload de arquivo se houver
     let arquivoUrl = null, arquivoNome = null;
     if (arquivo) {
       const ext = arquivo.name.split(".").pop();
       const path = `${escolaId || profile.escola_id}/${Date.now()}.${ext}`;
       const { data: upData, error: upErr } = await supabase.storage.from("comunicacoes-anexos").upload(path, arquivo);
-      if (!upErr && upData) { const { data: urlData } = supabase.storage.from("comunicacoes-anexos").getPublicUrl(path); arquivoUrl = urlData?.publicUrl || null; arquivoNome = arquivo.name; }
+      if (!upErr && upData) {
+        const { data: urlData } = supabase.storage.from("comunicacoes-anexos").getPublicUrl(path);
+        arquivoUrl = urlData?.publicUrl || null;
+        arquivoNome = arquivo.name;
+      }
     }
 
-        const payload = {
+    const payload = {
       escola_id: escolaId || profile.escola_id,
       aluno_id: f.alunoId, data_registro: fmtDate(),
       titulo: nomeMotivo, detalhes: f.detalhes,
@@ -1343,7 +1375,8 @@ function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos: motiv
       enc_responsavel_id: f.encaminhar ? f.encResponsavelId : null,
       enc_obs: f.encObs || null, enc_status: f.encaminhar ? "PENDENTE" : null,
       status: f.encaminhar ? "PENDENTE" : "CONCLUÍDO", com_quem: f.comQuem,
-      via_comunicacao: f.via, arquivo_url: arquivoUrl, arquivo_nome: arquivoNome
+      via_comunicacao: f.via,
+      arquivo_url: arquivoUrl, arquivo_nome: arquivoNome
     };
     const { data, error } = await supabase.from("comunicacoes").insert([payload]).select().single();
     if (error) {
@@ -1375,15 +1408,10 @@ function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos: motiv
         <MBody>
           <FBlock num="1" title="Identificação">
             <BuscaAluno alunos={alunos} value={f.alunoId} onChange={id => upd("alunoId", id)} error={err.alunoId} />
-          </FBlock>
-          <FBlock num="2" title="Detalhamento">
-            <CampoRelato value={f.detalhes} onChange={v => upd("detalhes", v)} onBlur={() => analisarComIA(f.detalhes)} />
-            {err.detalhes && <span style={{ fontSize: 11, color: "#ef4444" }}>{err.detalhes}</span>}
-            {iaAnalisando && (<div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", background: "#faf5ff", borderRadius: 10, border: "1px solid #e9d5ff" }}><div style={{ width: 16, height: 16, border: "2px solid #e9d5ff", borderTop: "2px solid #7c3aed", borderRadius: "50%", animation: "spin 1s linear infinite", flexShrink: 0 }} /><span style={{ fontSize: 13, color: "#7c3aed" }}>🤖 IA analisando o relato...</span></div>)}
-            {iaSugestao && !iaAnalisando && (<div style={{ padding: "14px 16px", background: iaSugestao.encontrado ? "#eff6ff" : "#fefce8", borderRadius: 10, border: `1.5px solid ${iaSugestao.encontrado ? "#bfdbfe" : "#fef08a"}` }}><div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}><div><div style={{ fontSize: 12, fontWeight: 700, color: iaSugestao.encontrado ? "#1d4ed8" : "#a16207", marginBottom: 4 }}>🤖 {iaSugestao.encontrado ? "IA identificou o motivo:" : "IA sugere novo motivo:"}</div><div style={{ fontSize: 14, fontWeight: 800, color: "#1e293b" }}>{iaSugestao.nome}</div><div style={{ fontSize: 12, color: iaSugestao.pontos > 0 ? "#dc2626" : "#16a34a", fontWeight: 700, marginTop: 2 }}>{iaSugestao.pontos > 0 ? `⚠️ +${iaSugestao.pontos} pts de risco` : `✅ ${Math.abs(iaSugestao.pontos)} pts de redução`}{!iaSugestao.encontrado && <span style={{ color: "#a16207", fontWeight: 600, marginLeft: 8 }}>· será criado automaticamente</span>}</div></div><div style={{ display: "flex", gap: 8 }}><Btn small variant="success" onClick={confirmarSugestao}>✅ Confirmar</Btn><Btn small variant="ghost" onClick={() => setIaSugestao(null)}>❌ Ignorar</Btn></div></div></div>)}
-            {/* Motivo da comunicação */}
             <div>
               <BuscaMotivo motivos={motivos} value={f.motivoId} onChange={id => upd("motivoId", id)} error={err.motivoId} />
+
+              {/* Campo personalizado */}
               {f.motivoId === "outro" && (
                 <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
                   <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 10 }}>
@@ -1397,9 +1425,11 @@ function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos: motiv
                       <input type="number" value={f.motivoCustomPontos} onChange={e => upd("motivoCustomPontos", e.target.value)} placeholder="Ex: 15" min="-50" max="50" style={{ padding: "9px 13px", border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 14, outline: "none", background: "#fafafa", color: "#1e293b", fontFamily: "inherit" }} />
                     </div>
                   </div>
-                  <div style={{ fontSize: 11, color: "#94a3b8" }}>💡 Valores positivos aumentam o risco. Negativos reduzem.</div>
+                  <div style={{ fontSize: 11, color: "#94a3b8" }}>💡 Valores positivos aumentam o risco. Negativos reduzem. Ex: +15 para algo ruim, -5 para algo bom.</div>
                 </div>
               )}
+
+              {/* Preview da pontuação */}
               {motivoSel && f.motivoId !== "outro" && (
                 <div style={{ marginTop: 6, padding: "6px 12px", borderRadius: 8, background: motivoSel.pontos > 0 ? "#fef2f2" : "#f0fdf4", border: `1px solid ${motivoSel.pontos > 0 ? "#fecaca" : "#bbf7d0"}`, fontSize: 12, fontWeight: 700, color: motivoSel.pontos > 0 ? "#dc2626" : "#16a34a" }}>
                   {motivoSel.pontos > 0 ? `⚠️ +${motivoSel.pontos} pontos de risco` : `✓ ${Math.abs(motivoSel.pontos)} pontos de risco reduzidos`}
@@ -1411,11 +1441,43 @@ function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos: motiv
                 </div>
               )}
             </div>
+          </FBlock>
+          <FBlock num="2" title="Detalhamento">
+            <CampoRelato value={f.detalhes} onChange={v => upd("detalhes", v)} onBlur={() => analisarComIA(f.detalhes)} />
+            {err.detalhes && <span style={{ fontSize: 11, color: "#ef4444" }}>{err.detalhes}</span>}
+
+            {/* Card sugestão IA */}
+            {iaAnalisando && (
+              <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", background: "#faf5ff", borderRadius: 10, border: "1px solid #e9d5ff" }}>
+                <div style={{ width: 16, height: 16, border: "2px solid #e9d5ff", borderTop: "2px solid #7c3aed", borderRadius: "50%", animation: "spin 1s linear infinite", flexShrink: 0 }} />
+                <span style={{ fontSize: 13, color: "#7c3aed" }}>🤖 IA analisando o relato...</span>
+              </div>
+            )}
+            {iaSugestao && !iaAnalisando && (
+              <div style={{ padding: "14px 16px", background: iaSugestao.encontrado ? "#eff6ff" : "#fefce8", borderRadius: 10, border: `1.5px solid ${iaSugestao.encontrado ? "#bfdbfe" : "#fef08a"}` }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: iaSugestao.encontrado ? "#1d4ed8" : "#a16207", marginBottom: 4 }}>
+                      🤖 {iaSugestao.encontrado ? "IA identificou o motivo:" : "IA sugere novo motivo:"}
+                    </div>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: "#1e293b" }}>{iaSugestao.nome}</div>
+                    <div style={{ fontSize: 12, color: iaSugestao.pontos > 0 ? "#dc2626" : "#16a34a", fontWeight: 700, marginTop: 2 }}>
+                      {iaSugestao.pontos > 0 ? `⚠️ +${iaSugestao.pontos} pts de risco` : `✅ ${Math.abs(iaSugestao.pontos)} pts de redução`}
+                      {!iaSugestao.encontrado && <span style={{ color: "#a16207", fontWeight: 600, marginLeft: 8 }}>· será criado automaticamente</span>}
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <Btn small variant="success" onClick={confirmarSugestao}>✅ Confirmar</Btn>
+                    <Btn small variant="ghost" onClick={() => setIaSugestao(null)}>❌ Ignorar</Btn>
+                  </div>
+                </div>
+              </div>
+            )}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               <Sel label="Via de Comunicação *" error={err.via} value={f.via} onChange={e => upd("via", e.target.value)}>
                 <option value="">Selecione...</option>
                 <option value="WhatsApp">📱 WhatsApp</option>
-                <option value="Ligação">📞 Ligação</option>
+                <option value="Ligação">📞 Ligação telefônica</option>
                 <option value="Presencial">🤝 Presencial</option>
                 <option value="E-mail">📧 E-mail</option>
                 <option value="Bilhete">📝 Bilhete / Agenda</option>
@@ -1436,11 +1498,23 @@ function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos: motiv
               <option>Professor</option>
               <option>Outro setor</option>
             </Sel>
+            {/* Upload de arquivo */}
             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
               <label style={{ fontSize: 12, fontWeight: 600, color: "#475569" }}>📎 Anexar arquivo (opcional)</label>
               <div style={{ position: "relative", border: "1.5px dashed #e2e8f0", borderRadius: 8, padding: "10px 14px", background: arquivo ? "#f0fdf4" : "#fafafa", display: "flex", alignItems: "center", gap: 10 }}>
                 <input type="file" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" onChange={e => setArquivo(e.target.files?.[0] || null)} style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer", width: "100%", height: "100%" }} />
-                {arquivo ? (<><span style={{ fontSize: 18 }}>✅</span><span style={{ fontSize: 13, color: "#16a34a", fontWeight: 600 }}>{arquivo.name}</span><button onClick={e => { e.stopPropagation(); setArquivo(null); }} style={{ marginLeft: "auto", background: "none", border: "none", cursor: "pointer", color: "#ef4444", fontSize: 16 }}>✕</button></>) : (<><span style={{ fontSize: 18 }}>📎</span><span style={{ fontSize: 13, color: "#94a3b8" }}>Clique para anexar imagem, PDF ou documento</span></>)}
+                {arquivo ? (
+                  <>
+                    <span style={{ fontSize: 18 }}>✅</span>
+                    <span style={{ fontSize: 13, color: "#16a34a", fontWeight: 600 }}>{arquivo.name}</span>
+                    <button onClick={e => { e.stopPropagation(); setArquivo(null); }} style={{ marginLeft: "auto", background: "none", border: "none", cursor: "pointer", color: "#ef4444", fontSize: 16 }}>✕</button>
+                  </>
+                ) : (
+                  <>
+                    <span style={{ fontSize: 18 }}>📎</span>
+                    <span style={{ fontSize: 13, color: "#94a3b8" }}>Clique para anexar — imagem, PDF ou documento</span>
+                  </>
+                )}
               </div>
             </div>
           </FBlock>
@@ -1452,40 +1526,44 @@ function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos: motiv
                 <div style={{ fontSize:11, color:"#94a3b8", marginTop:2 }}>Esses usuários poderão ver esta comunicação mesmo sem serem o responsável.</div>
               </div>
               <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
-                {equipe.filter(u=>u.id!==profile.id).map(u=>{
-                  const sel = f.ciencia.includes(u.id);
+                {equipeDisponivelTodos.map(u => {
+                  const sel = (f.ciencia || []).includes(u.id);
                   return (
                     <button key={u.id} type="button"
-                      onClick={()=>upd("ciencia", sel ? f.ciencia.filter(x=>x!==u.id) : [...f.ciencia, u.id])}
+                      onClick={() => upd("ciencia", sel ? (f.ciencia || []).filter(x => x !== u.id) : [...(f.ciencia || []), u.id])}
                       style={{ display:"flex", alignItems:"center", gap:5, padding:"4px 12px", borderRadius:20, border:`1.5px solid ${sel?"#2563eb":"#e2e8f0"}`, background:sel?"#eff6ff":"#fff", color:sel?"#1d4ed8":"#475569", fontSize:12, fontWeight:sel?700:400, cursor:"pointer" }}>
-                      {sel && "✓ "}{u.nome} <span style={{ color:"#94a3b8", fontSize:11 }}>({perfilLabel(u.perfil)})</span>
+                      {sel ? "✓ " : ""}{u.nome} <span style={{ color:"#94a3b8", fontSize:11, marginLeft:3 }}>({perfilLabel(u.perfil)})</span>
                     </button>
                   );
                 })}
               </div>
-              {f.ciencia.length > 0 && <div style={{ fontSize:12, color:"#2563eb", fontWeight:600 }}>👁️ {f.ciencia.length} usuário(s) receberão ciência desta comunicação</div>}
+              {(f.ciencia || []).length > 0 && <div style={{ fontSize:12, color:"#2563eb", fontWeight:600 }}>👁️ {f.ciencia.length} usuário(s) receberão ciência desta comunicação</div>}
             </div>
+            {/* Encaminhamento */}
             <label style={{ display:"flex", alignItems:"flex-start", gap:10, cursor:"pointer", padding:12, borderRadius:8, border:`1.5px solid ${f.encaminhar?"#2563eb":"#e2e8f0"}`, background:f.encaminhar?"#eff6ff":"#fff" }}>
-              <input type="checkbox" checked={f.encaminhar} onChange={e => { upd("encaminhar", e.target.checked); if(!e.target.checked){upd("encDestino","");upd("encResponsavelId","");upd("encResponsavelNome","");upd("encObs","");} }} style={{ marginTop:2 }} />
-              <div><div style={{ fontWeight:600, color:"#1e293b", fontSize:14 }}>Encaminhar para um setor</div><div style={{ fontSize:12, color:"#94a3b8" }}>Exige ação ou acompanhamento de outra pessoa.</div></div>
+              <input type="checkbox" checked={f.encaminhar} onChange={e => { upd("encaminhar", e.target.checked); if (!e.target.checked) { upd("encDestino", ""); upd("encResponsavelId", ""); upd("encResponsavelNome", ""); upd("encObs", ""); }}} style={{ marginTop:2 }} />
+              <div>
+                <div style={{ fontWeight:600, color:"#1e293b", fontSize:14 }}>Encaminhar para um setor</div>
+                <div style={{ fontSize:12, color:"#94a3b8" }}>Exige ação ou acompanhamento de outra pessoa.</div>
+              </div>
             </label>
             {f.encaminhar && (
               <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
                 <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
-                  <Sel label="Setor de Destino *" error={err.encDestino} value={f.encDestino} onChange={e => { upd("encDestino", e.target.value); upd("encResponsavelId",""); upd("encResponsavelNome",""); }}>
+                  <Sel label="Setor de Destino *" error={err.encDestino} value={f.encDestino} onChange={e => { upd("encDestino", e.target.value); upd("encResponsavelId", ""); upd("encResponsavelNome", ""); }}>
                     <option value="">Selecione o setor...</option>
                     {SETORES.map(s => <option key={s}>{s}</option>)}
                   </Sel>
                   <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
                     <label style={{ fontSize:12, fontWeight:600, color:err.encResponsavel?"#ef4444":"#475569" }}>
-                      Responsável *{f.encDestino && <span style={{ fontWeight:400, color:"#94a3b8" }}> ({equipe.filter(u=>u.id!==profile.id&&u.perfil===setorParaPerfil[f.encDestino]).length} disponíveis)</span>}
+                      Responsável *{f.encDestino && <span style={{ fontWeight:400, color:"#94a3b8" }}> ({equipe.filter(u => u.id !== profile.id && u.perfil === setorParaPerfil[f.encDestino]).length} disponíveis)</span>}
                     </label>
                     <select value={f.encResponsavelId}
-                      onChange={e => { const u=equipe.find(x=>x.id===e.target.value); upd("encResponsavelId",e.target.value); upd("encResponsavelNome",u?.nome||""); }}
+                      onChange={e => { const u = equipe.find(x => x.id === e.target.value); upd("encResponsavelId", e.target.value); upd("encResponsavelNome", u?.nome || ""); }}
                       disabled={!f.encDestino}
                       style={{ padding:"9px 13px", border:`1.5px solid ${err.encResponsavel?"#ef4444":"#e2e8f0"}`, borderRadius:8, fontSize:14, outline:"none", background:f.encDestino?"#fafafa":"#f1f5f9", color:"#1e293b", fontFamily:"inherit", width:"100%", cursor:f.encDestino?"pointer":"not-allowed" }}>
-                      <option value="">{f.encDestino?"Selecione o responsável...":"Escolha o setor primeiro"}</option>
-                      {f.encDestino && equipe.filter(u=>u.id!==profile.id&&u.perfil===setorParaPerfil[f.encDestino]).map(u=>(
+                      <option value="">{f.encDestino ? "Selecione o responsável..." : "Escolha o setor primeiro"}</option>
+                      {f.encDestino && equipe.filter(u => u.id !== profile.id && u.perfil === setorParaPerfil[f.encDestino]).map(u => (
                         <option key={u.id} value={u.id}>{u.nome}{u.cargo ? ` (${u.cargo})` : ""}</option>
                       ))}
                     </select>
@@ -1495,7 +1573,7 @@ function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos: motiv
                 {f.encResponsavelId && <div style={{ padding:"8px 12px", background:"#eff6ff", borderRadius:8, fontSize:13, color:"#1d4ed8" }}>✅ Encaminhar para <strong>{f.encResponsavelNome}</strong> — {f.encDestino}</div>}
                 <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
                   <label style={{ fontSize:12, fontWeight:600, color:"#475569" }}>Observações (opcional)</label>
-                  <textarea value={f.encObs} onChange={e=>upd("encObs",e.target.value)} placeholder="Instruções ou contexto adicional..." rows={2}
+                  <textarea value={f.encObs} onChange={e => upd("encObs", e.target.value)} placeholder="Instruções ou contexto adicional..." rows={2}
                     style={{ padding:"9px 13px", border:"1.5px solid #e2e8f0", borderRadius:8, fontSize:14, outline:"none", background:"#fafafa", fontFamily:"inherit", resize:"vertical", boxSizing:"border-box", width:"100%" }} />
                 </div>
               </div>
@@ -1869,7 +1947,7 @@ function PerfilAluno({ aluno: alunoInicial, comunicacoes, reunioes, onClose, pro
   const [analise, setAnalise] = useState(null);
   const [editando, setEditando] = useState(false);
   const podeEditar = profile.perfil === "DIRECAO" || profile.perfil === "SECRETARIA" || profile.perfil === "SUPER_ADMIN";
-  const isCan = (c) => profile.perfil === "DIRECAO" || profile.perfil === "SUPER_ADMIN" || c.autor_id === profile.id || c.enc_responsavel_id === profile.id ;
+  const isCan = (c) => profile.perfil === "DIRECAO" || profile.perfil === "SUPER_ADMIN" || c.autor_id === profile.id || c.enc_responsavel_id === profile.id;
   const coms = comunicacoes.filter(c => c.aluno_id === aluno.id && isCan(c));
   const reunioesA = reunioes.filter(r => r.convocados?.some(c => c.aluno_id === aluno.id));
   const totalP = reunioesA.reduce((s, r) => s + (r.convocados?.find(c => c.aluno_id === aluno.id)?.compareceu ? 1 : 0), 0);
@@ -2058,10 +2136,9 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
 
   const carregarTudo = async () => {
     setLoading(true);
-    const [{ data: al }, { data: co }, { data: ci }, { data: re }, { data: eq }, { data: mo }] = await Promise.all([
+    const [{ data: al }, { data: co }, { data: re }, { data: eq }, { data: mo }] = await Promise.all([
       supabase.from("alunos").select("*").eq("escola_id", escola.id).order("nome"),
       supabase.from("comunicacoes").select("*").eq("escola_id", escola.id).order("created_at", { ascending: false }),
-      supabase.from("comunicacoes_ciencia").select("comunicacao_id, usuario_id").eq("escola_id", escola.id),
       supabase.from("reunioes").select("*, reuniao_convocados(*)").eq("escola_id", escola.id).order("created_at", { ascending: false }),
       supabase.from("profiles").select("*").eq("escola_id", escola.id),
       supabase.from("motivos").select("*").or(`escola_id.eq.${escola.id},escola_id.is.null`).order("nome"),
@@ -2504,42 +2581,193 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
     const [editando, setEditando] = useState(null);
     const [busca, setBusca] = useState("");
     const [salvando, setSalvando] = useState(null);
-    const filtrados = equipeLocal.filter(u => !busca || u.nome?.toLowerCase().includes(busca.toLowerCase()) || u.perfil?.toLowerCase().includes(busca.toLowerCase()));
-    const desativar = async (u) => { setSalvando(u.id); await supabase.from("profiles").update({ ativo: false }).eq("id", u.id); setEquipeLocal(p => p.map(x => x.id === u.id ? { ...x, ativo: false } : x)); setSalvando(null); };
-    const ativar = async (u) => { setSalvando(u.id); await supabase.from("profiles").update({ ativo: true }).eq("id", u.id); setEquipeLocal(p => p.map(x => x.id === u.id ? { ...x, ativo: true } : x)); setSalvando(null); };
-    const salvarEdicao = async (dados) => { await supabase.from("profiles").update({ nome: dados.nome, perfil: dados.perfil, cargo: dados.cargo, avatar: dados.nome.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase() }).eq("id", dados.id); setEquipeLocal(p => p.map(x => x.id === dados.id ? { ...x, ...dados } : x)); setEditando(null); };
-    const criarUsuario = async (f) => { const { data: signData, error } = await supabase.auth.signUp({ email: f.email, password: f.senha, options: { data: { nome: f.nome, perfil: f.perfil } } }); if (error) return error.message; if (signData.user) { const novo = { id: signData.user.id, nome: f.nome, perfil: f.perfil, cargo: f.cargo, escola_id: escola.id, ativo: true, avatar: f.nome.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase() }; await supabase.from("profiles").upsert(novo); setEquipeLocal(p => [...p, { ...novo, email: f.email }].sort((a, b) => (a.nome||"").localeCompare(b.nome||""))); } return null; };
+
+    const filtrados = equipeLocal.filter(u =>
+      !busca || u.nome?.toLowerCase().includes(busca.toLowerCase()) || u.perfil?.toLowerCase().includes(busca.toLowerCase())
+    );
+
+    const desativar = async (u) => {
+      setSalvando(u.id);
+      await supabase.from("profiles").update({ ativo: false }).eq("id", u.id);
+      setEquipeLocal(p => p.map(x => x.id === u.id ? { ...x, ativo: false } : x));
+      setSalvando(null);
+    };
+
+    const ativar = async (u) => {
+      setSalvando(u.id);
+      await supabase.from("profiles").update({ ativo: true }).eq("id", u.id);
+      setEquipeLocal(p => p.map(x => x.id === u.id ? { ...x, ativo: true } : x));
+      setSalvando(null);
+    };
+
+    const salvarEdicao = async (dados) => {
+      await supabase.from("profiles").update({
+        nome: dados.nome, perfil: dados.perfil, cargo: dados.cargo,
+        avatar: dados.nome.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase()
+      }).eq("id", dados.id);
+      setEquipeLocal(p => p.map(x => x.id === dados.id ? { ...x, ...dados } : x));
+      setEditando(null);
+    };
+
+    const criarUsuario = async (f) => {
+      const { data: signData, error } = await supabase.auth.signUp({
+        email: f.email, password: f.senha,
+        options: { data: { nome: f.nome, perfil: f.perfil } }
+      });
+      if (error) return error.message;
+      if (signData.user) {
+        const novo = {
+          id: signData.user.id, nome: f.nome, perfil: f.perfil,
+          cargo: f.cargo, escola_id: escola.id, ativo: true,
+          avatar: f.nome.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase()
+        };
+        await supabase.from("profiles").upsert(novo);
+        setEquipeLocal(p => [...p, { ...novo, email: f.email }].sort((a, b) => (a.nome || "").localeCompare(b.nome || "")));
+      }
+      return null;
+    };
+
     return (
       <div>
+        {/* Header */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-          <div><h2 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: "#1e293b" }}>👥 Equipe</h2><p style={{ margin: "4px 0 0", fontSize: 13, color: "#94a3b8" }}>{equipeLocal.length} usuário(s)</p></div>
+          <div>
+            <h2 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: "#1e293b" }}>👥 Equipe</h2>
+            <p style={{ margin: "4px 0 0", fontSize: 13, color: "#94a3b8" }}>{equipeLocal.length} usuário(s) cadastrado(s)</p>
+          </div>
           <Btn icon="+" onClick={() => setModalNovo(true)}>Novo Usuário</Btn>
         </div>
-        <div style={{ marginBottom: 16 }}><Input placeholder="🔍 Buscar por nome ou perfil..." value={busca} onChange={e => setBusca(e.target.value)} /></div>
+
+        {/* Busca */}
+        <div style={{ marginBottom: 16 }}>
+          <Input placeholder="🔍 Buscar por nome ou perfil..." value={busca} onChange={e => setBusca(e.target.value)} />
+        </div>
+
+        {/* Lista */}
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {filtrados.length === 0 && <div style={{ textAlign: "center", padding: 40, color: "#94a3b8" }}><div style={{ fontSize: 32, marginBottom: 12 }}>👥</div><p>Nenhum usuário encontrado.</p></div>}
+          {filtrados.length === 0 && (
+            <div style={{ textAlign: "center", padding: 40, color: "#94a3b8" }}>
+              <div style={{ fontSize: 32, marginBottom: 12 }}>👥</div>
+              <p>Nenhum usuário encontrado.</p>
+            </div>
+          )}
           {filtrados.map(u => (
             <div key={u.id} style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 18px", borderRadius: 12, border: `1.5px solid ${u.ativo === false ? "#fecaca" : "#e9d5ff"}`, background: u.ativo === false ? "#fef2f2" : "#fff", boxShadow: "0 1px 4px rgba(0,0,0,.04)" }}>
-              <Av initials={u.avatar || (u.nome||"?").slice(0,2).toUpperCase()} color={u.ativo === false ? "#ef4444" : "#7c3aed"} size={44} />
+              <Av initials={u.avatar || (u.nome || "?").slice(0, 2).toUpperCase()} color={u.ativo === false ? "#ef4444" : "#7c3aed"} size={44} />
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 800, fontSize: 15, color: u.ativo === false ? "#94a3b8" : "#1e293b" }}>{u.nome}</div>
-                <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 2 }}>{perfilLabel(u.perfil)}{u.cargo ? ` · ${u.cargo}` : ""}{u.ativo === false && <span style={{ marginLeft: 8, color: "#ef4444", fontWeight: 700 }}>• Inativo</span>}</div>
+                <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 2 }}>
+                  {perfilLabel(u.perfil)}{u.cargo ? ` · ${u.cargo}` : ""}
+                  {u.ativo === false && <span style={{ marginLeft: 8, color: "#ef4444", fontWeight: 700 }}>• Inativo</span>}
+                </div>
               </div>
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                 <Badge color={u.perfil === "DIRECAO" ? "#7c3aed" : "#2563eb"}>{perfilLabel(u.perfil)}</Badge>
                 <Btn small variant="ghost" onClick={() => setEditando(u)}>✏️ Editar</Btn>
-                {u.ativo === false ? <Btn small variant="success" disabled={salvando===u.id} onClick={() => ativar(u)}>{salvando===u.id?"...":"Ativar"}</Btn> : <Btn small variant="danger" disabled={salvando===u.id} onClick={() => desativar(u)}>{salvando===u.id?"...":"Desativar"}</Btn>}
+                {u.ativo === false
+                  ? <Btn small variant="success" disabled={salvando === u.id} onClick={() => ativar(u)}>{salvando === u.id ? "..." : "Ativar"}</Btn>
+                  : <Btn small variant="danger" disabled={salvando === u.id} onClick={() => desativar(u)}>{salvando === u.id ? "..." : "Desativar"}</Btn>
+                }
               </div>
             </div>
           ))}
         </div>
-        {modalNovo && <ModalNovoUsuario escola={escola} onClose={() => setModalNovo(false)} onSave={u => setEquipeLocal(p => [...p, u].sort((a,b) => (a.nome||"").localeCompare(b.nome||"")))} />}
-        {editando && (<Overlay onClose={() => setEditando(null)}><MBox width={480}><MHead title="Editar Usuário" subtitle={editando.nome} icon="✏️" onClose={() => setEditando(null)} /><MBody><Input label="Nome completo *" value={editando.nome} onChange={e => setEditando(p=>({...p,nome:e.target.value}))} /><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}><Sel label="Perfil" value={editando.perfil} onChange={e => setEditando(p=>({...p,perfil:e.target.value}))}>{PERFIS.map(p=><option key={p} value={p}>{perfilLabel(p)}</option>)}</Sel><Input label="Cargo (opcional)" value={editando.cargo||""} onChange={e => setEditando(p=>({...p,cargo:e.target.value}))} placeholder="Ex: Coordenadora" /></div></MBody><MFoot><Btn variant="ghost" onClick={() => setEditando(null)}>Cancelar</Btn><Btn onClick={() => salvarEdicao(editando)}>Salvar</Btn></MFoot></MBox></Overlay>)}
+
+        {/* Modal Novo Usuário inline */}
+        {modalNovo && <ModalEquipeNovo escola={escola} onClose={() => setModalNovo(false)} onCriar={criarUsuario} />}
+
+        {/* Modal Editar Usuário inline */}
+        {editando && (
+          <Overlay onClose={() => setEditando(null)}>
+            <MBox width={480}>
+              <MHead title="Editar Usuário" subtitle={editando.nome} icon="✏️" onClose={() => setEditando(null)} />
+              <ModalEquipeEditBody usuario={editando} onSave={salvarEdicao} onClose={() => setEditando(null)} />
+            </MBox>
+          </Overlay>
+        )}
       </div>
     );
   };
 
-    const RetencaoPage = () => {
+  const ModalEquipeNovo = ({ escola, onClose, onCriar }) => {
+    const [f, setF] = useState({ nome: "", email: "", senha: "", perfil: "PROFESSOR", cargo: "" });
+    const [saving, setSaving] = useState(false);
+    const [err, setErr] = useState({});
+    const upd = (k, v) => setF(p => ({ ...p, [k]: v }));
+    const handle = async () => {
+      const e = {};
+      if (!f.nome.trim()) e.nome = "Obrigatório";
+      if (!f.email.trim()) e.email = "Obrigatório";
+      if (!f.senha || f.senha.length < 6) e.senha = "Mínimo 6 caracteres";
+      setErr(e); if (Object.keys(e).length) return;
+      setSaving(true);
+      const erroMsg = await onCriar(f);
+      if (erroMsg) { setErr({ email: erroMsg }); setSaving(false); return; }
+      setSaving(false); onClose();
+    };
+    return (
+      <Overlay onClose={onClose}>
+        <MBox width={500}>
+          <MHead title="Novo Usuário" subtitle={escola.nome} icon="👤" onClose={onClose} />
+          <MBody>
+            <Input label="Nome completo *" error={err.nome} value={f.nome} onChange={e => upd("nome", e.target.value)} placeholder="Nome do usuário" />
+            <Input label="E-mail *" type="email" error={err.email} value={f.email} onChange={e => upd("email", e.target.value)} placeholder="usuario@escola.com.br" />
+            <Input label="Senha *" type="password" error={err.senha} value={f.senha} onChange={e => upd("senha", e.target.value)} placeholder="Mínimo 6 caracteres" hint="O usuário poderá alterar depois" />
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <Sel label="Perfil" value={f.perfil} onChange={e => upd("perfil", e.target.value)}>
+                {PERFIS.map(p => <option key={p} value={p}>{perfilLabel(p)}</option>)}
+              </Sel>
+              <Input label="Cargo (opcional)" value={f.cargo} onChange={e => upd("cargo", e.target.value)} placeholder="Ex: Coordenadora" />
+            </div>
+          </MBody>
+          <MFoot>
+            <Btn variant="ghost" onClick={onClose}>Cancelar</Btn>
+            <Btn onClick={handle} disabled={saving}>{saving ? "Criando..." : "Criar Usuário"}</Btn>
+          </MFoot>
+        </MBox>
+      </Overlay>
+    );
+  };
+
+  const ModalEquipeEditBody = ({ usuario, onSave, onClose }) => {
+    const [f, setF] = useState({ nome: usuario.nome || "", perfil: usuario.perfil || "PROFESSOR", cargo: usuario.cargo || "" });
+    const [novaSenha, setNovaSenha] = useState("");
+    const [saving, setSaving] = useState(false);
+    const [err, setErr] = useState({});
+    const upd = (k, v) => setF(p => ({ ...p, [k]: v }));
+    const handle = async () => {
+      const e = {};
+      if (!f.nome.trim()) e.nome = "Obrigatório";
+      if (novaSenha && novaSenha.length < 6) e.senha = "Mínimo 6 caracteres";
+      setErr(e); if (Object.keys(e).length) return;
+      setSaving(true);
+      await onSave({ ...usuario, ...f });
+      setSaving(false);
+    };
+    return (
+      <>
+        <MBody>
+          <Input label="Nome completo *" error={err.nome} value={f.nome} onChange={e => upd("nome", e.target.value)} />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <Sel label="Perfil" value={f.perfil} onChange={e => upd("perfil", e.target.value)}>
+              {PERFIS.map(p => <option key={p} value={p}>{perfilLabel(p)}</option>)}
+            </Sel>
+            <Input label="Cargo (opcional)" value={f.cargo} onChange={e => upd("cargo", e.target.value)} placeholder="Ex: Coordenadora" />
+          </div>
+          <div style={{ padding: "12px 14px", background: "#f8fafc", borderRadius: 10, border: "1px solid #e2e8f0" }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#475569", marginBottom: 8 }}>🔑 Redefinir senha (opcional)</div>
+            <Input label="Nova senha" type="password" error={err.senha} value={novaSenha} onChange={e => setNovaSenha(e.target.value)} placeholder="Deixe em branco para não alterar" />
+          </div>
+        </MBody>
+        <MFoot>
+          <Btn variant="ghost" onClick={onClose}>Cancelar</Btn>
+          <Btn onClick={handle} disabled={saving}>{saving ? "Salvando..." : "Salvar Alterações"}</Btn>
+        </MFoot>
+      </>
+    );
+  };
+
+  const RetencaoPage = () => {
     const alto = alunos.filter(a => a.risco >= 60).sort((a, b) => b.risco - a.risco);
     const medio = alunos.filter(a => a.risco >= 30 && a.risco < 60).sort((a, b) => b.risco - a.risco);
     const PainelAluno = ({ a, nivel }) => {
@@ -2602,6 +2830,7 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
           ))}
         </nav>
         <div style={{ padding: "12px 8px", borderTop: "1px solid #f1f5f9" }}>
+
           {onVoltarAdmin && <button onClick={onVoltarAdmin} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700, color: "#7c3aed", background: "transparent", width: "100%" }}>← Admin Global</button>}
           <button onClick={onLogout} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600, color: "#ef4444", background: "transparent", width: "100%" }}>↪ Sair</button>
         </div>
@@ -2747,14 +2976,14 @@ export default function App() {
       setIniciando(false);
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === "SIGNED_OUT") { setUser(null); setProfile(null); setEscolaAtiva(null); setModuloAtivo(null); }
+      if (event === "SIGNED_OUT") { setUser(null); setProfile(null); setEscolaAtiva(null); }
     });
     return () => subscription.unsubscribe();
   }, []);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    setUser(null); setProfile(null); setEscolaAtiva(null); setModuloAtivo(null);
+    setUser(null); setProfile(null); setEscolaAtiva(null);
   };
 
   if (iniciando) return <Loading msg="Verificando sessão..." />;
@@ -2762,7 +2991,7 @@ export default function App() {
   if (profile.perfil === "SUPER_ADMIN" && !escolaAtiva) return <SuperAdminPanel onLogout={handleLogout} onEntrarEscola={setEscolaAtiva} />;
 
   const escola = escolaAtiva || profile.escolas;
-  const voltarAdmin = profile.perfil === "SUPER_ADMIN" ? () => { setEscolaAtiva(null); setModuloAtivo(null); } : null;
+  const voltarAdmin = profile.perfil === "SUPER_ADMIN" ? () => setEscolaAtiva(null) : null;
 
   return (
     <SchoolApp
