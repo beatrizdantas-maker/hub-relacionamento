@@ -2159,6 +2159,7 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
   const resolveEnc = (id, status, resolucao) => setComunicacoes(p => p.map(c => c.id === id ? { ...c, enc_status: status, status, resolucao } : c));
 
   const isCan = (c) => profile.perfil === "DIRECAO" || profile.perfil === "SUPER_ADMIN" || profile.perfil === "RETENCAO" || c.autor_id === profile.id || c.enc_responsavel_id === profile.id;
+  const comsVisiveis = comunicacoes.filter(c => isCan(c));
 
   const nav = [
     { id: "dashboard", icon: "📊", label: "Dashboard" },
