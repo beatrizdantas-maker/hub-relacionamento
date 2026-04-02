@@ -999,7 +999,6 @@ function SuperAdminPanel({ onLogout, onEntrarEscola }) {
                         <Badge color={planColor(escola.plano)}>{escola.plano}</Badge>
                         <Badge color={statusColor(escola.status)}>{escola.status}</Badge>
                         {escola.data_vencimento && <span style={{ fontSize: 11, color: "#94a3b8" }}>até {new Date(escola.data_vencimento).toLocaleDateString("pt-BR")}</span>}
-                        <Btn small variant="ghost" onClick={() => setModalModulos(escola)}>🧩 Módulos</Btn>
                         <Btn small variant="ghost" onClick={() => setEscolaSelecionada(escola)}>Gerenciar →</Btn>
                         <Btn small onClick={() => onEntrarEscola(escola)} style={{ background: "#7c3aed", color: "#fff", border: "none" }}>Acessar</Btn>
                       </div>
