@@ -1985,7 +1985,7 @@ function PerfilAluno({ aluno: alunoInicial, comunicacoes, reunioes, onClose, pro
   const [editando, setEditando] = useState(false);
   const podeEditar = profile.perfil === "DIRECAO" || profile.perfil === "SECRETARIA" || profile.perfil === "SUPER_ADMIN";
   const isCan = (c) => profile.perfil === "DIRECAO" || profile.perfil === "SUPER_ADMIN" || profile.perfil === "RETENCAO" || c.autor_id === profile.id || c.enc_responsavel_id === profile.id;
-  const reunioesA = reunioes.filter(r => r.convocados?.some(c => c.aluno_id === aluno.id));
+  const coms = comunicacoes.filter(c => c.aluno_id === aluno.id && isCan(c));
   const totalP = reunioesA.reduce((s, r) => s + (r.convocados?.find(c => c.aluno_id === aluno.id)?.compareceu ? 1 : 0), 0);
   const timeline = [...coms.map(c => ({ tipo: "com", data: c.data_registro, item: c })), ...reunioesA.map(r => ({ tipo: "reu", data: r.data_reuniao, item: r }))]
     .sort((a, b) => (b.data || "").split("/").reverse().join("").localeCompare((a.data || "").split("/").reverse().join("")));
