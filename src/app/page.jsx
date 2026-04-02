@@ -6,8 +6,8 @@ const getRiscoColor = (r) => r >= 60 ? "#ef4444" : r >= 30 ? "#f59e0b" : "#22c55
 const getRiscoBg = (r) => r >= 60 ? "#fef2f2" : r >= 30 ? "#fffbeb" : "#f0fdf4";
 const getRiscoNivel = (r) => r >= 60 ? "ALTO" : r >= 30 ? "MÉDIO" : "BAIXO";
 const getUrgColor = (u) => u === "ALTA" ? "#ef4444" : u === "MEDIA" ? "#f59e0b" : u === "BAIXA" ? "#22c55e" : "#94a3b8";
-const getStColor = (s) => s === "RESOLVIDO" ? "#22c55e" : s === "EM_ANALISE" ? "#3b82f6" : s === "CONCLUÍDO" ? "#8b5cf6" : "#f59e0b";
-const getStLabel = (s) => s === "EM_ANALISE" ? "EM ANÁLISE" : s || "PENDENTE";
+const getStColor = (s) => s === "RESOLVIDO" ? "#22c55e" : s === "EM_ANALISE" ? "#3b82f6" : s === "RESOLVENDO" ? "#8b5cf6" : s === "CONCLUÍDO" ? "#8b5cf6" : "#f59e0b";
+const getStLabel = (s) => s === "EM_ANALISE" ? "EM ANÁLISE" : s === "RESOLVENDO" ? "RESOLVENDO" : s || "PENDENTE";
 const fmtDate = () => new Date().toLocaleDateString("pt-BR");
 const perfilLabel = (p) => ({ SUPER_ADMIN: "Super Admin", DIRECAO: "Direção", PSICOLOGO: "Psicólogo", SECRETARIA: "Secretária", PROFESSOR: "Professor", NUCLEO: "Núcleo Pedagógico", RECEPÇÃO: "Recepção", PSICOPEDAGOGO: "Psicopedagogo", FINANCEIRO: "Financeiro", RETENCAO: "Retenção" }[p] || p);
 const SETORES = ["Psicólogo", "Psicopedagogo", "Secretária", "Professor", "Recepção", "Núcleo Pedagógico", "Direção"];
@@ -1409,6 +1409,41 @@ function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos: motiv
         <MBody>
           <FBlock num="1" title="Identificação">
             <BuscaAluno alunos={alunos} value={f.alunoId} onChange={id => upd("alunoId", id)} error={err.alunoId} />
+          </FBlock>
+
+          <FBlock num="2" title="Detalhamento">
+            <CampoRelato value={f.detalhes} onChange={v => upd("detalhes", v)} onBlur={() => analisarComIA(f.detalhes)} />
+            {err.detalhes && <span style={{ fontSize: 11, color: "#ef4444" }}>{err.detalhes}</span>}
+
+            {/* Card sugestão IA */}
+            {iaAnalisando && (
+              <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", background: "#faf5ff", borderRadius: 10, border: "1px solid #e9d5ff" }}>
+                <div style={{ width: 16, height: 16, border: "2px solid #e9d5ff", borderTop: "2px solid #7c3aed", borderRadius: "50%", animation: "spin 1s linear infinite", flexShrink: 0 }} />
+                <span style={{ fontSize: 13, color: "#7c3aed" }}>🤖 IA analisando o relato...</span>
+              </div>
+            )}
+            {iaSugestao && !iaAnalisando && (
+              <div style={{ padding: "14px 16px", background: iaSugestao.encontrado ? "#eff6ff" : "#fefce8", borderRadius: 10, border: `1.5px solid ${iaSugestao.encontrado ? "#bfdbfe" : "#fef08a"}` }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: iaSugestao.encontrado ? "#1d4ed8" : "#a16207", marginBottom: 4 }}>
+                      🤖 {iaSugestao.encontrado ? "IA identificou o motivo:" : "IA sugere novo motivo:"}
+                    </div>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: "#1e293b" }}>{iaSugestao.nome}</div>
+                    <div style={{ fontSize: 12, color: iaSugestao.pontos > 0 ? "#dc2626" : "#16a34a", fontWeight: 700, marginTop: 2 }}>
+                      {iaSugestao.pontos > 0 ? `⚠️ +${iaSugestao.pontos} pts de risco` : `✅ ${Math.abs(iaSugestao.pontos)} pts de redução`}
+                      {!iaSugestao.encontrado && <span style={{ color: "#a16207", fontWeight: 600, marginLeft: 8 }}>· será criado automaticamente</span>}
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <Btn small variant="success" onClick={confirmarSugestao}>✅ Confirmar</Btn>
+                    <Btn small variant="ghost" onClick={() => setIaSugestao(null)}>❌ Ignorar</Btn>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Motivo da Comunicação - movido para após o Relato */}
             <div>
               <BuscaMotivo motivos={motivos} value={f.motivoId} onChange={id => upd("motivoId", id)} error={err.motivoId} />
 
@@ -1442,38 +1477,6 @@ function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos: motiv
                 </div>
               )}
             </div>
-          </FBlock>
-          <FBlock num="2" title="Detalhamento">
-            <CampoRelato value={f.detalhes} onChange={v => upd("detalhes", v)} onBlur={() => analisarComIA(f.detalhes)} />
-            {err.detalhes && <span style={{ fontSize: 11, color: "#ef4444" }}>{err.detalhes}</span>}
-
-            {/* Card sugestão IA */}
-            {iaAnalisando && (
-              <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", background: "#faf5ff", borderRadius: 10, border: "1px solid #e9d5ff" }}>
-                <div style={{ width: 16, height: 16, border: "2px solid #e9d5ff", borderTop: "2px solid #7c3aed", borderRadius: "50%", animation: "spin 1s linear infinite", flexShrink: 0 }} />
-                <span style={{ fontSize: 13, color: "#7c3aed" }}>🤖 IA analisando o relato...</span>
-              </div>
-            )}
-            {iaSugestao && !iaAnalisando && (
-              <div style={{ padding: "14px 16px", background: iaSugestao.encontrado ? "#eff6ff" : "#fefce8", borderRadius: 10, border: `1.5px solid ${iaSugestao.encontrado ? "#bfdbfe" : "#fef08a"}` }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
-                  <div>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: iaSugestao.encontrado ? "#1d4ed8" : "#a16207", marginBottom: 4 }}>
-                      🤖 {iaSugestao.encontrado ? "IA identificou o motivo:" : "IA sugere novo motivo:"}
-                    </div>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: "#1e293b" }}>{iaSugestao.nome}</div>
-                    <div style={{ fontSize: 12, color: iaSugestao.pontos > 0 ? "#dc2626" : "#16a34a", fontWeight: 700, marginTop: 2 }}>
-                      {iaSugestao.pontos > 0 ? `⚠️ +${iaSugestao.pontos} pts de risco` : `✅ ${Math.abs(iaSugestao.pontos)} pts de redução`}
-                      {!iaSugestao.encontrado && <span style={{ color: "#a16207", fontWeight: 600, marginLeft: 8 }}>· será criado automaticamente</span>}
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <Btn small variant="success" onClick={confirmarSugestao}>✅ Confirmar</Btn>
-                    <Btn small variant="ghost" onClick={() => setIaSugestao(null)}>❌ Ignorar</Btn>
-                  </div>
-                </div>
-              </div>
-            )}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               <Sel label="Via de Comunicação *" error={err.via} value={f.via} onChange={e => upd("via", e.target.value)}>
                 <option value="">Selecione...</option>
@@ -1745,17 +1748,27 @@ function ModalNovaReuniao({ onClose, onSave, profile, alunos, escolaId }) {
   );
 }
 
-function ModalResolucao({ item, onClose, onResolve, alunos }) {
+function ModalResolucao({ item, onClose, onResolve, alunos, equipe }) {
   const [status, setStatus] = useState("EM_ANALISE");
   const [resolucao, setResolucao] = useState(item.resolucao || "");
+  const [redirecionar, setRedirecionar] = useState(false);
+  const [novoResponsavelId, setNovoResponsavelId] = useState("");
+  const [novoResponsavelNome, setNovoResponsavelNome] = useState("");
   const [err, setErr] = useState("");
   const [saving, setSaving] = useState(false);
   const aluno = alunos.find(a => a.id === item.aluno_id);
   const handle = async () => {
     if (!resolucao.trim()) { setErr("Justificativa obrigatória."); return; }
     setSaving(true);
-    await supabase.from("comunicacoes").update({ enc_status: status, status, resolucao }).eq("id", item.id);
-    onResolve(item.id, status, resolucao);
+    const updates = { enc_status: status, status, resolucao };
+    if (redirecionar && novoResponsavelId) {
+      updates.enc_responsavel_id = novoResponsavelId;
+      updates.enc_responsavel = novoResponsavelNome;
+      updates.enc_status = "PENDENTE";
+      updates.status = "PENDENTE";
+    }
+    await supabase.from("comunicacoes").update(updates).eq("id", item.id);
+    onResolve(item.id, updates.enc_status, resolucao);
     setSaving(false); onClose();
   };
   return (
@@ -1770,6 +1783,7 @@ function ModalResolucao({ item, onClose, onResolve, alunos }) {
           </div>
           <Sel label="Novo Status *" value={status} onChange={e => setStatus(e.target.value)}>
             <option value="EM_ANALISE">EM ANÁLISE</option>
+            <option value="RESOLVENDO">RESOLVENDO</option>
             <option value="RESOLVIDO">RESOLVIDO</option>
             <option value="PENDENTE">PENDENTE</option>
           </Sel>
@@ -1777,6 +1791,28 @@ function ModalResolucao({ item, onClose, onResolve, alunos }) {
             <label style={{ fontSize: 12, fontWeight: 600, color: err ? "#ef4444" : "#475569" }}>Justificativa / Resolução *</label>
             <textarea value={resolucao} onChange={e => setResolucao(e.target.value)} placeholder="Descreva o que foi feito..." rows={4} style={{ padding: "9px 13px", border: `1.5px solid ${err ? "#ef4444" : "#e2e8f0"}`, borderRadius: 8, fontSize: 14, outline: "none", background: "#fafafa", fontFamily: "inherit", resize: "vertical", width: "100%", boxSizing: "border-box" }} />
             {err && <span style={{ fontSize: 11, color: "#ef4444" }}>{err}</span>}
+          </div>
+          {/* Redirecionar para outra pessoa */}
+          <div style={{ padding: "12px 14px", background: "#f8fafc", borderRadius: 10, border: "1px solid #e2e8f0" }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, color: "#475569" }}>
+              <input type="checkbox" checked={redirecionar} onChange={e => setRedirecionar(e.target.checked)} />
+              🔄 Redirecionar para outra pessoa
+            </label>
+            {redirecionar && equipe && (
+              <div style={{ marginTop: 10 }}>
+                <Sel label="Novo responsável" value={novoResponsavelId} onChange={e => {
+                  const u = equipe.find(x => x.id === e.target.value);
+                  setNovoResponsavelId(e.target.value);
+                  setNovoResponsavelNome(u?.nome || "");
+                }}>
+                  <option value="">Selecione...</option>
+                  {equipe.filter(u => u.id !== item.enc_responsavel_id).map(u => (
+                    <option key={u.id} value={u.id}>{u.nome} ({perfilLabel(u.perfil)})</option>
+                  ))}
+                </Sel>
+                <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>⚠️ O status será alterado para PENDENTE automaticamente</div>
+              </div>
+            )}
           </div>
         </MBody>
         <MFoot>
@@ -2361,6 +2397,7 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
                   {exp && (
                     <div style={{ padding: "14px 16px", borderTop: "1px solid #f1f5f9", background: "#fff" }}>
                       <div style={{ fontSize: 13, color: "#64748b", marginBottom: 8 }}><b>Relato:</b> {c.detalhes}</div>
+                      {c.autor_nome && <div style={{ fontSize: 12, color: "#94a3b8" }}>📝 Registrado por: <b style={{ color: "#475569" }}>{c.autor_nome}</b></div>}
                       {c.com_quem && <div style={{ fontSize: 12, color: "#94a3b8" }}>Com: {c.com_quem}</div>}
                       {c.encaminhamento && <div style={{ fontSize: 12, color: "#7c3aed", marginTop: 4 }}>→ {c.enc_destino} / {c.enc_responsavel}</div>}
                       {c.resolucao && <div style={{ marginTop: 10, padding: "8px 12px", background: "#f0fdf4", borderRadius: 8, fontSize: 13, color: "#16a34a", borderLeft: "3px solid #22c55e" }}>✓ {c.resolucao}</div>}
@@ -2371,7 +2408,7 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
             })}
           </div>
         </Card>
-        {resolving && <ModalResolucao item={resolving} alunos={alunos} onClose={() => setResolving(null)} onResolve={resolveEnc} />}
+        {resolving && <ModalResolucao item={resolving} alunos={alunos} equipe={equipe} onClose={() => setResolving(null)} onResolve={resolveEnc} />}
       </div>
     );
   };
@@ -2410,7 +2447,7 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
             })}
           </div>
         </Card>
-        {resolving && <ModalResolucao item={resolving} alunos={alunos} onClose={() => setResolving(null)} onResolve={resolveEnc} />}
+        {resolving && <ModalResolucao item={resolving} alunos={alunos} equipe={equipe} onClose={() => setResolving(null)} onResolve={resolveEnc} />}
       </div>
     );
   };
