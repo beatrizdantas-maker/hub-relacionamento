@@ -9,9 +9,9 @@ const getUrgColor = (u) => u === "ALTA" ? "#ef4444" : u === "MEDIA" ? "#f59e0b" 
 const getStColor = (s) => s === "RESOLVIDO" ? "#22c55e" : s === "EM_ANALISE" ? "#3b82f6" : s === "CONCLUÍDO" ? "#8b5cf6" : "#f59e0b";
 const getStLabel = (s) => s === "EM_ANALISE" ? "EM ANÁLISE" : s || "PENDENTE";
 const fmtDate = () => new Date().toLocaleDateString("pt-BR");
-const perfilLabel = (p) => ({ SUPER_ADMIN: "Super Admin", DIRECAO: "Direção", PSICOLOGO: "Psicólogo", SECRETARIA: "Secretária", PROFESSOR: "Professor", NUCLEO: "Núcleo Pedagógico", RECEPÇÃO: "Recepção", PSICOPEDAGOGO: "Psicopedagogo" }[p] || p);
+const perfilLabel = (p) => ({ SUPER_ADMIN: "Super Admin", DIRECAO: "Direção", PSICOLOGO: "Psicólogo", SECRETARIA: "Secretária", PROFESSOR: "Professor", NUCLEO: "Núcleo Pedagógico", RECEPÇÃO: "Recepção", PSICOPEDAGOGO: "Psicopedagogo", FINANCEIRO: "Financeiro", RETENCAO: "Retenção" }[p] || p);
 const SETORES = ["Psicólogo", "Psicopedagogo", "Secretária", "Professor", "Recepção", "Núcleo Pedagógico", "Direção"];
-const PERFIS = ["DIRECAO", "PSICOLOGO", "SECRETARIA", "PROFESSOR", "NUCLEO", "RECEPÇÃO", "PSICOPEDAGOGO"];
+const PERFIS = ["DIRECAO", "PSICOLOGO", "SECRETARIA", "PROFESSOR", "NUCLEO", "RECEPÇÃO", "PSICOPEDAGOGO", "FINANCEIRO", "RETENCAO"];
 
 // ── UI ATOMS ───────────────────────────────────────────────────────────────────
 const Badge = ({ children, color = "#3b82f6" }) => (
@@ -633,7 +633,7 @@ function PainelEscola({ escola, onClose, onUpdate, onEntrar }) {
 
 // Permissões padrão por módulo (quais perfis de escola têm acesso)
 const PERMS_PADRAO = {
-  relacionamento: ["DIRECAO","PSICOLOGO","SECRETARIA","PROFESSOR","NUCLEO","RECEPÇÃO","PSICOPEDAGOGO"],
+  relacionamento: ["DIRECAO","PSICOLOGO","SECRETARIA","PROFESSOR","NUCLEO","RECEPÇÃO","PSICOPEDAGOGO","FINANCEIRO","RETENCAO"],
   relatorios:     ["DIRECAO","SECRETARIA","NUCLEO"],
   financeiro:     ["DIRECAO","SECRETARIA"],
   secretaria:     ["DIRECAO","SECRETARIA"],
@@ -654,13 +654,15 @@ const PERFIS_LABELS = {
   NUCLEO:       { label: "Núcleo Pedagógico", emoji: "📚" },
   RECEPÇÃO:     { label: "Recepção",          emoji: "📞" },
   PSICOPEDAGOGO:{ label: "Psicopedagogo",     emoji: "🎓" },
+  FINANCEIRO:   { label: "Financeiro",         emoji: "💰" },
+  RETENCAO:     { label: "Retenção",           emoji: "🔒" },
 };
 
 // Categorias para agrupar no Hub
 const CATEGORIAS_ORDEM = ["Gestão", "Colaboradores", "Alunos", "Famílias", "Escola"];
 
 // Perfis disponíveis no sistema
-const TODOS_PERFIS = ["DIRECAO","PSICOLOGO","SECRETARIA","PROFESSOR","NUCLEO","RECEPÇÃO","PSICOPEDAGOGO"];
+const TODOS_PERFIS = ["DIRECAO","PSICOLOGO","SECRETARIA","PROFESSOR","NUCLEO","RECEPÇÃO","PSICOPEDAGOGO","FINANCEIRO","RETENCAO"];
 
 // Tipos de usuário (além dos perfis de escola)
 // ALUNO, FAMILIA são usuários futuros do ecossistema
@@ -1292,7 +1294,7 @@ function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos: motiv
   const [iaAnalisando, setIaAnalisando] = useState(false);
   const [iaSugestao, setIaSugestao] = useState(null);
   const upd = (k, v) => setF(p => ({ ...p, [k]: v }));
-  const setorParaPerfil = { "Psicólogo": "PSICOLOGO", "Psicopedagogo": "PSICOPEDAGOGO", "Secretária": "SECRETARIA", "Professor": "PROFESSOR", "Recepção": "RECEPÇÃO", "Núcleo Pedagógico": "NUCLEO", "Direção": "DIRECAO" };
+  const setorParaPerfil = { "Psicólogo": "PSICOLOGO", "Psicopedagogo": "PSICOPEDAGOGO", "Secretária": "SECRETARIA", "Professor": "PROFESSOR", "Recepção": "RECEPÇÃO", "Núcleo Pedagógico": "NUCLEO", "Direção": "DIRECAO", "Financeiro": "FINANCEIRO", "Retenção": "RETENCAO" };
   const equipeDisponivelTodos = equipe.filter(u => u.id !== profile.id);
 
   // Analisar relato com IA ao sair do campo
@@ -1947,8 +1949,7 @@ function PerfilAluno({ aluno: alunoInicial, comunicacoes, reunioes, onClose, pro
   const [analise, setAnalise] = useState(null);
   const [editando, setEditando] = useState(false);
   const podeEditar = profile.perfil === "DIRECAO" || profile.perfil === "SECRETARIA" || profile.perfil === "SUPER_ADMIN";
-  const isCan = (c) => profile.perfil === "DIRECAO" || profile.perfil === "SUPER_ADMIN" || c.autor_id === profile.id || c.enc_responsavel_id === profile.id;
-  const coms = comunicacoes.filter(c => c.aluno_id === aluno.id && isCan(c));
+  const isCan = (c) => profile.perfil === "DIRECAO" || profile.perfil === "SUPER_ADMIN" || profile.perfil === "RETENCAO" || c.autor_id === profile.id || c.enc_responsavel_id === profile.id;
   const reunioesA = reunioes.filter(r => r.convocados?.some(c => c.aluno_id === aluno.id));
   const totalP = reunioesA.reduce((s, r) => s + (r.convocados?.find(c => c.aluno_id === aluno.id)?.compareceu ? 1 : 0), 0);
   const timeline = [...coms.map(c => ({ tipo: "com", data: c.data_registro, item: c })), ...reunioesA.map(r => ({ tipo: "reu", data: r.data_reuniao, item: r }))]
@@ -2157,8 +2158,7 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
   const atualizarAluno = (a) => setAlunos(p => p.map(x => x.id === a.id ? a : x));
   const resolveEnc = (id, status, resolucao) => setComunicacoes(p => p.map(c => c.id === id ? { ...c, enc_status: status, status, resolucao } : c));
 
-  const isCan = (c) => profile.perfil === "DIRECAO" || profile.perfil === "SUPER_ADMIN" || c.autor_id === profile.id || c.enc_responsavel_id === profile.id;
-  const comsVisiveis = comunicacoes.filter(c => isCan(c));
+  const isCan = (c) => profile.perfil === "DIRECAO" || profile.perfil === "SUPER_ADMIN" || profile.perfil === "RETENCAO" || c.autor_id === profile.id || c.enc_responsavel_id === profile.id;
 
   const nav = [
     { id: "dashboard", icon: "📊", label: "Dashboard" },
