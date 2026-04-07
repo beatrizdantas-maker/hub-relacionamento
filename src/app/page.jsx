@@ -209,6 +209,127 @@ function ModalConfirmarImpressao({ comunicacao, aluno, escola, profile, onClose 
   );
 }
 
+// ── IMPRESSÃO FICHA COMPLETA DO ALUNO ─────────────────────────────────────────
+function imprimirFichaCompleta({ aluno, comunicacoes, reunioes, escola, profile }) {
+  const iniciais = (aluno?.nome || "").split(" ").filter(Boolean).map(p => p[0]).join("").slice(0, 2).toUpperCase();
+  const dataHoje = new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
+  const logoHtml = escola?.logo_url ? `<img style="height:80px;width:auto" src="${escola.logo_url}" alt="${escola.nome}" />` : `<div style="font-size:24px;font-weight:800;color:#1a4f8a">${escola?.nome || "Escola"}</div>`;
+  const coms = comunicacoes.filter(c => c.aluno_id === aluno.id);
+  const reusA = reunioes.filter(r => r.convocados?.some(c => c.aluno_id === aluno.id));
+
+  const urgColor = (u) => u === "ALTA" ? "#ef4444" : u === "MEDIA" ? "#f59e0b" : u === "BAIXA" ? "#22c55e" : "#94a3b8";
+  const urgBg = (u) => u === "ALTA" ? "#fef2f2" : u === "MEDIA" ? "#fffbeb" : u === "BAIXA" ? "#f0fdf4" : "#f8fafc";
+
+  const comsHtml = coms.length === 0 ? `<div style="text-align:center;color:#94a3b8;padding:20px">Nenhuma comunicação registrada.</div>` :
+    coms.map(c => `
+      <div style="padding:14px 16px;border-radius:10px;border:1px solid #e2e8f0;background:${urgBg(c.urgencia)};margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px">
+          <div>
+            <div style="font-weight:700;font-size:14px;color:#1e293b">${c.titulo || c.motivo_nome || "—"}</div>
+            <div style="font-size:12px;color:#64748b;margin-top:2px">${c.data_registro || "—"} · ${c.autor_nome || "—"} · Com: ${c.com_quem || "—"}</div>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center">
+            ${c.urgencia ? `<span style="display:inline-flex;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700;color:${urgColor(c.urgencia)};background:${urgColor(c.urgencia)}18">${c.urgencia}</span>` : ""}
+            <span style="display:inline-flex;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700;color:${c.status === "CONCLUÍDO" || c.status === "RESOLVIDO" ? "#22c55e" : "#f59e0b"};background:${c.status === "CONCLUÍDO" || c.status === "RESOLVIDO" ? "#22c55e18" : "#f59e0b18"}">${c.status || "PENDENTE"}</span>
+          </div>
+        </div>
+        ${c.detalhes ? `<div style="font-size:13px;color:#475569;margin-top:8px;line-height:1.6;padding:8px 10px;background:#fff;border-radius:6px;border-left:3px solid #1a4f8a">${c.detalhes}</div>` : ""}
+        ${c.encaminhamento ? `<div style="font-size:12px;color:#7c3aed;margin-top:6px">→ Encaminhado: ${c.enc_destino} / ${c.enc_responsavel}</div>` : ""}
+        ${c.resolucao ? `<div style="margin-top:6px;padding:6px 10px;background:#f0fdf4;border-radius:6px;font-size:12px;color:#16a34a;border-left:3px solid #22c55e">✓ ${c.resolucao}</div>` : ""}
+      </div>
+    `).join("");
+
+  const reusHtml = reusA.length === 0 ? "" : `
+    <div style="margin-top:20px">
+      <div style="font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:#94a3b8;margin-bottom:10px">Reuniões (${reusA.length})</div>
+      ${reusA.map(r => {
+        const conv = r.convocados?.find(c => c.aluno_id === aluno.id);
+        return `<div style="padding:10px 14px;border-radius:8px;border:1px solid #e2e8f0;background:#f8fafc;margin-bottom:6px">
+          <div style="font-weight:600;font-size:13px;color:#1e293b">${r.titulo || "Reunião"} — ${r.data_reuniao || "—"}</div>
+          <div style="font-size:12px;color:${conv?.compareceu ? "#16a34a" : "#ef4444"};font-weight:700;margin-top:4px">${conv?.compareceu ? "✓ Responsável compareceu" : "✗ Responsável não compareceu"}</div>
+        </div>`;
+      }).join("")}
+    </div>`;
+
+  const riscoNivel = aluno.risco >= 60 ? "ALTO" : aluno.risco >= 30 ? "MÉDIO" : "BAIXO";
+  const riscoColor = aluno.risco >= 60 ? "#ef4444" : aluno.risco >= 30 ? "#f59e0b" : "#22c55e";
+
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Ficha Completa - ${aluno?.nome}</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;700&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:#f8fafc;color:#1e293b}
+.w{max-width:680px;margin:1.5rem auto;padding:0 1rem 2rem}
+.card{background:#fff;border:0.5px solid #e2e8f0;border-radius:12px;overflow:hidden}
+.hdr{padding:1.25rem 1.5rem 1rem;border-bottom:3px solid #1a4f8a;display:flex;align-items:center;justify-content:center;background:#fff}
+.subhdr{padding:0.7rem 1.5rem;border-bottom:0.5px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;background:#f8fafc}
+.student{padding:1.25rem 1.5rem 1rem;display:flex;align-items:center;gap:14px;border-bottom:0.5px solid #e2e8f0}
+.avatar{width:46px;height:46px;border-radius:50%;background:#EEEDFE;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:500;color:#3C3489;flex-shrink:0}
+.sname{font-family:'DM Serif Display',serif;font-size:20px;color:#1e293b;margin-bottom:4px}
+.pills{display:flex;gap:7px;flex-wrap:wrap}
+.pill{font-size:12px;font-weight:500;padding:3px 10px;border-radius:100px;background:#f8fafc;color:#64748b;border:0.5px solid #e2e8f0}
+.body{padding:1.25rem 1.5rem}
+.lbl{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:#94a3b8;margin-bottom:10px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:20px}
+.stat{text-align:center;padding:10px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0}
+.stat-v{font-size:18px;font-weight:900}
+.stat-l{font-size:10px;color:#94a3b8;font-weight:600;margin-top:2px}
+.sig{padding:1.5rem 1.5rem 1.75rem}
+.sig-inner{display:flex;flex-direction:column;align-items:center;max-width:300px;margin:0 auto}
+.sig-space{height:52px}
+.sig-line{width:100%;height:1px;background:#e2e8f0}
+.sig-n{font-size:13px;font-weight:500;color:#1e293b;margin-top:8px;text-align:center}
+.sig-r{font-size:11px;color:#94a3b8;text-align:center;margin-top:2px}
+@media print{body{background:#fff}.w{margin:0;padding:0}.no-print{display:none!important}}
+</style></head><body>
+<div class="no-print" style="text-align:center;padding:16px">
+  <button onclick="window.print()" style="padding:10px 28px;background:#2563eb;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">🖨️ Imprimir</button>
+  <button onclick="window.close()" style="padding:10px 28px;background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;margin-left:8px">Fechar</button>
+</div>
+<div class="w"><div class="card">
+  <div class="hdr">${logoHtml}</div>
+  <div class="subhdr">
+    <span style="font-size:13px;color:#64748b">${dataHoje}</span>
+    <span style="font-size:11px;font-weight:500;padding:4px 11px;border-radius:100px;background:#EAF3DE;color:#3B6D11">Ficha Completa</span>
+  </div>
+  <div class="student">
+    <div class="avatar">${iniciais}</div>
+    <div>
+      <div class="sname">${aluno?.nome || "—"}</div>
+      <div class="pills">
+        <span class="pill">${aluno?.turma || "—"}</span>
+        <span class="pill">RM: ${aluno?.rm || "—"}</span>
+        <span class="pill">Resp.: ${aluno?.responsavel || "—"}</span>
+        ${aluno?.telefone ? `<span class="pill">Tel: ${aluno.telefone}</span>` : ""}
+      </div>
+    </div>
+  </div>
+  <div class="body">
+    <div class="stats">
+      <div class="stat"><div class="stat-v" style="color:${riscoColor}">${riscoNivel}</div><div class="stat-l">Risco</div></div>
+      <div class="stat"><div class="stat-v" style="color:${riscoColor}">${aluno.risco || 0} pts</div><div class="stat-l">Score</div></div>
+      <div class="stat"><div class="stat-v" style="color:#2563eb">${coms.length}</div><div class="stat-l">Comunicações</div></div>
+      <div class="stat"><div class="stat-v" style="color:#059669">${reusA.length}</div><div class="stat-l">Reuniões</div></div>
+    </div>
+    <div class="lbl">Histórico de Comunicações (${coms.length})</div>
+    ${comsHtml}
+    ${reusHtml}
+  </div>
+  <div class="sig">
+    <div class="lbl" style="text-align:center;margin-bottom:1rem">Assinatura do Responsável</div>
+    <div class="sig-inner">
+      <div class="sig-space"></div>
+      <div class="sig-line"></div>
+      <div class="sig-n">${aluno?.responsavel || "Nome do Responsável"}</div>
+      <div class="sig-r">Responsável / Familiar</div>
+    </div>
+  </div>
+</div></div></body></html>`;
+
+  const win = window.open("", "_blank");
+  if (win) { win.document.write(html); win.document.close(); }
+}
+
 // ── MICROFONE + IA ─────────────────────────────────────────────────────────────
 function CampoRelato({ value, onChange, onBlur }) {
   const [gravando, setGravando] = useState(false);
@@ -2150,9 +2271,7 @@ function PerfilAluno({ aluno: alunoInicial, comunicacoes, reunioes, onClose, pro
           {/* Botões de ação */}
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
             <Btn small variant="ghost" icon="🖨️" onClick={() => {
-              const ultimaCom = coms[0];
-              if (ultimaCom) imprimirComunicacao({ comunicacao: ultimaCom, aluno, escola, profile });
-              else alert("Nenhuma comunicação registrada para este aluno.");
+              imprimirFichaCompleta({ aluno, comunicacoes, reunioes, escola, profile });
             }}>Imprimir Ficha</Btn>
             {podeEditar && <Btn small variant="ghost" icon="✏️" onClick={() => setEditando(true)}>Editar Cadastro</Btn>}
           </div>
