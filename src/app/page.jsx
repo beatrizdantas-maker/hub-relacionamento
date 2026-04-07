@@ -1995,18 +1995,45 @@ function ModalNovaReuniao({ onClose, onSave, profile, alunos, escolaId }) {
 }
 
 function ModalResolucao({ item, onClose, onResolve, alunos, equipe }) {
-  const [status, setStatus] = useState("EM_ANALISE");
-  const [resolucao, setResolucao] = useState(item.resolucao || "");
+  const [status, setStatus] = useState(item.enc_status === "PENDENTE" ? "EM_ANALISE" : "RESOLVIDO");
+  const [resolucao, setResolucao] = useState("");
+  const [comQuem, setComQuem] = useState("");
+  const [via, setVia] = useState("");
   const [redirecionar, setRedirecionar] = useState(false);
   const [novoResponsavelId, setNovoResponsavelId] = useState("");
   const [novoResponsavelNome, setNovoResponsavelNome] = useState("");
-  const [err, setErr] = useState("");
+  const [err, setErr] = useState({});
   const [saving, setSaving] = useState(false);
+  const [arquivo, setArquivo] = useState(null);
   const aluno = alunos.find(a => a.id === item.aluno_id);
+  const urgColor = item.urgencia === "ALTA" ? "#ef4444" : item.urgencia === "MEDIA" ? "#f59e0b" : item.urgencia === "BAIXA" ? "#22c55e" : "#94a3b8";
+  const urgBg = item.urgencia === "ALTA" ? "#fef2f2" : item.urgencia === "MEDIA" ? "#fffbeb" : item.urgencia === "BAIXA" ? "#f0fdf4" : "#f8fafc";
+
   const handle = async () => {
-    if (!resolucao.trim()) { setErr("Justificativa obrigatória."); return; }
+    const e = {};
+    if (!resolucao.trim()) e.resolucao = "Descreva o que foi feito";
+    setErr(e); if (Object.keys(e).length) return;
     setSaving(true);
-    const updates = { enc_status: status, status, resolucao };
+
+    // Upload de arquivo se houver
+    let arquivoUrl = null, arquivoNome = null;
+    if (arquivo) {
+      const ext = arquivo.name.split(".").pop();
+      const path = `${item.escola_id}/${Date.now()}.${ext}`;
+      const { data: upData, error: upErr } = await supabase.storage.from("comunicacoes-anexos").upload(path, arquivo);
+      if (!upErr && upData) {
+        const { data: urlData } = supabase.storage.from("comunicacoes-anexos").getPublicUrl(path);
+        arquivoUrl = urlData?.publicUrl || null;
+        arquivoNome = arquivo.name;
+      }
+    }
+
+    const historicoAnterior = item.resolucao ? item.resolucao + "\n\n" : "";
+    const dataAtual = new Date().toLocaleDateString("pt-BR");
+    const novaResolucao = `${historicoAnterior}[${dataAtual}] ${resolucao}${comQuem ? ` · Com: ${comQuem}` : ""}${via ? ` · Via: ${via}` : ""}`;
+
+    const updates = { enc_status: status, status, resolucao: novaResolucao };
+    if (arquivoUrl) { updates.arquivo_url = arquivoUrl; updates.arquivo_nome = arquivoNome; }
     if (redirecionar && novoResponsavelId) {
       updates.enc_responsavel_id = novoResponsavelId;
       updates.enc_responsavel = novoResponsavelNome;
@@ -2014,31 +2041,83 @@ function ModalResolucao({ item, onClose, onResolve, alunos, equipe }) {
       updates.status = "PENDENTE";
     }
     await supabase.from("comunicacoes").update(updates).eq("id", item.id);
-    onResolve(item.id, updates.enc_status, resolucao);
+    onResolve(item.id, updates.enc_status, updates.resolucao);
     setSaving(false); onClose();
   };
+
   return (
     <Overlay onClose={onClose}>
-      <MBox width={500}>
-        <MHead title="Atualizar Encaminhamento" icon="📋" onClose={onClose} />
+      <MBox width={640}>
+        <MHead title="Atualizar Encaminhamento" subtitle={`${aluno?.nome} · ${aluno?.turma || ""}`} icon="📋" onClose={onClose} />
         <MBody>
-          <div style={{ padding: 14, background: "#f8fafc", borderRadius: 10, border: "1px solid #e2e8f0" }}>
-            <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 4 }}>Aluno</div>
-            <div style={{ fontWeight: 700, color: "#1e293b" }}>{aluno?.nome}</div>
-            <div style={{ fontSize: 13, color: "#64748b", marginTop: 4 }}>{item.titulo}</div>
+          {/* Contexto do caso */}
+          <div style={{ padding: 16, background: urgBg, borderRadius: 12, border: `1px solid ${urgColor}30` }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8, marginBottom: 10 }}>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: "#1e293b" }}>{item.titulo || item.motivo_nome}</div>
+                <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>{item.data_registro} · Registrado por: {item.autor_nome}</div>
+              </div>
+              <div style={{ display: "flex", gap: 6 }}>
+                {item.urgencia && <span style={{ padding: "2px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700, color: urgColor, background: urgColor + "18" }}>{item.urgencia}</span>}
+                <span style={{ padding: "2px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700, color: "#f59e0b", background: "#f59e0b18" }}>{item.enc_status || "PENDENTE"}</span>
+              </div>
+            </div>
+            {item.detalhes && (
+              <div style={{ fontSize: 13, color: "#475569", lineHeight: 1.6, padding: "10px 12px", background: "#fff", borderRadius: 8, borderLeft: "3px solid #1a4f8a" }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", marginBottom: 4 }}>RELATO ORIGINAL</div>
+                {item.detalhes}
+              </div>
+            )}
+            {item.enc_destino && <div style={{ fontSize: 12, color: "#7c3aed", marginTop: 8 }}>→ Encaminhado para: {item.enc_destino} / {item.enc_responsavel}</div>}
+            {item.resolucao && (
+              <div style={{ marginTop: 10, padding: "10px 12px", background: "#f0fdf4", borderRadius: 8, borderLeft: "3px solid #22c55e" }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: "#16a34a", marginBottom: 4 }}>ATUALIZAÇÕES ANTERIORES</div>
+                <div style={{ fontSize: 13, color: "#475569", lineHeight: 1.6, whiteSpace: "pre-line" }}>{item.resolucao}</div>
+              </div>
+            )}
           </div>
-          <Sel label="Novo Status *" value={status} onChange={e => setStatus(e.target.value)}>
-            <option value="EM_ANALISE">EM ANÁLISE</option>
-            <option value="RESOLVENDO">RESOLVENDO</option>
-            <option value="RESOLVIDO">RESOLVIDO</option>
-            <option value="PENDENTE">PENDENTE</option>
-          </Sel>
-          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            <label style={{ fontSize: 12, fontWeight: 600, color: err ? "#ef4444" : "#475569" }}>Justificativa / Resolução *</label>
-            <textarea value={resolucao} onChange={e => setResolucao(e.target.value)} placeholder="Descreva o que foi feito..." rows={4} style={{ padding: "9px 13px", border: `1.5px solid ${err ? "#ef4444" : "#e2e8f0"}`, borderRadius: 8, fontSize: 14, outline: "none", background: "#fafafa", fontFamily: "inherit", resize: "vertical", width: "100%", boxSizing: "border-box" }} />
-            {err && <span style={{ fontSize: 11, color: "#ef4444" }}>{err}</span>}
+
+          {/* Nova atualização */}
+          <div style={{ padding: "4px 0" }}>
+            <div style={{ fontSize: 14, fontWeight: 800, color: "#1e293b", marginBottom: 12 }}>Nova Atualização</div>
+
+            <CampoRelato value={resolucao} onChange={setResolucao} onBlur={() => {}} />
+            {err.resolucao && <span style={{ fontSize: 11, color: "#ef4444" }}>{err.resolucao}</span>}
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 12 }}>
+              <Sel label="Comunicação com" value={comQuem} onChange={e => setComQuem(e.target.value)}>
+                <option value="">Selecione...</option>
+                <option>Responsável / Família</option>
+                <option>Aluno</option>
+                <option>Professor</option>
+                <option>Outro setor</option>
+              </Sel>
+              <Sel label="Via" value={via} onChange={e => setVia(e.target.value)}>
+                <option value="">Selecione...</option>
+                <option value="Telefone">📞 Telefone</option>
+                <option value="WhatsApp">📱 WhatsApp</option>
+                <option value="Presencial">🤝 Presencial</option>
+                <option value="E-mail">📧 E-mail</option>
+                <option value="Bilhete">📝 Bilhete / Agenda</option>
+                <option value="Videoconferência">💻 Videoconferência</option>
+              </Sel>
+            </div>
+
+            <Sel label="Novo Status *" value={status} onChange={e => setStatus(e.target.value)}>
+              <option value="EM_ANALISE">EM ANÁLISE — Estou analisando o caso</option>
+              <option value="RESOLVENDO">RESOLVENDO — Em andamento</option>
+              <option value="RESOLVIDO">RESOLVIDO — Caso concluído</option>
+              <option value="PENDENTE">PENDENTE — Ainda não iniciei</option>
+            </Sel>
+
+            {/* Anexo */}
+            <div style={{ marginTop: 8 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: "#475569" }}>📎 Anexar arquivo (opcional)</label>
+              <input type="file" onChange={e => setArquivo(e.target.files[0])} style={{ display: "block", marginTop: 4, fontSize: 13 }} />
+            </div>
           </div>
-          {/* Redirecionar para outra pessoa */}
+
+          {/* Redirecionar */}
           <div style={{ padding: "12px 14px", background: "#f8fafc", borderRadius: 10, border: "1px solid #e2e8f0" }}>
             <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, color: "#475569" }}>
               <input type="checkbox" checked={redirecionar} onChange={e => setRedirecionar(e.target.checked)} />
@@ -2063,7 +2142,7 @@ function ModalResolucao({ item, onClose, onResolve, alunos, equipe }) {
         </MBody>
         <MFoot>
           <Btn variant="ghost" onClick={onClose}>Cancelar</Btn>
-          <Btn onClick={handle} disabled={saving}>{saving ? "Salvando..." : "Salvar"}</Btn>
+          <Btn icon="📨" onClick={handle} disabled={saving}>{saving ? "Salvando..." : "Salvar Atualização"}</Btn>
         </MFoot>
       </MBox>
     </Overlay>
