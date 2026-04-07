@@ -1320,7 +1320,7 @@ function BuscaMotivo({ motivos, value, onChange, error }) {
 // ── MODAIS SISTEMA ESCOLAR ─────────────────────────────────────────────────────
 function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos: motivosInit, escolaId }) {
   const [motivos, setMotivos] = useState(motivosInit || []);
-  const [f, setF] = useState({ alunoId: "", titulo: "", detalhes: "", urgencia: "", comQuem: "", via: "", motivoId: "", motivoCustom: "", motivoCustomPontos: "0", encaminhar: false, encDestino: "", encResponsavelId: "", encResponsavelNome: "", encObs: "", ciencia: [] });
+  const [f, setF] = useState({ alunoId: "", titulo: "", detalhes: "", urgencia: "", comQuem: "", via: "", motivoId: "", motivoCustom: "", motivoCustomPontos: "0", encaminhar: false, encDestino: "", encResponsavelId: "", encResponsavelNome: "", encObs: "" });
   const [arquivo, setArquivo] = useState(null);
   const [err, setErr] = useState({});
   const [saving, setSaving] = useState(false);
@@ -1419,12 +1419,6 @@ function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos: motiv
       alert("Erro: " + (error.message || JSON.stringify(error)));
     }
     if (!error && data) {
-      // Salvar usuários de ciência
-      if (f.ciencia && f.ciencia.length > 0) {
-        await supabase.from("comunicacoes_ciencia").insert(
-          f.ciencia.map(uid => ({ comunicacao_id: data.id, usuario_id: uid, escola_id: escolaId || profile.escola_id }))
-        );
-      }
       // Atualizar score do aluno
       const aluno = alunos.find(a => a.id === f.alunoId);
       if (aluno && pontos !== 0) {
@@ -1557,26 +1551,6 @@ function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos: motiv
             </div>
           </FBlock>
           <FBlock num="3" title="Encaminhamento">
-            {/* Dar ciência */}
-            <div style={{ display:"flex", flexDirection:"column", gap:8, padding:14, background:"#f8fafc", borderRadius:10, border:"1px solid #e2e8f0" }}>
-              <div>
-                <div style={{ fontSize:13, fontWeight:700, color:"#475569" }}>👁️ Dar ciência para <span style={{ fontWeight:400, color:"#94a3b8", fontSize:12 }}>(opcional)</span></div>
-                <div style={{ fontSize:11, color:"#94a3b8", marginTop:2 }}>Esses usuários poderão ver esta comunicação mesmo sem serem o responsável.</div>
-              </div>
-              <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
-                {equipeDisponivelTodos.map(u => {
-                  const sel = (f.ciencia || []).includes(u.id);
-                  return (
-                    <button key={u.id} type="button"
-                      onClick={() => upd("ciencia", sel ? (f.ciencia || []).filter(x => x !== u.id) : [...(f.ciencia || []), u.id])}
-                      style={{ display:"flex", alignItems:"center", gap:5, padding:"4px 12px", borderRadius:20, border:`1.5px solid ${sel?"#2563eb":"#e2e8f0"}`, background:sel?"#eff6ff":"#fff", color:sel?"#1d4ed8":"#475569", fontSize:12, fontWeight:sel?700:400, cursor:"pointer" }}>
-                      {sel ? "✓ " : ""}{u.nome} <span style={{ color:"#94a3b8", fontSize:11, marginLeft:3 }}>({perfilLabel(u.perfil)})</span>
-                    </button>
-                  );
-                })}
-              </div>
-              {(f.ciencia || []).length > 0 && <div style={{ fontSize:12, color:"#2563eb", fontWeight:600 }}>👁️ {f.ciencia.length} usuário(s) receberão ciência desta comunicação</div>}
-            </div>
             {/* Encaminhamento */}
             <label style={{ display:"flex", alignItems:"flex-start", gap:10, cursor:"pointer", padding:12, borderRadius:8, border:`1.5px solid ${f.encaminhar?"#2563eb":"#e2e8f0"}`, background:f.encaminhar?"#eff6ff":"#fff" }}>
               <input type="checkbox" checked={f.encaminhar} onChange={e => { upd("encaminhar", e.target.checked); if (!e.target.checked) { upd("encDestino", ""); upd("encResponsavelId", ""); upd("encResponsavelNome", ""); upd("encObs", ""); }}} style={{ marginTop:2 }} />
