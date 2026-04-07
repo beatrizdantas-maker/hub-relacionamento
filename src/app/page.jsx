@@ -3189,6 +3189,7 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
         avatar: dados.nome.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase()
       }).eq("id", dados.id);
       setEquipeLocal(p => p.map(x => x.id === dados.id ? { ...x, ...dados } : x));
+      setEquipe(p => p.map(x => x.id === dados.id ? { ...x, ...dados } : x));
       setEditando(null);
     };
 
@@ -3206,6 +3207,7 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
         };
         await supabase.from("profiles").upsert(novo);
         setEquipeLocal(p => [...p, { ...novo, email: f.email }].sort((a, b) => (a.nome || "").localeCompare(b.nome || "")));
+        setEquipe(p => [...p, { ...novo, email: f.email }].sort((a, b) => (a.nome || "").localeCompare(b.nome || "")));
       }
       return null;
     };
