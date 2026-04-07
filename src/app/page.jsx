@@ -3204,6 +3204,7 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
               <Av initials={u.avatar || (u.nome || "?").slice(0, 2).toUpperCase()} color={u.ativo === false ? "#ef4444" : "#7c3aed"} size={44} />
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 800, fontSize: 15, color: u.ativo === false ? "#94a3b8" : "#1e293b" }}>{u.nome}</div>
+                {u.email && <div style={{ fontSize: 11, color: "#64748b", marginTop: 1 }}>{u.email}</div>}
                 <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 2 }}>
                   {perfilLabel(u.perfil)}{u.cargo ? ` · ${u.cargo}` : ""}{u.turma_vinculada ? ` · Turma: ${u.turma_vinculada}` : ""}
                   {u.ativo === false && <span style={{ marginLeft: 8, color: "#ef4444", fontWeight: 700 }}>• Inativo</span>}
@@ -3302,6 +3303,7 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
       <>
         <MBody>
           <Input label="Nome completo *" error={err.nome} value={f.nome} onChange={e => upd("nome", e.target.value)} />
+          {usuario.email && <div style={{ padding: "8px 12px", background: "#f1f5f9", borderRadius: 8, fontSize: 13, color: "#475569" }}>📧 {usuario.email}</div>}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <Sel label="Perfil" value={f.perfil} onChange={e => upd("perfil", e.target.value)}>
               {PERFIS.map(p => <option key={p} value={p}>{perfilLabel(p)}</option>)}
