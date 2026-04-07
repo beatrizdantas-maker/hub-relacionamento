@@ -92,6 +92,123 @@ const Loading = ({ msg = "Carregando..." }) => (
   </div>
 );
 
+// ── IMPRESSÃO DE COMUNICAÇÃO ──────────────────────────────────────────────────
+function imprimirComunicacao({ comunicacao, aluno, escola, profile }) {
+  const iniciais = (aluno?.nome || "").split(" ").filter(Boolean).map(p => p[0]).join("").slice(0, 2).toUpperCase();
+  const dataHoje = new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
+  const status = comunicacao.status || "CONCLUÍDO";
+  const badgeColor = status === "CONCLUÍDO" ? "background:#EAF3DE;color:#3B6D11" : "background:#FAEEDA;color:#854F0B";
+  const dotColor = status === "CONCLUÍDO" ? "#639922" : "#854F0B";
+  const autorIniciais = (comunicacao.autor_nome || profile?.nome || "").split(" ").filter(Boolean).map(p => p[0]).join("").slice(0, 2).toUpperCase();
+  const logoHtml = escola?.logo_url ? `<img style="height:80px;width:auto" src="${escola.logo_url}" alt="${escola.nome}" />` : `<div style="font-size:24px;font-weight:800;color:#1a4f8a">${escola?.nome || "Escola"}</div>`;
+
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Comunicação - ${aluno?.nome}</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:#f8fafc;color:#1e293b}
+.w{max-width:680px;margin:1.5rem auto;padding:0 1rem 2rem}
+.card{background:#fff;border:0.5px solid #e2e8f0;border-radius:12px;overflow:hidden}
+.hdr{padding:1.25rem 1.5rem 1rem;border-bottom:3px solid #1a4f8a;display:flex;align-items:center;justify-content:center;background:#fff}
+.subhdr{padding:0.7rem 1.5rem;border-bottom:0.5px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;background:#f8fafc}
+.date{font-size:13px;color:#64748b}
+.badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:500;padding:4px 11px;border-radius:100px}
+.dot{width:6px;height:6px;border-radius:50%}
+.student{padding:1.25rem 1.5rem 1rem;display:flex;align-items:center;gap:14px;border-bottom:0.5px solid #e2e8f0}
+.avatar{width:46px;height:46px;border-radius:50%;background:#EEEDFE;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:500;color:#3C3489;flex-shrink:0}
+.sname{font-family:'DM Serif Display',serif;font-size:20px;color:#1e293b;margin-bottom:4px}
+.pills{display:flex;gap:7px;flex-wrap:wrap}
+.pill{font-size:12px;font-weight:500;padding:3px 10px;border-radius:100px;background:#f8fafc;color:#64748b;border:0.5px solid #e2e8f0}
+.pill-w{background:#FAEEDA;color:#854F0B;border-color:transparent}
+.body{padding:1.25rem 1.5rem;border-bottom:0.5px solid #e2e8f0}
+.lbl{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:#94a3b8;margin-bottom:10px}
+.relato{font-size:14px;line-height:1.75;color:#1e293b;background:#f8fafc;border-radius:8px;padding:1rem 1.1rem;border-left:3px solid #1a4f8a}
+.relato-t{font-weight:500;font-size:13px;color:#64748b;margin-bottom:8px}
+.reg{padding:1rem 1.5rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;border-bottom:0.5px solid #e2e8f0}
+.reg-info{display:flex;align-items:center;gap:8px}
+.reg-dot{width:28px;height:28px;border-radius:50%;background:#E1F5EE;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;color:#0F6E56;flex-shrink:0}
+.reg-name{font-size:13px;font-weight:500;color:#1e293b}
+.reg-role{font-size:11px;color:#94a3b8}
+.com{font-size:12px;color:#64748b}
+.sig{padding:1.5rem 1.5rem 1.75rem}
+.sig-inner{display:flex;flex-direction:column;align-items:center;max-width:300px;margin:0 auto}
+.sig-space{height:52px}
+.sig-line{width:100%;height:1px;background:#e2e8f0}
+.sig-n{font-size:13px;font-weight:500;color:#1e293b;margin-top:8px;text-align:center}
+.sig-r{font-size:11px;color:#94a3b8;text-align:center;margin-top:2px}
+@media print{body{background:#fff}.w{margin:0;padding:0}.no-print{display:none!important}}
+</style></head><body>
+<div class="no-print" style="text-align:center;padding:16px">
+  <button onclick="window.print()" style="padding:10px 28px;background:#2563eb;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">🖨️ Imprimir</button>
+  <button onclick="window.close()" style="padding:10px 28px;background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;margin-left:8px">Fechar</button>
+</div>
+<div class="w"><div class="card">
+  <div class="hdr">${logoHtml}</div>
+  <div class="subhdr">
+    <span class="date">${comunicacao.data_registro || dataHoje}</span>
+    <span class="badge" style="${badgeColor}"><span class="dot" style="background:${dotColor}"></span>${status}</span>
+  </div>
+  <div class="student">
+    <div class="avatar">${iniciais}</div>
+    <div>
+      <div class="sname">${aluno?.nome || "—"}</div>
+      <div class="pills">
+        <span class="pill">${aluno?.turma || "—"}</span>
+        <span class="pill pill-w">${comunicacao.motivo_nome || comunicacao.titulo || "—"}</span>
+      </div>
+    </div>
+  </div>
+  <div class="body">
+    <div class="lbl">Relato</div>
+    <div class="relato">
+      <div class="relato-t">${comunicacao.titulo || comunicacao.motivo_nome || ""}</div>
+      ${comunicacao.detalhes || "—"}
+    </div>
+  </div>
+  <div class="reg">
+    <div class="reg-info">
+      <div class="reg-dot">${autorIniciais}</div>
+      <div>
+        <div class="reg-name">${comunicacao.autor_nome || profile?.nome || "—"}</div>
+        <div class="reg-role">Registrado por</div>
+      </div>
+    </div>
+    <div class="com">Com: ${comunicacao.com_quem || "—"}</div>
+  </div>
+  <div class="sig">
+    <div class="lbl" style="text-align:center;margin-bottom:1rem">Assinatura do Responsável</div>
+    <div class="sig-inner">
+      <div class="sig-space"></div>
+      <div class="sig-line"></div>
+      <div class="sig-n">${aluno?.responsavel || "Nome do Responsável"}</div>
+      <div class="sig-r">Responsável / Familiar</div>
+    </div>
+  </div>
+</div></div></body></html>`;
+
+  const win = window.open("", "_blank");
+  if (win) { win.document.write(html); win.document.close(); }
+}
+
+// ── MODAL CONFIRMAR IMPRESSÃO ────────────────────────────────────────────────
+function ModalConfirmarImpressao({ comunicacao, aluno, escola, profile, onClose }) {
+  return (
+    <Overlay onClose={onClose}>
+      <MBox width={420}>
+        <div style={{ padding: "28px 24px", textAlign: "center" }}>
+          <div style={{ fontSize: 40, marginBottom: 12 }}>🖨️</div>
+          <div style={{ fontSize: 18, fontWeight: 800, color: "#1e293b", marginBottom: 8 }}>Comunicação registrada!</div>
+          <div style={{ fontSize: 14, color: "#64748b", marginBottom: 24 }}>Deseja imprimir o relatório desta comunicação?</div>
+          <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+            <Btn variant="ghost" onClick={onClose}>Não, obrigado</Btn>
+            <Btn icon="🖨️" onClick={() => { imprimirComunicacao({ comunicacao, aluno, escola, profile }); onClose(); }}>Sim, imprimir</Btn>
+          </div>
+        </div>
+      </MBox>
+    </Overlay>
+  );
+}
+
 // ── MICROFONE + IA ─────────────────────────────────────────────────────────────
 function CampoRelato({ value, onChange, onBlur }) {
   const [gravando, setGravando] = useState(false);
@@ -1985,7 +2102,7 @@ function ModalEditarAluno({ aluno, onClose, onSave }) {
 }
 
 // ── PERFIL ALUNO ───────────────────────────────────────────────────────────────
-function PerfilAluno({ aluno: alunoInicial, comunicacoes, reunioes, onClose, profile, onAlunoAtualizado }) {
+function PerfilAluno({ aluno: alunoInicial, comunicacoes, reunioes, onClose, profile, onAlunoAtualizado, escola }) {
   const [aluno, setAluno] = useState(alunoInicial);
   const [tab, setTab] = useState("timeline");
   const [analisando, setAnalisando] = useState(false);
@@ -2030,12 +2147,15 @@ function PerfilAluno({ aluno: alunoInicial, comunicacoes, reunioes, onClose, pro
       <MBox width={720}>
         <MHead title={aluno.nome} subtitle={`${aluno.turma} · RM: ${aluno.rm}`} onClose={onClose} />
         <MBody>
-          {/* Botão editar — só para direção e secretaria */}
-          {podeEditar && (
-            <div style={{ display: "flex", justifyContent: "flex-end" }}>
-              <Btn small variant="ghost" icon="✏️" onClick={() => setEditando(true)}>Editar Cadastro</Btn>
-            </div>
-          )}
+          {/* Botões de ação */}
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+            <Btn small variant="ghost" icon="🖨️" onClick={() => {
+              const ultimaCom = coms[0];
+              if (ultimaCom) imprimirComunicacao({ comunicacao: ultimaCom, aluno, escola, profile });
+              else alert("Nenhuma comunicação registrada para este aluno.");
+            }}>Imprimir Ficha</Btn>
+            {podeEditar && <Btn small variant="ghost" icon="✏️" onClick={() => setEditando(true)}>Editar Cadastro</Btn>}
+          </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10 }}>
             {[{ label: "Risco", value: getRiscoNivel(aluno.risco), color: getRiscoColor(aluno.risco) }, { label: "Score", value: `${aluno.risco} pts`, color: getRiscoColor(aluno.risco) }, { label: "Comunicações", value: coms.length, color: "#2563eb" }, { label: "Presença", value: `${totalP}/${reunioesA.length}`, color: totalP < reunioesA.length / 2 ? "#ef4444" : "#22c55e" }].map(m => (
               <div key={m.label} style={{ background: "#f8fafc", borderRadius: 10, padding: "12px 14px", border: "1px solid #e2e8f0", textAlign: "center" }}>
@@ -2176,6 +2296,7 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
   const [modalNovaReuniao, setModalNovaReuniao] = useState(false);
   const [modalNovoAluno, setModalNovoAluno] = useState(false);
   const [alunoSel, setAlunoSel] = useState(null);
+  const [comParaImprimir, setComParaImprimir] = useState(null);
 
   useEffect(() => { carregarTudo(); }, [escola.id]);
 
@@ -2196,7 +2317,7 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
     setLoading(false);
   };
 
-  const addCom = (c) => setComunicacoes(p => [c, ...p]);
+  const addCom = (c) => { setComunicacoes(p => [c, ...p]); setComParaImprimir(c); };
   const addReuniao = (r) => setReunioes(p => [r, ...p]);
   const addAluno = (a) => setAlunos(p => [...p, a].sort((x, y) => (x.nome || "").localeCompare(y.nome || "")));
   const atualizarAluno = (a) => setAlunos(p => p.map(x => x.id === a.id ? a : x));
@@ -2900,7 +3021,8 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
       {modalNovaCom && <ModalNovaCom onClose={() => setModalNovaCom(false)} onSave={addCom} profile={profile} alunos={alunos} equipe={equipe} motivos={motivos} escolaId={escola.id} />}
       {modalNovaReuniao && <ModalNovaReuniao onClose={() => setModalNovaReuniao(false)} onSave={addReuniao} profile={profile} alunos={alunos} escolaId={escola.id} />}
       {modalNovoAluno && <ModalNovoAluno onClose={() => setModalNovoAluno(false)} onSave={addAluno} profile={profile} escolaId={escola.id} />}
-      {alunoSel && <PerfilAluno aluno={alunoSel} comunicacoes={comunicacoes} reunioes={reunioes} profile={profile} onClose={() => setAlunoSel(null)} onAlunoAtualizado={atualizarAluno} />}
+      {alunoSel && <PerfilAluno aluno={alunoSel} comunicacoes={comunicacoes} reunioes={reunioes} profile={profile} onClose={() => setAlunoSel(null)} onAlunoAtualizado={atualizarAluno} escola={escola} />}
+      {comParaImprimir && <ModalConfirmarImpressao comunicacao={comParaImprimir} aluno={alunos.find(a => a.id === comParaImprimir.aluno_id)} escola={escola} profile={profile} onClose={() => setComParaImprimir(null)} />}
     </div>
   );
 }
