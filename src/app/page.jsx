@@ -2493,7 +2493,38 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
     const [busca, setBusca] = useState("");
     const [resolving, setResolving] = useState(null);
     const [expandido, setExpandido] = useState(null);
-    const visiveis = comsVisiveis.filter(c => !busca || alunos.find(a => a.id === c.aluno_id)?.nome?.toLowerCase().includes(busca.toLowerCase()) || c.titulo?.toLowerCase().includes(busca.toLowerCase()));
+    const [filtroUrgencia, setFiltroUrgencia] = useState("TODOS");
+    const [filtroStatus, setFiltroStatus] = useState("TODOS");
+    const [filtroTurma, setFiltroTurma] = useState("TODOS");
+    const [filtroPeriodo, setFiltroPeriodo] = useState("TODOS");
+
+    const turmas = [...new Set(alunos.map(a => a.turma).filter(Boolean))].sort();
+
+    const dentroDoPeríodo = (dataStr) => {
+      if (filtroPeriodo === "TODOS") return true;
+      if (!dataStr) return false;
+      const partes = dataStr.split("/");
+      if (partes.length !== 3) return false;
+      const dataReg = new Date(partes[2], partes[1] - 1, partes[0]);
+      const hoje = new Date(); hoje.setHours(0,0,0,0);
+      if (filtroPeriodo === "HOJE") return dataReg.toDateString() === hoje.toDateString();
+      if (filtroPeriodo === "7DIAS") { const d = new Date(hoje); d.setDate(d.getDate() - 7); return dataReg >= d; }
+      if (filtroPeriodo === "30DIAS") { const d = new Date(hoje); d.setDate(d.getDate() - 30); return dataReg >= d; }
+      return true;
+    };
+
+    const visiveis = comsVisiveis.filter(c => {
+      const aluno = alunos.find(a => a.id === c.aluno_id);
+      if (busca && !aluno?.nome?.toLowerCase().includes(busca.toLowerCase()) && !c.titulo?.toLowerCase().includes(busca.toLowerCase())) return false;
+      if (filtroUrgencia !== "TODOS" && (c.urgencia || "") !== filtroUrgencia) return false;
+      if (filtroStatus !== "TODOS" && (c.status || "") !== filtroStatus) return false;
+      if (filtroTurma !== "TODOS" && aluno?.turma !== filtroTurma) return false;
+      if (!dentroDoPeríodo(c.data_registro)) return false;
+      return true;
+    });
+
+    const selStyle = { padding: "6px 12px", border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 12, outline: "none", background: "#fafafa", color: "#1e293b", cursor: "pointer" };
+
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
@@ -2501,10 +2532,40 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
           <Btn icon="+" onClick={() => setModalNovaCom(true)}>Nova Comunicação</Btn>
         </div>
         <Card>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 10 }}>
             <h3 style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>Histórico de Registros</h3>
             <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="🔍 Buscar..." style={{ padding: "8px 14px", border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 13, outline: "none", width: 240 }} />
           </div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+            <select value={filtroUrgencia} onChange={e => setFiltroUrgencia(e.target.value)} style={selStyle}>
+              <option value="TODOS">Urgência: Todas</option>
+              <option value="BAIXA">🟢 Baixa</option>
+              <option value="MEDIA">🟡 Média</option>
+              <option value="ALTA">🔴 Alta</option>
+            </select>
+            <select value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)} style={selStyle}>
+              <option value="TODOS">Status: Todos</option>
+              <option value="PENDENTE">Pendente</option>
+              <option value="EM_ANALISE">Em Análise</option>
+              <option value="CONCLUÍDO">Concluído</option>
+              <option value="RESOLVIDO">Resolvido</option>
+            </select>
+            <select value={filtroTurma} onChange={e => setFiltroTurma(e.target.value)} style={selStyle}>
+              <option value="TODOS">Turma: Todas</option>
+              {turmas.map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
+            <select value={filtroPeriodo} onChange={e => setFiltroPeriodo(e.target.value)} style={selStyle}>
+              <option value="TODOS">Período: Todo</option>
+              <option value="HOJE">Hoje</option>
+              <option value="7DIAS">Últimos 7 dias</option>
+              <option value="30DIAS">Últimos 30 dias</option>
+            </select>
+            {(filtroUrgencia !== "TODOS" || filtroStatus !== "TODOS" || filtroTurma !== "TODOS" || filtroPeriodo !== "TODOS") && (
+              <button onClick={() => { setFiltroUrgencia("TODOS"); setFiltroStatus("TODOS"); setFiltroTurma("TODOS"); setFiltroPeriodo("TODOS"); }}
+                style={{ padding: "6px 12px", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 600, background: "#fef2f2", color: "#ef4444", cursor: "pointer" }}>✕ Limpar filtros</button>
+            )}
+          </div>
+          <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 8 }}>{visiveis.length} registro(s) encontrado(s)</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {visiveis.length === 0 && <div style={{ textAlign: "center", color: "#94a3b8", padding: 32 }}>Nenhum registro encontrado.</div>}
             {visiveis.map(c => {
