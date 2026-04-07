@@ -2825,29 +2825,67 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
   const EncaminhamentosPage = () => {
     const [resolving, setResolving] = useState(null);
     const [filtro, setFiltro] = useState("TODOS");
+    const [filtroUsuario, setFiltroUsuario] = useState("TODOS");
     const [ordenarEnc, setOrdenarEnc] = useState("DATA");
     const urgOrdemEnc = { "ALTA": 0, "MEDIA": 1, "BAIXA": 2 };
     const encs = comsVisiveis.filter(c => c.encaminhamento);
-    const filtrados = (filtro === "TODOS" ? encs : encs.filter(c => c.enc_status === filtro)).sort((a, b) => {
-      if (ordenarEnc === "URGENCIA") {
-        const concA = (a.enc_status === "RESOLVIDO") ? 1 : 0;
-        const concB = (b.enc_status === "RESOLVIDO") ? 1 : 0;
-        if (concA !== concB) return concA - concB;
-        const ua = urgOrdemEnc[a.urgencia] ?? 3;
-        const ub = urgOrdemEnc[b.urgencia] ?? 3;
-        return ua - ub;
-      }
-      return 0;
-    });
+
+    // Usuários que têm encaminhamentos
+    const usuariosEnc = [...new Map(encs.map(c => [c.enc_responsavel_id, { id: c.enc_responsavel_id, nome: c.enc_responsavel }]).filter(([id]) => id)).values()];
+    // Contagem de pendências por usuário
+    const pendenciasPorUsuario = usuariosEnc.map(u => ({
+      ...u,
+      pendentes: encs.filter(c => c.enc_responsavel_id === u.id && c.enc_status !== "RESOLVIDO").length,
+      total: encs.filter(c => c.enc_responsavel_id === u.id).length
+    })).sort((a, b) => b.pendentes - a.pendentes);
+
+    const filtrados = (filtro === "TODOS" ? encs : encs.filter(c => c.enc_status === filtro))
+      .filter(c => filtroUsuario === "TODOS" || c.enc_responsavel_id === filtroUsuario)
+      .sort((a, b) => {
+        if (ordenarEnc === "URGENCIA") {
+          const concA = (a.enc_status === "RESOLVIDO") ? 1 : 0;
+          const concB = (b.enc_status === "RESOLVIDO") ? 1 : 0;
+          if (concA !== concB) return concA - concB;
+          const ua = urgOrdemEnc[a.urgencia] ?? 3;
+          const ub = urgOrdemEnc[b.urgencia] ?? 3;
+          return ua - ub;
+        }
+        return 0;
+      });
+
+    const selStyle = { padding: "6px 12px", border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 12, outline: "none", background: "#fafafa", color: "#1e293b", cursor: "pointer" };
+
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
         <div><h1 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: "#1e293b" }}>📨 Encaminhamentos</h1><p style={{ margin: "4px 0 0", fontSize: 14, color: "#94a3b8" }}>Acompanhe os casos encaminhados.</p></div>
+
+        {/* Cards de pendências por usuário */}
+        {(profile.perfil === "DIRECAO" || profile.perfil === "SUPER_ADMIN") && pendenciasPorUsuario.length > 0 && (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(160px,1fr))", gap: 8 }}>
+            {pendenciasPorUsuario.map(u => (
+              <button key={u.id} onClick={() => setFiltroUsuario(filtroUsuario === u.id ? "TODOS" : u.id)}
+                style={{ padding: "12px 14px", borderRadius: 10, border: `2px solid ${filtroUsuario === u.id ? "#2563eb" : u.pendentes > 0 ? "#fecaca" : "#bbf7d0"}`, background: filtroUsuario === u.id ? "#eff6ff" : u.pendentes > 0 ? "#fef2f2" : "#f0fdf4", cursor: "pointer", textAlign: "left" }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b" }}>{u.nome}</div>
+                <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+                  <span style={{ fontSize: 18, fontWeight: 900, color: u.pendentes > 0 ? "#ef4444" : "#22c55e" }}>{u.pendentes}</span>
+                  <span style={{ fontSize: 11, color: "#94a3b8", alignSelf: "flex-end", marginBottom: 2 }}>pendente{u.pendentes !== 1 ? "s" : ""} / {u.total} total</span>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
           {["TODOS", "PENDENTE", "EM_ANALISE", "RESOLVIDO"].map(f => (<button key={f} onClick={() => setFiltro(f)} style={{ padding: "6px 14px", borderRadius: 20, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700, background: filtro === f ? "#2563eb" : "#f1f5f9", color: filtro === f ? "#fff" : "#64748b" }}>{getStLabel(f)} ({f === "TODOS" ? encs.length : encs.filter(c => c.enc_status === f).length})</button>))}
-          <select value={ordenarEnc} onChange={e => setOrdenarEnc(e.target.value)} style={{ padding: "6px 12px", border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 12, outline: "none", background: "#fafafa", color: "#1e293b", cursor: "pointer", marginLeft: "auto" }}>
+          <select value={filtroUsuario} onChange={e => setFiltroUsuario(e.target.value)} style={selStyle}>
+            <option value="TODOS">Responsável: Todos</option>
+            {pendenciasPorUsuario.map(u => <option key={u.id} value={u.id}>{u.nome} ({u.pendentes} pend.)</option>)}
+          </select>
+          <select value={ordenarEnc} onChange={e => setOrdenarEnc(e.target.value)} style={{ ...selStyle, marginLeft: "auto" }}>
             <option value="DATA">Ordenar: Data</option>
             <option value="URGENCIA">Ordenar: Urgência</option>
           </select>
+          {filtroUsuario !== "TODOS" && <button onClick={() => setFiltroUsuario("TODOS")} style={{ padding: "6px 12px", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 600, background: "#fef2f2", color: "#ef4444", cursor: "pointer" }}>✕ Limpar</button>}
         </div>
         <Card>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
