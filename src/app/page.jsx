@@ -2212,7 +2212,7 @@ function ModalNovoAluno({ onClose, onSave, profile, escolaId }) {
               💡 <b>Dica:</b> Copie e cole direto de uma planilha Excel na ordem: <b>Nome → Responsável → Turma → Telefone</b>
             </div>
             <div style={{ overflowX: "auto", borderRadius: 10, border: "1px solid #e2e8f0" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 600 }}>
+              <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}><table style={{ width: "100%", borderCollapse: "collapse", minWidth: 600 }}>
                 <thead><tr>
                   <th style={{ ...thS, width: 36, textAlign: "center" }}>#</th>
                   <th style={{ ...thS, width: "32%" }}>Nome do Aluno *</th>
@@ -2232,7 +2232,7 @@ function ModalNovoAluno({ onClose, onSave, profile, escolaId }) {
                     </tr>);
                   })}
                 </tbody>
-              </table>
+              </table></div>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <button onClick={addLinhas} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "#2563eb", fontWeight: 600, padding: 0 }}>+ Adicionar 5 linhas</button>
@@ -2354,7 +2354,7 @@ function PerfilAluno({ aluno: alunoInicial, comunicacoes, reunioes, onClose, pro
             }}>Imprimir Ficha</Btn>
             {podeEditar && <Btn small variant="ghost" icon="✏️" onClick={() => setEditando(true)}>Editar Cadastro</Btn>}
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10 }}>
+          <div className="grid-4" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10 }}>
             {[{ label: "Risco", value: getRiscoNivel(aluno.risco), color: getRiscoColor(aluno.risco) }, { label: "Score", value: `${aluno.risco} pts`, color: getRiscoColor(aluno.risco) }, { label: "Comunicações", value: coms.length, color: "#2563eb" }, { label: "Presença", value: `${totalP}/${reunioesA.length}`, color: totalP < reunioesA.length / 2 ? "#ef4444" : "#22c55e" }].map(m => (
               <div key={m.label} style={{ background: "#f8fafc", borderRadius: 10, padding: "12px 14px", border: "1px solid #e2e8f0", textAlign: "center" }}>
                 <div style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600, marginBottom: 4 }}>{m.label}</div>
@@ -2484,6 +2484,7 @@ function PerfilAluno({ aluno: alunoInicial, comunicacoes, reunioes, onClose, pro
 // ── SCHOOL APP ─────────────────────────────────────────────────────────────────
 function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub }) {
   const [pagina, setPagina] = useState("dashboard");
+  const [menuAberto, setMenuAberto] = useState(false);
   const [alunos, setAlunos] = useState([]);
   const [comunicacoes, setComunicacoes] = useState([]);
   const [reunioes, setReunioes] = useState([]);
@@ -2565,7 +2566,7 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
             </Card>
           ))}
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }} className="grid-2"}>
           <Card>
             <h3 style={{ margin: "0 0 16px", fontSize: 15, fontWeight: 700, color: "#1e293b" }}>📊 Radar de Risco</h3>
             <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
@@ -2589,7 +2590,7 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
             )}
           </Card>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }} className="grid-2"}>
           <Card>
             <h3 style={{ margin: "0 0 12px", fontSize: 15, fontWeight: 700, color: "#1e293b" }}>📋 Encaminhamentos Pendentes</h3>
             {pendentes.length === 0 ? <div style={{ color: "#94a3b8", fontSize: 13, textAlign: "center", padding: 20 }}>Nenhum pendente</div> : (
@@ -2745,7 +2746,7 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
         <Card>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 10 }}>
             <h3 style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>Histórico de Registros</h3>
-            <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="🔍 Buscar..." style={{ padding: "8px 14px", border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 13, outline: "none", width: 240 }} />
+            <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="🔍 Buscar..." className="busca-input" style={{ padding: "8px 14px", border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 13, outline: "none", width: 240 }} />
           </div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
             <select value={filtroUrgencia} onChange={e => setFiltroUrgencia(e.target.value)} style={selStyle}>
@@ -3307,42 +3308,81 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
     );
   };
 
+  const sidebarContent = (
+    <>
+      <div style={{ padding: "16px", borderBottom: "1px solid #f1f5f9" }}>
+        {escola.logo_url ? (
+          <img src={escola.logo_url} alt={escola.nome} style={{ height: 36, objectFit: "contain", maxWidth: "100%", marginBottom: 6 }} />
+        ) : (
+          <svg width="120" height="28" viewBox="0 0 180 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <text x="0" y="40" fontFamily="system-ui,sans-serif" fontWeight="900" fontSize="36" fill="#a855f7">NARA</text>
+            <text x="93" y="40" fontFamily="system-ui,sans-serif" fontWeight="700" fontSize="26" fill="#86efac">EDU</text>
+            <text x="145" y="40" fontFamily="system-ui,sans-serif" fontWeight="900" fontSize="26" fill="#a855f7">360</text>
+          </svg>
+        )}
+        <div style={{ fontSize: 10, fontWeight: 700, color: "#a855f7", marginTop: 4, letterSpacing: 0.5 }}>💬 NARA Relacionamento</div>
+        <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2, fontWeight: 600 }}>{escola.nome}</div>
+        {escola.status === "SUSPENSA" && <div style={{ marginTop: 4, padding: "2px 8px", background: "#fef2f2", borderRadius: 6, fontSize: 10, color: "#ef4444", fontWeight: 700 }}>🔴 SUSPENSA</div>}
+      </div>
+      <nav style={{ flex: 1, padding: "12px 8px", display: "flex", flexDirection: "column", gap: 2 }}>
+        {nav.map(item => (
+          <button key={item.id} onClick={() => { setPagina(item.id); setMenuAberto(false); }} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: 8, border: "none", cursor: "pointer", textAlign: "left", fontSize: 13, fontWeight: pagina === item.id ? 800 : 500, background: pagina === item.id ? "#eff6ff" : "transparent", color: pagina === item.id ? "#2563eb" : "#475569" }}>
+            <span style={{ fontSize: 15 }}>{item.icon}</span>{item.label}
+          </button>
+        ))}
+      </nav>
+      <div style={{ padding: "12px 8px", borderTop: "1px solid #f1f5f9" }}>
+        {onVoltarAdmin && <button onClick={onVoltarAdmin} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700, color: "#7c3aed", background: "transparent", width: "100%" }}>← Admin Global</button>}
+        <button onClick={onLogout} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600, color: "#ef4444", background: "transparent", width: "100%" }}>↪ Sair</button>
+      </div>
+    </>
+  );
+
   return (
     <div style={{ display: "flex", minHeight: "100vh", fontFamily: "system-ui,sans-serif", background: "#f8fafc" }}>
-      <div style={{ width: 210, background: "#fff", borderRight: "1px solid #e2e8f0", display: "flex", flexDirection: "column", flexShrink: 0, position: "sticky", top: 0, height: "100vh" }}>
-        <div style={{ padding: "16px", borderBottom: "1px solid #f1f5f9" }}>
-          {escola.logo_url ? (
-            <img src={escola.logo_url} alt={escola.nome} style={{ height: 36, objectFit: "contain", maxWidth: "100%", marginBottom: 6 }} />
-          ) : (
-            <svg width="120" height="28" viewBox="0 0 180 52" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <text x="0" y="40" fontFamily="system-ui,sans-serif" fontWeight="900" fontSize="36" fill="#a855f7">NARA</text>
-              <text x="93" y="40" fontFamily="system-ui,sans-serif" fontWeight="700" fontSize="26" fill="#86efac">EDU</text>
-              <text x="145" y="40" fontFamily="system-ui,sans-serif" fontWeight="900" fontSize="26" fill="#a855f7">360</text>
-            </svg>
-          )}
-          <div style={{ fontSize: 10, fontWeight: 700, color: "#a855f7", marginTop: 4, letterSpacing: 0.5 }}>💬 NARA Relacionamento</div>
-          <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2, fontWeight: 600 }}>{escola.nome}</div>
-          {escola.status === "SUSPENSA" && <div style={{ marginTop: 4, padding: "2px 8px", background: "#fef2f2", borderRadius: 6, fontSize: 10, color: "#ef4444", fontWeight: 700 }}>🔴 SUSPENSA</div>}
-        </div>
-        <nav style={{ flex: 1, padding: "12px 8px", display: "flex", flexDirection: "column", gap: 2 }}>
-          {nav.map(item => (
-            <button key={item.id} onClick={() => setPagina(item.id)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: 8, border: "none", cursor: "pointer", textAlign: "left", fontSize: 13, fontWeight: pagina === item.id ? 800 : 500, background: pagina === item.id ? "#eff6ff" : "transparent", color: pagina === item.id ? "#2563eb" : "#475569" }}>
-              <span style={{ fontSize: 15 }}>{item.icon}</span>{item.label}
-            </button>
-          ))}
-        </nav>
-        <div style={{ padding: "12px 8px", borderTop: "1px solid #f1f5f9" }}>
+      <style>{`
+        @media(max-width:768px){
+          .sidebar-desktop{display:none!important}
+          .sidebar-mobile-overlay{display:block!important}
+          .topbar-hamburger{display:flex!important}
+          .main-content{padding:16px!important}
+          .grid-2{grid-template-columns:1fr!important}
+          .grid-4{grid-template-columns:repeat(2,1fr)!important}
+          .grid-auto{grid-template-columns:1fr!important}
+          .hide-mobile{display:none!important}
+          .busca-input{width:100%!important}
+        }
+        @media(min-width:769px){
+          .sidebar-mobile-overlay{display:none!important}
+          .topbar-hamburger{display:none!important}
+        }
+      `}</style>
 
-          {onVoltarAdmin && <button onClick={onVoltarAdmin} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700, color: "#7c3aed", background: "transparent", width: "100%" }}>← Admin Global</button>}
-          <button onClick={onLogout} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600, color: "#ef4444", background: "transparent", width: "100%" }}>↪ Sair</button>
-        </div>
+      {/* Sidebar desktop */}
+      <div className="sidebar-desktop" style={{ width: 210, background: "#fff", borderRight: "1px solid #e2e8f0", display: "flex", flexDirection: "column", flexShrink: 0, position: "sticky", top: 0, height: "100vh" }}>
+        {sidebarContent}
       </div>
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
-        <div style={{ background: "#fff", borderBottom: "1px solid #e2e8f0", padding: "0 28px", height: 52, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 12, flexShrink: 0 }}>
-          <div style={{ textAlign: "right" }}><div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b" }}>{profile.nome}</div><div style={{ fontSize: 11, color: "#94a3b8" }}>{perfilLabel(profile.perfil)}</div></div>
-          <Av initials={profile.avatar || (profile.nome || "?").slice(0, 2).toUpperCase()} color="#2563eb" />
+
+      {/* Sidebar mobile overlay */}
+      {menuAberto && (
+        <div className="sidebar-mobile-overlay" style={{ position: "fixed", inset: 0, zIndex: 600 }}>
+          <div onClick={() => setMenuAberto(false)} style={{ position: "absolute", inset: 0, background: "rgba(15,23,42,.5)" }} />
+          <div style={{ position: "relative", width: 260, height: "100%", background: "#fff", display: "flex", flexDirection: "column", boxShadow: "4px 0 20px rgba(0,0,0,.15)" }}>
+            <button onClick={() => setMenuAberto(false)} style={{ position: "absolute", top: 12, right: 12, background: "none", border: "none", fontSize: 20, cursor: "pointer", color: "#64748b" }}>✕</button>
+            {sidebarContent}
+          </div>
         </div>
-        <div style={{ flex: 1, padding: 28, overflowY: "auto" }}>
+      )}
+
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+        <div style={{ background: "#fff", borderBottom: "1px solid #e2e8f0", padding: "0 16px", height: 52, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexShrink: 0 }}>
+          <button className="topbar-hamburger" onClick={() => setMenuAberto(true)} style={{ display: "none", alignItems: "center", justifyContent: "center", width: 36, height: 36, border: "none", background: "none", cursor: "pointer", fontSize: 20, color: "#475569" }}>☰</button>
+          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ textAlign: "right" }}><div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b" }}>{profile.nome}</div><div style={{ fontSize: 11, color: "#94a3b8" }}>{perfilLabel(profile.perfil)}</div></div>
+            <Av initials={profile.avatar || (profile.nome || "?").slice(0, 2).toUpperCase()} color="#2563eb" />
+          </div>
+        </div>
+        <div className="main-content" style={{ flex: 1, padding: 28, overflowY: "auto" }}>
           {pagina === "dashboard" && <DashboardPage />}
           {pagina === "alunos" && <AlunosPage />}
           {pagina === "turmas" && <TurmasPage />}
