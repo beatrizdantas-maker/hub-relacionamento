@@ -2566,7 +2566,7 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
             </Card>
           ))}
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }} className="grid-2"}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }} className="grid-2">
           <Card>
             <h3 style={{ margin: "0 0 16px", fontSize: 15, fontWeight: 700, color: "#1e293b" }}>📊 Radar de Risco</h3>
             <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
@@ -2590,7 +2590,7 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
             )}
           </Card>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }} className="grid-2"}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }} className="grid-2">
           <Card>
             <h3 style={{ margin: "0 0 12px", fontSize: 15, fontWeight: 700, color: "#1e293b" }}>📋 Encaminhamentos Pendentes</h3>
             {pendentes.length === 0 ? <div style={{ color: "#94a3b8", fontSize: 13, textAlign: "center", padding: 20 }}>Nenhum pendente</div> : (
