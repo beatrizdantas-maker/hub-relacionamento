@@ -98,26 +98,57 @@ function CampoRelato({ value, onChange, onBlur }) {
   const [transcricao, setTranscricao] = useState("");
   const [resumindo, setResumindo] = useState(false);
   const [resumo, setResumo] = useState("");
+  const [tempoGravacao, setTempoGravacao] = useState(0);
   const recRef = useRef(null);
+  const querPararRef = useRef(false);
+  const textoAcumuladoRef = useRef("");
+  const timerRef = useRef(null);
   const suportado = typeof window !== "undefined" && ("SpeechRecognition" in window || "webkitSpeechRecognition" in window);
-  const iniciar = () => {
-    if (!suportado) { alert("Use o Google Chrome para gravar voz."); return; }
+
+  const formatarTempo = (seg) => {
+    const m = Math.floor(seg / 60).toString().padStart(2, "0");
+    const s = (seg % 60).toString().padStart(2, "0");
+    return `${m}:${s}`;
+  };
+
+  const criarRecognition = () => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     const rec = new SR();
     rec.lang = "pt-BR"; rec.continuous = true; rec.interimResults = true;
-    let final = value || "";
     rec.onresult = (e) => {
       let interim = "";
       for (let i = e.resultIndex; i < e.results.length; i++) {
-        if (e.results[i].isFinal) final += e.results[i][0].transcript + " ";
+        if (e.results[i].isFinal) textoAcumuladoRef.current += e.results[i][0].transcript + " ";
         else interim = e.results[i][0].transcript;
       }
-      setTranscricao(interim); onChange(final + interim);
+      setTranscricao(interim); onChange(textoAcumuladoRef.current + interim);
     };
-    rec.onend = () => { setGravando(false); setTranscricao(""); };
-    rec.start(); recRef.current = rec; setGravando(true); setResumo("");
+    rec.onend = () => {
+      if (!querPararRef.current) {
+        try { const novo = criarRecognition(); novo.start(); recRef.current = novo; } catch {}
+      } else {
+        setGravando(false); setTranscricao("");
+        clearInterval(timerRef.current); timerRef.current = null;
+      }
+    };
+    return rec;
   };
-  const parar = () => { recRef.current?.stop(); setGravando(false); setTranscricao(""); };
+
+  const iniciar = () => {
+    if (!suportado) { alert("Use o Google Chrome para gravar voz."); return; }
+    querPararRef.current = false;
+    textoAcumuladoRef.current = value || "";
+    setTempoGravacao(0);
+    const rec = criarRecognition();
+    rec.start(); recRef.current = rec; setGravando(true); setResumo("");
+    timerRef.current = setInterval(() => setTempoGravacao(t => t + 1), 1000);
+  };
+
+  const parar = () => {
+    querPararRef.current = true;
+    recRef.current?.stop(); setGravando(false); setTranscricao("");
+    clearInterval(timerRef.current); timerRef.current = null;
+  };
   const resumir = async () => {
     if (!value?.trim()) return;
     setResumindo(true); setResumo("");
@@ -138,9 +169,12 @@ function CampoRelato({ value, onChange, onBlur }) {
       <div style={{ position: "relative" }}>
         <textarea value={value} onChange={e => onChange(e.target.value)} onBlur={onBlur} placeholder={gravando ? "🔴 Gravando... fale agora." : "Descreva o ocorrido ou clique no microfone para gravar."} rows={gravando ? 5 : 4}
           style={{ width: "100%", padding: "12px 50px 12px 14px", border: `1.5px solid ${gravando ? "#ef4444" : "#e2e8f0"}`, borderRadius: 8, fontSize: gravando ? 17 : 14, outline: "none", background: gravando ? "#fff5f5" : "#fafafa", color: "#1e293b", fontFamily: "inherit", resize: "vertical", boxSizing: "border-box", transition: "all .2s" }} />
-        <button type="button" onClick={gravando ? parar : iniciar} style={{ position: "absolute", right: 10, top: 10, width: 32, height: 32, borderRadius: "50%", border: "none", cursor: "pointer", background: gravando ? "#ef4444" : "#2563eb", color: "#fff", fontSize: 15, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          {gravando ? "⏹" : "🎤"}
-        </button>
+        <div style={{ position: "absolute", right: 10, top: 10, display: "flex", alignItems: "center", gap: 6 }}>
+          {gravando && <span style={{ fontSize: 11, fontWeight: 700, color: "#ef4444", fontFamily: "monospace" }}>{formatarTempo(tempoGravacao)}</span>}
+          <button type="button" onClick={gravando ? parar : iniciar} style={{ width: 32, height: 32, borderRadius: "50%", border: "none", cursor: "pointer", background: gravando ? "#ef4444" : "#2563eb", color: "#fff", fontSize: 15, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            {gravando ? "⏹" : "🎤"}
+          </button>
+        </div>
       </div>
       {gravando && <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "#fef2f2", borderRadius: 8, border: "1px solid #fecaca" }}>
         <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#ef4444" }} />
