@@ -2572,13 +2572,15 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
               const aluno = alunos.find(a => a.id === c.aluno_id);
               const exp = expandido === c.id;
               const podeAtualizar = (profile.perfil === "DIRECAO" || profile.perfil === "SUPER_ADMIN" || c.enc_responsavel_id === profile.id) && c.encaminhamento && c.enc_status !== "RESOLVIDO";
+              const urgBg = c.urgencia === "ALTA" ? "#fef2f2" : c.urgencia === "MEDIA" ? "#fffbeb" : c.urgencia === "BAIXA" ? "#f0fdf4" : "#fafafa";
+              const urgBorder = c.urgencia === "ALTA" ? "#fecaca" : c.urgencia === "MEDIA" ? "#fef3c7" : c.urgencia === "BAIXA" ? "#bbf7d0" : "#f1f5f9";
               return (
-                <div key={c.id} style={{ border: "1px solid #f1f5f9", borderRadius: 10, overflow: "hidden" }}>
-                  <div onClick={() => setExpandido(exp ? null : c.id)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", background: "#fafafa", cursor: "pointer", flexWrap: "wrap" }}>
+                <div key={c.id} style={{ border: `1px solid ${urgBorder}`, borderRadius: 10, overflow: "hidden" }}>
+                  <div onClick={() => setExpandido(exp ? null : c.id)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", background: urgBg, cursor: "pointer", flexWrap: "wrap" }}>
                     <div style={{ fontSize: 12, color: "#94a3b8", minWidth: 90 }}>{c.data_registro}</div>
                     <div style={{ flex: 1, minWidth: 160 }}><div style={{ fontWeight: 700, fontSize: 14, color: "#1e293b" }}>{aluno?.nome}</div><div style={{ fontSize: 12, color: "#64748b" }}>{aluno?.turma ? `${aluno.turma} · ` : ""}{c.titulo}</div></div>
                     <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                      {c.urgencia ? <Badge color={getUrgColor(c.urgencia)}>{c.urgencia}</Badge> : <span style={{ fontSize: 12, color: "#cbd5e1" }}>—</span>}
+                      {c.urgencia && <Badge color={getUrgColor(c.urgencia)}>{c.urgencia}</Badge>}
                       {c.encaminhamento && <Badge color="#7c3aed">📨 Encaminhado</Badge>}
                       <Badge color={getStColor(c.status)}>{getStLabel(c.status)}</Badge>
                       {podeAtualizar && <Btn small variant="success" onClick={e => { e.stopPropagation(); setResolving(c); }}>Atualizar</Btn>}
