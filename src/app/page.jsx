@@ -547,8 +547,8 @@ function ModalEscola({ escola, onClose, onSave }) {
 }
 
 // ── MODAL CADASTRAR USUÁRIO NA ESCOLA ──────────────────────────────────────────
-function ModalNovoUsuario({ escola, onClose, onSave }) {
-  const [f, setF] = useState({ nome: "", email: "", senha: "", perfil: "PROFESSOR", cargo: "" });
+function ModalNovoUsuario({ escola, onClose, onSave, turmasDisponiveis }) {
+  const [f, setF] = useState({ nome: "", email: "", senha: "", perfil: "PROFESSOR", cargo: "", turma_vinculada: "" });
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState({});
   const upd = (k, v) => setF(p => ({ ...p, [k]: v }));
@@ -578,7 +578,7 @@ function ModalNovoUsuario({ escola, onClose, onSave }) {
         if (signData.user) {
           await supabase.from("profiles").upsert({
             id: signData.user.id, nome: f.nome, perfil: f.perfil,
-            cargo: f.cargo, escola_id: escola.id,
+            cargo: f.cargo, turma_vinculada: f.turma_vinculada || null, escola_id: escola.id,
             avatar: f.nome.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase()
           });
           onSave({ id: signData.user.id, email: f.email, ...f, escola_id: escola.id });
@@ -586,7 +586,7 @@ function ModalNovoUsuario({ escola, onClose, onSave }) {
       } else if (authData.user) {
         await supabase.from("profiles").upsert({
           id: authData.user.id, nome: f.nome, perfil: f.perfil,
-          cargo: f.cargo, escola_id: escola.id,
+          cargo: f.cargo, turma_vinculada: f.turma_vinculada || null, escola_id: escola.id,
           avatar: f.nome.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase()
         });
         onSave({ id: authData.user.id, email: f.email, ...f, escola_id: escola.id });
@@ -609,6 +609,10 @@ function ModalNovoUsuario({ escola, onClose, onSave }) {
             </Sel>
             <Input label="Cargo (opcional)" value={f.cargo} onChange={e => upd("cargo", e.target.value)} placeholder="Ex: Coordenadora" />
           </div>
+          <Sel label="Turma vinculada (opcional)" value={f.turma_vinculada} onChange={e => upd("turma_vinculada", e.target.value)}>
+            <option value="">Nenhuma — só vê os próprios registros</option>
+            {(turmasDisponiveis || []).map(t => <option key={t} value={t}>{t}</option>)}
+          </Sel>
           <div style={{ padding: "12px 16px", background: "#fffbeb", borderRadius: 10, border: "1px solid #fef3c7", fontSize: 13, color: "#92400e" }}>
             ⚠️ O usuário receberá um e-mail de confirmação. Peça para ele confirmar antes de usar o sistema.
           </div>
@@ -623,8 +627,8 @@ function ModalNovoUsuario({ escola, onClose, onSave }) {
 }
 
 // ── MODAL EDITAR USUÁRIO ───────────────────────────────────────────────────────
-function ModalEditarUsuario({ usuario, onClose, onSave }) {
-  const [f, setF] = useState({ nome: usuario.nome || "", perfil: usuario.perfil || "PROFESSOR", cargo: usuario.cargo || "" });
+function ModalEditarUsuario({ usuario, onClose, onSave, turmasDisponiveis }) {
+  const [f, setF] = useState({ nome: usuario.nome || "", perfil: usuario.perfil || "PROFESSOR", cargo: usuario.cargo || "", turma_vinculada: usuario.turma_vinculada || "" });
   const [novaSenha, setNovaSenha] = useState("");
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState({});
@@ -640,7 +644,7 @@ function ModalEditarUsuario({ usuario, onClose, onSave }) {
     try {
       // Atualizar perfil
       const { error } = await supabase.from("profiles").update({
-        nome: f.nome.trim(), perfil: f.perfil, cargo: f.cargo,
+        nome: f.nome.trim(), perfil: f.perfil, cargo: f.cargo, turma_vinculada: f.turma_vinculada || null,
         avatar: f.nome.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase()
       }).eq("id", usuario.id);
       if (error) { setErr({ nome: error.message }); setSaving(false); return; }
@@ -650,7 +654,7 @@ function ModalEditarUsuario({ usuario, onClose, onSave }) {
         if (pwErr) setMsg("⚠️ Perfil atualizado, mas não foi possível alterar a senha pelo cliente. Use o painel Supabase para redefinir.");
         else setMsg("✅ Senha atualizada com sucesso!");
       }
-      onSave({ ...usuario, nome: f.nome, perfil: f.perfil, cargo: f.cargo });
+      onSave({ ...usuario, nome: f.nome, perfil: f.perfil, cargo: f.cargo, turma_vinculada: f.turma_vinculada || null });
     } catch (ex) { setErr({ nome: "Erro: " + ex.message }); }
     setSaving(false);
   };
@@ -667,6 +671,10 @@ function ModalEditarUsuario({ usuario, onClose, onSave }) {
             </Sel>
             <Input label="Cargo (opcional)" value={f.cargo} onChange={e => upd("cargo", e.target.value)} placeholder="Ex: Coordenadora" />
           </div>
+          <Sel label="Turma vinculada (opcional)" value={f.turma_vinculada} onChange={e => upd("turma_vinculada", e.target.value)}>
+            <option value="">Nenhuma — só vê os próprios registros</option>
+            {(turmasDisponiveis || []).map(t => <option key={t} value={t}>{t}</option>)}
+          </Sel>
           <div style={{ padding: "14px 16px", background: "#f8fafc", borderRadius: 10, border: "1px solid #e2e8f0" }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: "#475569", marginBottom: 8 }}>🔑 Redefinir Senha (opcional)</div>
             <Input label="Nova senha" type="password" error={err.senha} value={novaSenha} onChange={e => setNovaSenha(e.target.value)} placeholder="Deixe em branco para não alterar" />
@@ -1613,6 +1621,7 @@ function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos: motiv
     if (f.motivoId === "outro" && !f.motivoCustom?.trim()) e.motivoCustom = "Descreva o motivo";
     if (!f.detalhes.trim()) e.detalhes = "Descreva ou grave o relato";
     if (!f.comQuem) e.comQuem = "Obrigatório";
+    if (f.comQuem === "Profissional Externo" && !f.profExterno) e.profExterno = "Selecione o tipo";
     if (!f.via) e.via = "Obrigatório";
     if (f.encaminhar && !f.encResponsavelNome) e.encResponsavel = "Obrigatório";
     setErr(e); return Object.keys(e).length === 0;
@@ -1647,7 +1656,7 @@ function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos: motiv
       enc_responsavel: f.encaminhar ? f.encResponsavelNome : null,
       enc_responsavel_id: f.encaminhar ? f.encResponsavelId : null,
       enc_obs: f.encObs || null, enc_status: f.encaminhar ? "PENDENTE" : null,
-      status: f.encaminhar ? "PENDENTE" : "CONCLUÍDO", com_quem: f.comQuem,
+      status: f.encaminhar ? "PENDENTE" : "CONCLUÍDO", com_quem: f.comQuem === "Profissional Externo" ? `Profissional Externo — ${f.profExterno}` : f.comQuem,
       via_comunicacao: f.via,
       arquivo_url: arquivoUrl, arquivo_nome: arquivoNome
     };
@@ -1761,13 +1770,25 @@ function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos: motiv
                 <option value="ALTA">ALTA</option>
               </Sel>
             </div>
-            <Sel label="Comunicação com *" error={err.comQuem} value={f.comQuem} onChange={e => upd("comQuem", e.target.value)}>
+            <Sel label="Comunicação com *" error={err.comQuem} value={f.comQuem} onChange={e => { upd("comQuem", e.target.value); if (e.target.value !== "Profissional Externo") upd("profExterno", ""); }}>
               <option value="">Selecione...</option>
               <option>Responsável / Família</option>
               <option>Aluno</option>
               <option>Professor</option>
               <option>Outro setor</option>
+              <option>Profissional Externo</option>
             </Sel>
+            {f.comQuem === "Profissional Externo" && (
+              <Sel label="Tipo de profissional *" error={err.profExterno} value={f.profExterno || ""} onChange={e => upd("profExterno", e.target.value)}>
+                <option value="">Selecione...</option>
+                <option>Psicólogo</option>
+                <option>Psicanalista</option>
+                <option>Psicopedagogo</option>
+                <option>Terapeuta Ocupacional</option>
+                <option>Médico</option>
+                <option>Outros</option>
+              </Sel>
+            )}
             {/* Upload de arquivo */}
             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
               <label style={{ fontSize: 12, fontWeight: 600, color: "#475569" }}>📎 Anexar arquivo (opcional)</label>
@@ -1998,6 +2019,7 @@ function ModalResolucao({ item, onClose, onResolve, alunos, equipe }) {
   const [status, setStatus] = useState(item.enc_status === "PENDENTE" ? "EM_ANALISE" : "RESOLVIDO");
   const [resolucao, setResolucao] = useState("");
   const [comQuem, setComQuem] = useState("");
+  const [profExterno, setProfExterno] = useState("");
   const [via, setVia] = useState("");
   const [redirecionar, setRedirecionar] = useState(false);
   const [novoResponsavelId, setNovoResponsavelId] = useState("");
@@ -2030,7 +2052,8 @@ function ModalResolucao({ item, onClose, onResolve, alunos, equipe }) {
 
     const historicoAnterior = item.resolucao ? item.resolucao + "\n\n" : "";
     const dataAtual = new Date().toLocaleDateString("pt-BR");
-    const novaResolucao = `${historicoAnterior}[${dataAtual}] ${resolucao}${comQuem ? ` · Com: ${comQuem}` : ""}${via ? ` · Via: ${via}` : ""}`;
+    const comQuemFinal = comQuem === "Profissional Externo" && profExterno ? `Profissional Externo — ${profExterno}` : comQuem;
+    const novaResolucao = `${historicoAnterior}[${dataAtual}] ${resolucao}${comQuemFinal ? ` · Com: ${comQuemFinal}` : ""}${via ? ` · Via: ${via}` : ""}`;
 
     const updates = { enc_status: status, status, resolucao: novaResolucao };
     if (arquivoUrl) { updates.arquivo_url = arquivoUrl; updates.arquivo_nome = arquivoNome; }
@@ -2085,13 +2108,25 @@ function ModalResolucao({ item, onClose, onResolve, alunos, equipe }) {
             {err.resolucao && <span style={{ fontSize: 11, color: "#ef4444" }}>{err.resolucao}</span>}
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 12 }}>
-              <Sel label="Comunicação com" value={comQuem} onChange={e => setComQuem(e.target.value)}>
+              <Sel label="Comunicação com" value={comQuem} onChange={e => { setComQuem(e.target.value); if (e.target.value !== "Profissional Externo") setProfExterno(""); }}>
                 <option value="">Selecione...</option>
                 <option>Responsável / Família</option>
                 <option>Aluno</option>
                 <option>Professor</option>
                 <option>Outro setor</option>
+                <option>Profissional Externo</option>
               </Sel>
+              {comQuem === "Profissional Externo" && (
+                <Sel label="Tipo de profissional" value={profExterno} onChange={e => setProfExterno(e.target.value)}>
+                  <option value="">Selecione...</option>
+                  <option>Psicólogo</option>
+                  <option>Psicanalista</option>
+                  <option>Psicopedagogo</option>
+                  <option>Terapeuta Ocupacional</option>
+                  <option>Médico</option>
+                  <option>Outros</option>
+                </Sel>
+              )}
               <Sel label="Via" value={via} onChange={e => setVia(e.target.value)}>
                 <option value="">Selecione...</option>
                 <option value="Telefone">📞 Telefone</option>
@@ -2522,17 +2557,27 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
   const atualizarAluno = (a) => setAlunos(p => p.map(x => x.id === a.id ? a : x));
   const resolveEnc = (id, status, resolucao) => setComunicacoes(p => p.map(c => c.id === id ? { ...c, enc_status: status, status, resolucao } : c));
 
-  const isCan = (c) => profile.perfil === "DIRECAO" || profile.perfil === "SUPER_ADMIN" || profile.perfil === "RETENCAO" || c.autor_id === profile.id || c.enc_responsavel_id === profile.id;
+  const isCan = (c) => {
+    if (profile.perfil === "DIRECAO" || profile.perfil === "SUPER_ADMIN" || profile.perfil === "RETENCAO") return true;
+    if (c.autor_id === profile.id || c.enc_responsavel_id === profile.id) return true;
+    // Se o usuário tem turma vinculada, pode ver registros dos alunos dessa turma
+    if (profile.turma_vinculada) {
+      const aluno = alunos.find(a => a.id === c.aluno_id);
+      if (aluno && aluno.turma === profile.turma_vinculada) return true;
+    }
+    return false;
+  };
   const comsVisiveis = comunicacoes.filter(c => isCan(c));
 
+  const isProfessor = profile.perfil === "PROFESSOR";
   const nav = [
     { id: "dashboard", icon: "📊", label: "Dashboard" },
-    { id: "alunos", icon: "👨‍🎓", label: "Alunos" },
-    { id: "turmas", icon: "🏫", label: "Turmas" },
+    ...(!isProfessor ? [{ id: "alunos", icon: "👨‍🎓", label: "Alunos" }] : []),
+    ...(!isProfessor ? [{ id: "turmas", icon: "🏫", label: "Turmas" }] : []),
     { id: "comunicacoes", icon: "💬", label: "Comunicações" },
     { id: "encaminhamentos", icon: "📨", label: "Encaminhamentos" },
-    { id: "reunioes", icon: "📅", label: "Reuniões" },
-    { id: "retencao", icon: "📉", label: "Retenção" },
+    ...(!isProfessor ? [{ id: "reunioes", icon: "📅", label: "Reuniões" }] : []),
+    ...(!isProfessor ? [{ id: "retencao", icon: "📉", label: "Retenção" }] : []),
     ...(profile.perfil === "DIRECAO" || profile.perfil === "SUPER_ADMIN" ? [{ id: "equipe", icon: "👥", label: "Equipe" }] : []),
   ];
 
@@ -3105,7 +3150,7 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
 
     const salvarEdicao = async (dados) => {
       await supabase.from("profiles").update({
-        nome: dados.nome, perfil: dados.perfil, cargo: dados.cargo,
+        nome: dados.nome, perfil: dados.perfil, cargo: dados.cargo, turma_vinculada: dados.turma_vinculada || null,
         avatar: dados.nome.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase()
       }).eq("id", dados.id);
       setEquipeLocal(p => p.map(x => x.id === dados.id ? { ...x, ...dados } : x));
@@ -3121,7 +3166,7 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
       if (signData.user) {
         const novo = {
           id: signData.user.id, nome: f.nome, perfil: f.perfil,
-          cargo: f.cargo, escola_id: escola.id, ativo: true,
+          cargo: f.cargo, turma_vinculada: f.turma_vinculada || null, escola_id: escola.id, ativo: true,
           avatar: f.nome.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase()
         };
         await supabase.from("profiles").upsert(novo);
@@ -3160,7 +3205,7 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 800, fontSize: 15, color: u.ativo === false ? "#94a3b8" : "#1e293b" }}>{u.nome}</div>
                 <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 2 }}>
-                  {perfilLabel(u.perfil)}{u.cargo ? ` · ${u.cargo}` : ""}
+                  {perfilLabel(u.perfil)}{u.cargo ? ` · ${u.cargo}` : ""}{u.turma_vinculada ? ` · Turma: ${u.turma_vinculada}` : ""}
                   {u.ativo === false && <span style={{ marginLeft: 8, color: "#ef4444", fontWeight: 700 }}>• Inativo</span>}
                 </div>
               </div>
@@ -3192,8 +3237,10 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
     );
   };
 
+  const turmasDisponiveis = [...new Set(alunos.map(a => a.turma).filter(Boolean))].sort();
+
   const ModalEquipeNovo = ({ escola, onClose, onCriar }) => {
-    const [f, setF] = useState({ nome: "", email: "", senha: "", perfil: "PROFESSOR", cargo: "" });
+    const [f, setF] = useState({ nome: "", email: "", senha: "", perfil: "PROFESSOR", cargo: "", turma_vinculada: "" });
     const [saving, setSaving] = useState(false);
     const [err, setErr] = useState({});
     const upd = (k, v) => setF(p => ({ ...p, [k]: v }));
@@ -3222,6 +3269,10 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
               </Sel>
               <Input label="Cargo (opcional)" value={f.cargo} onChange={e => upd("cargo", e.target.value)} placeholder="Ex: Coordenadora" />
             </div>
+            <Sel label="Turma vinculada (opcional)" value={f.turma_vinculada} onChange={e => upd("turma_vinculada", e.target.value)}>
+              <option value="">Nenhuma — só vê os próprios registros</option>
+              {turmasDisponiveis.map(t => <option key={t} value={t}>{t}</option>)}
+            </Sel>
           </MBody>
           <MFoot>
             <Btn variant="ghost" onClick={onClose}>Cancelar</Btn>
@@ -3233,7 +3284,7 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
   };
 
   const ModalEquipeEditBody = ({ usuario, onSave, onClose }) => {
-    const [f, setF] = useState({ nome: usuario.nome || "", perfil: usuario.perfil || "PROFESSOR", cargo: usuario.cargo || "" });
+    const [f, setF] = useState({ nome: usuario.nome || "", perfil: usuario.perfil || "PROFESSOR", cargo: usuario.cargo || "", turma_vinculada: usuario.turma_vinculada || "" });
     const [novaSenha, setNovaSenha] = useState("");
     const [saving, setSaving] = useState(false);
     const [err, setErr] = useState({});
@@ -3257,6 +3308,10 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
             </Sel>
             <Input label="Cargo (opcional)" value={f.cargo} onChange={e => upd("cargo", e.target.value)} placeholder="Ex: Coordenadora" />
           </div>
+          <Sel label="Turma vinculada (opcional)" value={f.turma_vinculada} onChange={e => upd("turma_vinculada", e.target.value)}>
+            <option value="">Nenhuma — só vê os próprios registros</option>
+            {turmasDisponiveis.map(t => <option key={t} value={t}>{t}</option>)}
+          </Sel>
           <div style={{ padding: "12px 14px", background: "#f8fafc", borderRadius: 10, border: "1px solid #e2e8f0" }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: "#475569", marginBottom: 8 }}>🔑 Redefinir senha (opcional)</div>
             <Input label="Nova senha" type="password" error={err.senha} value={novaSenha} onChange={e => setNovaSenha(e.target.value)} placeholder="Deixe em branco para não alterar" />
