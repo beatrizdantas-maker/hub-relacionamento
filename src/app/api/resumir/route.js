@@ -14,8 +14,8 @@ export async function POST(request) {
       },
       body: JSON.stringify({
         model: "claude-haiku-4-5-20251001",
-        max_tokens: 500,
-        system: "Você é um assistente escolar. Resuma transcrições de conversas sobre alunos de forma clara e objetiva em português brasileiro. Use no máximo 4 frases. Foque no problema central e na situação do aluno.",
+        max_tokens: 1500,
+        system: "Você é um assistente escolar. Resuma transcrições de conversas sobre alunos de forma clara e objetiva em português brasileiro. Se o texto for curto (até 500 palavras), use no máximo 8 frases. Se o texto for longo (mais de 500 palavras, como reuniões longas), use até 12 frases. Foque no problema central, na situação do aluno e nas ações sugeridas ou combinadas.",
         messages: [{ role: "user", content: `Resuma este relato:\n\n${texto}` }],
       }),
     });
