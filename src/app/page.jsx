@@ -2624,8 +2624,11 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
             {filtrados.map(c => {
               const aluno = alunos.find(a => a.id === c.aluno_id);
               const podeAtualizar = (profile.perfil === "DIRECAO" || profile.perfil === "SUPER_ADMIN" || c.enc_responsavel_id === profile.id) && c.enc_status !== "RESOLVIDO";
+              const resolvido = c.enc_status === "RESOLVIDO";
+              const urgBgEnc = resolvido ? "#fff" : c.urgencia === "ALTA" ? "#fef2f2" : c.urgencia === "MEDIA" ? "#fffbeb" : c.urgencia === "BAIXA" ? "#f0fdf4" : "#fafafa";
+              const urgBorderEnc = resolvido ? "#e2e8f0" : c.urgencia === "ALTA" ? "#fecaca" : c.urgencia === "MEDIA" ? "#fef3c7" : c.urgencia === "BAIXA" ? "#bbf7d0" : "#f1f5f9";
               return (
-                <div key={c.id} style={{ padding: "14px 16px", borderRadius: 10, border: "1px solid #f1f5f9", background: "#fafafa" }}>
+                <div key={c.id} style={{ padding: "14px 16px", borderRadius: 10, border: `1px solid ${urgBorderEnc}`, background: urgBgEnc }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8 }}>
                     <div><div style={{ fontWeight: 700, fontSize: 15, color: "#1e293b" }}>{c.titulo}</div><div style={{ fontSize: 13, color: "#64748b" }}>{aluno?.nome} · {aluno?.turma}</div><div style={{ fontSize: 12, color: "#94a3b8", marginTop: 4 }}>{c.data_registro} · Para: {c.enc_destino} → {c.enc_responsavel}</div></div>
                     <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
