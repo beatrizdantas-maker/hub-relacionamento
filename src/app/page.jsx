@@ -609,10 +609,27 @@ function ModalNovoUsuario({ escola, onClose, onSave, turmasDisponiveis }) {
             </Sel>
             <Input label="Cargo (opcional)" value={f.cargo} onChange={e => upd("cargo", e.target.value)} placeholder="Ex: Coordenadora" />
           </div>
-          <Sel label="Turma vinculada (opcional)" value={f.turma_vinculada} onChange={e => upd("turma_vinculada", e.target.value)}>
-            <option value="">Nenhuma — só vê os próprios registros</option>
-            {(turmasDisponiveis || []).map(t => <option key={t} value={t}>{t}</option>)}
-          </Sel>
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: "#475569", marginBottom: 6 }}>Turmas vinculadas (opcional)</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, padding: "10px 12px", background: "#f8fafc", borderRadius: 10, border: "1px solid #e2e8f0", minHeight: 40 }}>
+              {(turmasDisponiveis || []).length === 0 && <span style={{ fontSize: 12, color: "#94a3b8" }}>Nenhuma turma cadastrada</span>}
+              {(turmasDisponiveis || []).map(t => {
+                const selecionadas = f.turma_vinculada ? f.turma_vinculada.split(",") : [];
+                const checked = selecionadas.includes(t);
+                return (
+                  <label key={t} style={{ display: "flex", alignItems: "center", gap: 5, cursor: "pointer", padding: "4px 10px", borderRadius: 8, background: checked ? "#e0e7ff" : "#fff", border: `1.5px solid ${checked ? "#6366f1" : "#e2e8f0"}`, fontSize: 13, fontWeight: checked ? 700 : 400, color: checked ? "#4338ca" : "#64748b" }}>
+                    <input type="checkbox" checked={checked} onChange={() => {
+                      const arr = f.turma_vinculada ? f.turma_vinculada.split(",") : [];
+                      const novo = checked ? arr.filter(x => x !== t) : [...arr, t];
+                      upd("turma_vinculada", novo.join(","));
+                    }} style={{ display: "none" }} />
+                    {checked ? "✅" : "⬜"} {t}
+                  </label>
+                );
+              })}
+            </div>
+            {!f.turma_vinculada && <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>Sem turma = só vê os próprios registros</div>}
+          </div>
           <div style={{ padding: "12px 16px", background: "#fffbeb", borderRadius: 10, border: "1px solid #fef3c7", fontSize: 13, color: "#92400e" }}>
             ⚠️ O usuário receberá um e-mail de confirmação. Peça para ele confirmar antes de usar o sistema.
           </div>
@@ -671,10 +688,27 @@ function ModalEditarUsuario({ usuario, onClose, onSave, turmasDisponiveis }) {
             </Sel>
             <Input label="Cargo (opcional)" value={f.cargo} onChange={e => upd("cargo", e.target.value)} placeholder="Ex: Coordenadora" />
           </div>
-          <Sel label="Turma vinculada (opcional)" value={f.turma_vinculada} onChange={e => upd("turma_vinculada", e.target.value)}>
-            <option value="">Nenhuma — só vê os próprios registros</option>
-            {(turmasDisponiveis || []).map(t => <option key={t} value={t}>{t}</option>)}
-          </Sel>
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: "#475569", marginBottom: 6 }}>Turmas vinculadas (opcional)</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, padding: "10px 12px", background: "#f8fafc", borderRadius: 10, border: "1px solid #e2e8f0", minHeight: 40 }}>
+              {(turmasDisponiveis || []).length === 0 && <span style={{ fontSize: 12, color: "#94a3b8" }}>Nenhuma turma cadastrada</span>}
+              {(turmasDisponiveis || []).map(t => {
+                const selecionadas = f.turma_vinculada ? f.turma_vinculada.split(",") : [];
+                const checked = selecionadas.includes(t);
+                return (
+                  <label key={t} style={{ display: "flex", alignItems: "center", gap: 5, cursor: "pointer", padding: "4px 10px", borderRadius: 8, background: checked ? "#e0e7ff" : "#fff", border: `1.5px solid ${checked ? "#6366f1" : "#e2e8f0"}`, fontSize: 13, fontWeight: checked ? 700 : 400, color: checked ? "#4338ca" : "#64748b" }}>
+                    <input type="checkbox" checked={checked} onChange={() => {
+                      const arr = f.turma_vinculada ? f.turma_vinculada.split(",") : [];
+                      const novo = checked ? arr.filter(x => x !== t) : [...arr, t];
+                      upd("turma_vinculada", novo.join(","));
+                    }} style={{ display: "none" }} />
+                    {checked ? "✅" : "⬜"} {t}
+                  </label>
+                );
+              })}
+            </div>
+            {!f.turma_vinculada && <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>Sem turma = só vê os próprios registros</div>}
+          </div>
           <div style={{ padding: "14px 16px", background: "#f8fafc", borderRadius: 10, border: "1px solid #e2e8f0" }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: "#475569", marginBottom: 8 }}>🔑 Redefinir Senha (opcional)</div>
             <Input label="Nova senha" type="password" error={err.senha} value={novaSenha} onChange={e => setNovaSenha(e.target.value)} placeholder="Deixe em branco para não alterar" />
@@ -2562,8 +2596,9 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
     if (c.autor_id === profile.id || c.enc_responsavel_id === profile.id) return true;
     // Se o usuário tem turma vinculada, pode ver registros dos alunos dessa turma
     if (profile.turma_vinculada) {
+      const turmas = profile.turma_vinculada.split(",").map(t => t.trim());
       const aluno = alunos.find(a => a.id === c.aluno_id);
-      if (aluno && aluno.turma === profile.turma_vinculada) return true;
+      if (aluno && turmas.includes(aluno.turma)) return true;
     }
     return false;
   };
@@ -3270,10 +3305,27 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
               </Sel>
               <Input label="Cargo (opcional)" value={f.cargo} onChange={e => upd("cargo", e.target.value)} placeholder="Ex: Coordenadora" />
             </div>
-            <Sel label="Turma vinculada (opcional)" value={f.turma_vinculada} onChange={e => upd("turma_vinculada", e.target.value)}>
-              <option value="">Nenhuma — só vê os próprios registros</option>
-              {turmasDisponiveis.map(t => <option key={t} value={t}>{t}</option>)}
-            </Sel>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: "#475569", marginBottom: 6 }}>Turmas vinculadas (opcional)</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, padding: "10px 12px", background: "#f8fafc", borderRadius: 10, border: "1px solid #e2e8f0", minHeight: 40 }}>
+                {turmasDisponiveis.length === 0 && <span style={{ fontSize: 12, color: "#94a3b8" }}>Nenhuma turma cadastrada</span>}
+                {turmasDisponiveis.map(t => {
+                  const selecionadas = f.turma_vinculada ? f.turma_vinculada.split(",") : [];
+                  const checked = selecionadas.includes(t);
+                  return (
+                    <label key={t} style={{ display: "flex", alignItems: "center", gap: 5, cursor: "pointer", padding: "4px 10px", borderRadius: 8, background: checked ? "#e0e7ff" : "#fff", border: `1.5px solid ${checked ? "#6366f1" : "#e2e8f0"}`, fontSize: 13, fontWeight: checked ? 700 : 400, color: checked ? "#4338ca" : "#64748b" }}>
+                      <input type="checkbox" checked={checked} onChange={() => {
+                        const arr = f.turma_vinculada ? f.turma_vinculada.split(",") : [];
+                        const novo = checked ? arr.filter(x => x !== t) : [...arr, t];
+                        upd("turma_vinculada", novo.join(","));
+                      }} style={{ display: "none" }} />
+                      {checked ? "✅" : "⬜"} {t}
+                    </label>
+                  );
+                })}
+              </div>
+              {!f.turma_vinculada && <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>Sem turma = só vê os próprios registros</div>}
+            </div>
           </MBody>
           <MFoot>
             <Btn variant="ghost" onClick={onClose}>Cancelar</Btn>
@@ -3310,10 +3362,27 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
             </Sel>
             <Input label="Cargo (opcional)" value={f.cargo} onChange={e => upd("cargo", e.target.value)} placeholder="Ex: Coordenadora" />
           </div>
-          <Sel label="Turma vinculada (opcional)" value={f.turma_vinculada} onChange={e => upd("turma_vinculada", e.target.value)}>
-            <option value="">Nenhuma — só vê os próprios registros</option>
-            {turmasDisponiveis.map(t => <option key={t} value={t}>{t}</option>)}
-          </Sel>
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: "#475569", marginBottom: 6 }}>Turmas vinculadas (opcional)</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, padding: "10px 12px", background: "#f8fafc", borderRadius: 10, border: "1px solid #e2e8f0", minHeight: 40 }}>
+              {turmasDisponiveis.length === 0 && <span style={{ fontSize: 12, color: "#94a3b8" }}>Nenhuma turma cadastrada</span>}
+              {turmasDisponiveis.map(t => {
+                const selecionadas = f.turma_vinculada ? f.turma_vinculada.split(",") : [];
+                const checked = selecionadas.includes(t);
+                return (
+                  <label key={t} style={{ display: "flex", alignItems: "center", gap: 5, cursor: "pointer", padding: "4px 10px", borderRadius: 8, background: checked ? "#e0e7ff" : "#fff", border: `1.5px solid ${checked ? "#6366f1" : "#e2e8f0"}`, fontSize: 13, fontWeight: checked ? 700 : 400, color: checked ? "#4338ca" : "#64748b" }}>
+                    <input type="checkbox" checked={checked} onChange={() => {
+                      const arr = f.turma_vinculada ? f.turma_vinculada.split(",") : [];
+                      const novo = checked ? arr.filter(x => x !== t) : [...arr, t];
+                      upd("turma_vinculada", novo.join(","));
+                    }} style={{ display: "none" }} />
+                    {checked ? "✅" : "⬜"} {t}
+                  </label>
+                );
+              })}
+            </div>
+            {!f.turma_vinculada && <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>Sem turma = só vê os próprios registros</div>}
+          </div>
           <div style={{ padding: "12px 14px", background: "#f8fafc", borderRadius: 10, border: "1px solid #e2e8f0" }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: "#475569", marginBottom: 8 }}>🔑 Redefinir senha (opcional)</div>
             <Input label="Nova senha" type="password" error={err.senha} value={novaSenha} onChange={e => setNovaSenha(e.target.value)} placeholder="Deixe em branco para não alterar" />
