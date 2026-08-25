@@ -55,8 +55,10 @@ const Card = ({ children, style }) => (
   <div style={{ background: "#fff", borderRadius: 12, padding: 20, border: "1px solid #f1f5f9", boxShadow: "0 1px 4px rgba(0,0,0,.06)", ...style }}>{children}</div>
 );
 
-const Av = ({ initials = "?", color = "#2563eb", size = 36 }) => (
-  <div style={{ width: size, height: size, borderRadius: "50%", background: color + "18", color, fontSize: size * 0.33, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{initials}</div>
+const Av = ({ initials = "?", color = "#2563eb", size = 36, src }) => (
+  src
+    ? <img src={src} alt="" style={{ width: size, height: size, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+    : <div style={{ width: size, height: size, borderRadius: "50%", background: color + "18", color, fontSize: size * 0.33, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{initials}</div>
 );
 
 const Overlay = ({ children, onClose }) => (
@@ -2550,8 +2552,131 @@ function PerfilAluno({ aluno: alunoInicial, comunicacoes, reunioes, onClose, pro
   );
 }
 
+// ── MODAL MEU PERFIL ──────────────────────────────────────────────────────────
+function ModalMeuPerfil({ profile, user, onClose, onUpdate }) {
+  const [nome, setNome] = useState(profile.nome || "");
+  const [senhaAtual, setSenhaAtual] = useState("");
+  const [senhaNova, setSenhaNova] = useState("");
+  const [senhaConf, setSenhaConf] = useState("");
+  const [foto, setFoto] = useState(null);
+  const [fotoPreview, setFotoPreview] = useState(profile.foto_url || null);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState(null);
+  const [errMsg, setErrMsg] = useState(null);
+  const fileRef = useRef(null);
+
+  const handleFoto = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) { setErrMsg("Arquivo muito grande (máx 2MB)"); return; }
+    setFoto(file);
+    setFotoPreview(URL.createObjectURL(file));
+  };
+
+  const salvar = async () => {
+    setSaving(true); setMsg(null); setErrMsg(null);
+
+    // Upload foto
+    let fotoUrl = profile.foto_url || null;
+    if (foto) {
+      const ext = foto.name.split(".").pop();
+      const path = `perfil/${profile.id}/foto.${ext}`;
+      const { error: upErr } = await supabase.storage.from("comunicacoes-anexos").upload(path, foto, { upsert: true });
+      if (upErr) { setErrMsg("Erro ao enviar foto: " + upErr.message); setSaving(false); return; }
+      const { data: urlData } = supabase.storage.from("comunicacoes-anexos").getPublicUrl(path);
+      fotoUrl = urlData.publicUrl;
+    }
+
+    // Atualizar nome e foto no profiles
+    const updates = { nome, foto_url: fotoUrl, avatar: nome.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase() };
+    const { error: profErr } = await supabase.from("profiles").update(updates).eq("id", profile.id);
+    if (profErr) { setErrMsg("Erro ao salvar perfil: " + profErr.message); setSaving(false); return; }
+
+    // Alterar senha se preenchida
+    if (senhaNova) {
+      if (senhaNova.length < 6) { setErrMsg("A nova senha deve ter pelo menos 6 caracteres"); setSaving(false); return; }
+      if (senhaNova !== senhaConf) { setErrMsg("As senhas não coincidem"); setSaving(false); return; }
+      const { error: senhaErr } = await supabase.auth.updateUser({ password: senhaNova });
+      if (senhaErr) { setErrMsg("Erro ao alterar senha: " + senhaErr.message); setSaving(false); return; }
+    }
+
+    onUpdate({ ...profile, ...updates, foto_url: fotoUrl });
+    setMsg("Perfil atualizado com sucesso!");
+    setSaving(false);
+    setTimeout(() => onClose(), 1200);
+  };
+
+  const inputStyle = { width: "100%", padding: "10px 14px", border: "1.5px solid #e2e8f0", borderRadius: 10, fontSize: 14, outline: "none", boxSizing: "border-box" };
+  const labelStyle = { fontSize: 12, fontWeight: 700, color: "#475569", marginBottom: 4, display: "block" };
+
+  return (
+    <Overlay onClose={onClose}>
+      <MBox width={440}>
+        <div style={{ padding: "20px 24px", borderBottom: "1px solid #f1f5f9", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "#1e293b" }}>Meu Perfil</h2>
+          <button onClick={onClose} style={{ background: "none", border: "none", fontSize: 20, cursor: "pointer", color: "#94a3b8" }}>✕</button>
+        </div>
+        <div style={{ padding: 24, display: "flex", flexDirection: "column", gap: 18, overflowY: "auto", maxHeight: "70vh" }}>
+          {/* Foto */}
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+            <div onClick={() => fileRef.current?.click()} style={{ cursor: "pointer", position: "relative" }}>
+              {fotoPreview
+                ? <img src={fotoPreview} alt="" style={{ width: 80, height: 80, borderRadius: "50%", objectFit: "cover", border: "3px solid #e2e8f0" }} />
+                : <Av initials={profile.avatar || (profile.nome || "?").slice(0, 2).toUpperCase()} color="#2563eb" size={80} />
+              }
+              <div style={{ position: "absolute", bottom: 0, right: 0, width: 26, height: 26, borderRadius: "50%", background: "#2563eb", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, border: "2px solid #fff" }}>📷</div>
+            </div>
+            <input ref={fileRef} type="file" accept="image/*" onChange={handleFoto} style={{ display: "none" }} />
+            <button onClick={() => fileRef.current?.click()} style={{ fontSize: 12, color: "#2563eb", background: "none", border: "none", cursor: "pointer", fontWeight: 600 }}>Alterar foto</button>
+          </div>
+
+          {/* Nome */}
+          <div>
+            <label style={labelStyle}>Nome</label>
+            <input value={nome} onChange={e => setNome(e.target.value)} style={inputStyle} placeholder="Seu nome completo" />
+          </div>
+
+          {/* Email (readonly) */}
+          <div>
+            <label style={labelStyle}>E-mail</label>
+            <input value={user?.email || ""} readOnly style={{ ...inputStyle, background: "#f8fafc", color: "#94a3b8" }} />
+          </div>
+
+          {/* Perfil (readonly) */}
+          <div>
+            <label style={labelStyle}>Perfil</label>
+            <input value={perfilLabel(profile.perfil)} readOnly style={{ ...inputStyle, background: "#f8fafc", color: "#94a3b8" }} />
+          </div>
+
+          {/* Alterar senha */}
+          <div style={{ borderTop: "1px solid #f1f5f9", paddingTop: 16 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b", marginBottom: 12 }}>Alterar Senha</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <div>
+                <label style={labelStyle}>Nova senha</label>
+                <input type="password" value={senhaNova} onChange={e => setSenhaNova(e.target.value)} style={inputStyle} placeholder="Mínimo 6 caracteres" />
+              </div>
+              <div>
+                <label style={labelStyle}>Confirmar nova senha</label>
+                <input type="password" value={senhaConf} onChange={e => setSenhaConf(e.target.value)} style={inputStyle} placeholder="Repita a nova senha" />
+              </div>
+            </div>
+          </div>
+
+          {errMsg && <div style={{ padding: "10px 14px", background: "#fef2f2", borderRadius: 8, fontSize: 13, color: "#ef4444", fontWeight: 600 }}>{errMsg}</div>}
+          {msg && <div style={{ padding: "10px 14px", background: "#f0fdf4", borderRadius: 8, fontSize: 13, color: "#16a34a", fontWeight: 600 }}>{msg}</div>}
+        </div>
+        <div style={{ padding: "16px 24px", borderTop: "1px solid #f1f5f9", display: "flex", justifyContent: "flex-end", gap: 10 }}>
+          <button onClick={onClose} style={{ padding: "10px 20px", borderRadius: 10, border: "1px solid #e2e8f0", background: "#fff", fontSize: 13, fontWeight: 600, color: "#64748b", cursor: "pointer" }}>Cancelar</button>
+          <Btn onClick={salvar} disabled={saving || !nome.trim()}>{saving ? "Salvando..." : "Salvar"}</Btn>
+        </div>
+      </MBox>
+    </Overlay>
+  );
+}
+
 // ── SCHOOL APP ─────────────────────────────────────────────────────────────────
-function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub }) {
+function SchoolApp({ user, profile, escola, onLogout, onProfileUpdate, onVoltarAdmin, onVoltarHub }) {
   const [pagina, setPagina] = useState("dashboard");
   const [menuAberto, setMenuAberto] = useState(false);
   const [alunos, setAlunos] = useState([]);
@@ -2565,6 +2690,7 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
   const [modalNovoAluno, setModalNovoAluno] = useState(false);
   const [alunoSel, setAlunoSel] = useState(null);
   const [comParaImprimir, setComParaImprimir] = useState(null);
+  const [modalMeuPerfil, setModalMeuPerfil] = useState(false);
 
   useEffect(() => { carregarTudo(); }, [escola.id]);
 
@@ -2605,14 +2731,23 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
   const comsVisiveis = comunicacoes.filter(c => isCan(c));
 
   const isProfessor = profile.perfil === "PROFESSOR";
+
+  // Contagem de pendências por seção
+  const pendenciaComunicacoes = comsVisiveis.filter(c => c.status === "PENDENTE").length;
+  const pendenciaEncaminhamentos = comsVisiveis.filter(c => c.encaminhamento && c.enc_status === "PENDENTE").length;
+  const pendenciaRetencao = comsVisiveis.filter(c => {
+    const aluno = alunos.find(a => a.id === c.aluno_id);
+    return aluno && aluno.risco >= 60 && c.encaminhamento && c.enc_status !== "RESOLVIDO";
+  }).length;
+
   const nav = [
     { id: "dashboard", icon: "📊", label: "Dashboard" },
     ...(!isProfessor ? [{ id: "alunos", icon: "👨‍🎓", label: "Alunos" }] : []),
     ...(!isProfessor ? [{ id: "turmas", icon: "🏫", label: "Turmas" }] : []),
-    { id: "comunicacoes", icon: "💬", label: "Comunicações" },
-    { id: "encaminhamentos", icon: "📨", label: "Encaminhamentos" },
+    { id: "comunicacoes", icon: "💬", label: "Comunicações", pendentes: pendenciaComunicacoes },
+    { id: "encaminhamentos", icon: "📨", label: "Encaminhamentos", pendentes: pendenciaEncaminhamentos },
     ...(!isProfessor ? [{ id: "reunioes", icon: "📅", label: "Reuniões" }] : []),
-    ...(!isProfessor ? [{ id: "retencao", icon: "📉", label: "Retenção" }] : []),
+    ...(!isProfessor ? [{ id: "retencao", icon: "📉", label: "Retenção", pendentes: pendenciaRetencao }] : []),
     ...(profile.perfil === "DIRECAO" || profile.perfil === "SUPER_ADMIN" ? [{ id: "equipe", icon: "👥", label: "Equipe" }] : []),
   ];
 
@@ -2724,20 +2859,54 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
   const AlunosPage = () => {
     const [busca, setBusca] = useState("");
     const [ord, setOrd] = useState("risco");
-    const filtrados = alunos.filter(a => !busca || a.nome?.toLowerCase().includes(busca.toLowerCase()) || a.turma?.toLowerCase().includes(busca.toLowerCase())).sort((a, b) => ord === "risco" ? b.risco - a.risco : (a.nome || "").localeCompare(b.nome || ""));
+    const [filtroTurmaAl, setFiltroTurmaAl] = useState("TODOS");
+    const [filtroScore, setFiltroScore] = useState("TODOS");
+    const podeGerenciar = ["DIRECAO", "SECRETARIA", "SUPER_ADMIN", "RETENCAO"].includes(profile.perfil);
+    const turmasAl = [...new Set(alunos.map(a => a.turma).filter(Boolean))].sort();
+    const filtrados = alunos.filter(a => {
+      if (busca && !a.nome?.toLowerCase().includes(busca.toLowerCase()) && !a.turma?.toLowerCase().includes(busca.toLowerCase())) return false;
+      if (filtroTurmaAl !== "TODOS" && a.turma !== filtroTurmaAl) return false;
+      if (filtroScore === "ALTO" && a.risco < 60) return false;
+      if (filtroScore === "MEDIO" && (a.risco < 30 || a.risco >= 60)) return false;
+      if (filtroScore === "BAIXO" && a.risco >= 30) return false;
+      return true;
+    }).sort((a, b) => ord === "risco" ? b.risco - a.risco : (a.nome || "").localeCompare(b.nome || ""));
+
+    const excluirAluno = async (aluno) => {
+      if (!confirm(`Tem certeza que deseja excluir o aluno "${aluno.nome}"?\n\nTodas as comunicações e registros relacionados também serão perdidos.`)) return;
+      const { error } = await supabase.from("alunos").delete().eq("id", aluno.id);
+      if (error) { alert("Erro ao excluir: " + error.message); return; }
+      setAlunos(p => p.filter(a => a.id !== aluno.id));
+    };
+
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
           <div><h1 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: "#1e293b" }}>👨‍🎓 Alunos</h1><p style={{ margin: "4px 0 0", fontSize: 14, color: "#94a3b8" }}>Base de estudantes com score de risco e histórico.</p></div>
-          {(profile.perfil === "DIRECAO" || profile.perfil === "SECRETARIA" || profile.perfil === "SUPER_ADMIN") && <Btn icon="+" onClick={() => setModalNovoAluno(true)}>Cadastrar Aluno</Btn>}
+          {podeGerenciar && <Btn icon="+" onClick={() => setModalNovoAluno(true)}>Cadastrar Aluno</Btn>}
         </div>
         <Card>
-          <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
             <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="🔍 Buscar por nome ou turma..." style={{ flex: 1, minWidth: 200, padding: "8px 14px", border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 13, outline: "none" }} />
-            <select value={ord} onChange={e => setOrd(e.target.value)} style={{ padding: "8px 14px", border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 13, outline: "none" }}>
-              <option value="risco">Por risco</option><option value="nome">Por nome</option>
+            <select value={filtroTurmaAl} onChange={e => setFiltroTurmaAl(e.target.value)} style={{ padding: "8px 14px", border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 12, outline: "none", background: "#fafafa", cursor: "pointer" }}>
+              <option value="TODOS">Turma: Todas</option>
+              {turmasAl.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
+            <select value={filtroScore} onChange={e => setFiltroScore(e.target.value)} style={{ padding: "8px 14px", border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 12, outline: "none", background: "#fafafa", cursor: "pointer" }}>
+              <option value="TODOS">Score: Todos</option>
+              <option value="ALTO">🔴 Alto (60+)</option>
+              <option value="MEDIO">🟡 Médio (30-59)</option>
+              <option value="BAIXO">🟢 Baixo (0-29)</option>
+            </select>
+            <select value={ord} onChange={e => setOrd(e.target.value)} style={{ padding: "8px 14px", border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 12, outline: "none", background: "#fafafa", cursor: "pointer" }}>
+              <option value="risco">Ordenar: Risco</option><option value="nome">Ordenar: Nome</option>
+            </select>
+            {(filtroTurmaAl !== "TODOS" || filtroScore !== "TODOS") && (
+              <button onClick={() => { setFiltroTurmaAl("TODOS"); setFiltroScore("TODOS"); }}
+                style={{ padding: "6px 12px", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 600, background: "#fef2f2", color: "#ef4444", cursor: "pointer" }}>✕ Limpar</button>
+            )}
           </div>
+          <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 8 }}>{filtrados.length} aluno(s) encontrado(s)</div>
           {filtrados.length === 0 ? <div style={{ textAlign: "center", color: "#94a3b8", padding: 40 }}>Nenhum aluno cadastrado ainda.</div> : (
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {filtrados.map(a => {
@@ -2745,9 +2914,11 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
                 const rA = reunioes.filter(r => r.convocados?.some(c => c.aluno_id === a.id));
                 const pR = rA.reduce((s, r) => s + (r.convocados?.find(c => c.aluno_id === a.id)?.compareceu ? 1 : 0), 0);
                 return (
-                  <div key={a.id} onClick={() => setAlunoSel(a)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderRadius: 10, border: "1px solid #f1f5f9", background: "#fafafa", cursor: "pointer", flexWrap: "wrap" }}>
-                    <Av initials={(a.nome || "?").split(" ").map(n => n[0]).slice(0, 2).join("")} color={getRiscoColor(a.risco)} />
-                    <div style={{ flex: 1, minWidth: 160 }}><div style={{ fontWeight: 700, fontSize: 14, color: "#1e293b" }}>{a.nome}</div><div style={{ fontSize: 12, color: "#94a3b8" }}>{a.turma} · RM: {a.rm}</div></div>
+                  <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderRadius: 10, border: "1px solid #f1f5f9", background: "#fafafa", flexWrap: "wrap" }}>
+                    <div onClick={() => setAlunoSel(a)} style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, cursor: "pointer", minWidth: 0 }}>
+                      <Av initials={(a.nome || "?").split(" ").map(n => n[0]).slice(0, 2).join("")} color={getRiscoColor(a.risco)} />
+                      <div style={{ flex: 1, minWidth: 160 }}><div style={{ fontWeight: 700, fontSize: 14, color: "#1e293b" }}>{a.nome}</div><div style={{ fontSize: 12, color: "#94a3b8" }}>{a.turma} · RM: {a.rm}</div></div>
+                    </div>
                     <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
                       <div style={{ textAlign: "center", padding: "4px 12px", borderRadius: 8, background: getRiscoBg(a.risco), border: `1px solid ${getRiscoColor(a.risco)}30` }}>
                         <div style={{ fontSize: 16, fontWeight: 900, color: getRiscoColor(a.risco) }}>{a.risco}</div>
@@ -2755,7 +2926,12 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
                       </div>
                       <Badge color="#2563eb">{nC} registros</Badge>
                       <Badge color="#7c3aed">{pR}/{rA.length} presenças</Badge>
-                      <span style={{ color: "#94a3b8" }}>→</span>
+                      {podeGerenciar && (
+                        <button onClick={(e) => { e.stopPropagation(); excluirAluno(a); }}
+                          style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid #fecaca", background: "#fef2f2", color: "#ef4444", fontSize: 11, fontWeight: 700, cursor: "pointer" }}
+                          title="Excluir aluno">✕</button>
+                      )}
+                      <span onClick={() => setAlunoSel(a)} style={{ color: "#94a3b8", cursor: "pointer" }}>→</span>
                     </div>
                   </div>
                 );
@@ -2817,13 +2993,99 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
 
     const selStyle = { padding: "6px 12px", border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 12, outline: "none", background: "#fafafa", color: "#1e293b", cursor: "pointer" };
 
+    const isAdmin = profile.perfil === "DIRECAO" || profile.perfil === "SUPER_ADMIN";
+    const [abaCom, setAbaCom] = useState("registros");
+    const [expandUsuario, setExpandUsuario] = useState(null);
+
+    // Dados por usuário
+    const usuariosCom = equipe.filter(u => u.perfil !== "DIRECAO" && u.perfil !== "SUPER_ADMIN");
+    const dadosPorUsuario = usuariosCom.map(u => {
+      const listaCadastradas = comunicacoes.filter(c => c.autor_id === u.id);
+      const listaEncaminhadas = comunicacoes.filter(c => c.autor_id === u.id && c.encaminhamento);
+      return { ...u, listaCadastradas, listaEncaminhadas, cadastradas: listaCadastradas.length, encaminhadas: listaEncaminhadas.length };
+    }).sort((a, b) => b.cadastradas - a.cadastradas);
+
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
           <div><h1 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: "#1e293b" }}>💬 Comunicações</h1><p style={{ margin: "4px 0 0", fontSize: 14, color: "#94a3b8" }}>Gerencie os registros de interação.</p></div>
           <Btn icon="+" onClick={() => setModalNovaCom(true)}>Nova Comunicação</Btn>
         </div>
-        <Card>
+
+        {/* Abas - só mostra se for admin */}
+        {isAdmin && (
+          <div style={{ display: "flex", gap: 4, background: "#f1f5f9", borderRadius: 10, padding: 4, width: "fit-content" }}>
+            {[{ key: "registros", label: "Registros" }, { key: "por-usuario", label: "Por Usuário" }].map(tab => (
+              <button key={tab.key} onClick={() => setAbaCom(tab.key)}
+                style={{ padding: "8px 20px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 700, background: abaCom === tab.key ? "#fff" : "transparent", color: abaCom === tab.key ? "#1e293b" : "#94a3b8", boxShadow: abaCom === tab.key ? "0 1px 3px rgba(0,0,0,0.08)" : "none" }}>
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Aba: Por Usuário */}
+        {isAdmin && abaCom === "por-usuario" && (
+          <Card>
+            <h3 style={{ margin: "0 0 14px", fontSize: 15, fontWeight: 700, color: "#1e293b" }}>👥 Comunicações por Usuário</h3>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {dadosPorUsuario.map(u => {
+                const keyCad = "cadastradas-" + u.id;
+                const keyEnc = "encaminhadas-" + u.id;
+                const expCad = expandUsuario === keyCad;
+                const expEnc = expandUsuario === keyEnc;
+                const listaAberta = expCad ? u.listaCadastradas : expEnc ? u.listaEncaminhadas : null;
+                return (
+                  <div key={u.id} style={{ border: "1px solid #f1f5f9", borderRadius: 10, overflow: "hidden" }}>
+                    <div style={{ display: "flex", alignItems: "center", padding: "10px 16px", background: "#fafafa", gap: 12, flexWrap: "wrap" }}>
+                      <div style={{ flex: 1, minWidth: 140, fontWeight: 700, fontSize: 14, color: "#1e293b" }}>{u.nome}
+                        <span style={{ fontSize: 11, fontWeight: 500, color: "#94a3b8", marginLeft: 8 }}>{perfilLabel(u.perfil)}</span>
+                      </div>
+                      <button onClick={() => setExpandUsuario(expCad ? null : keyCad)}
+                        style={{ padding: "4px 14px", borderRadius: 8, border: `2px solid ${expCad ? "#2563eb" : "#e2e8f0"}`, background: expCad ? "#eff6ff" : "#fff", cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+                        <span style={{ fontSize: 18, fontWeight: 900, color: "#2563eb" }}>{u.cadastradas}</span>
+                        <span style={{ fontSize: 11, color: "#64748b" }}>cadastradas</span>
+                      </button>
+                      <button onClick={() => setExpandUsuario(expEnc ? null : keyEnc)}
+                        style={{ padding: "4px 14px", borderRadius: 8, border: `2px solid ${expEnc ? "#f59e0b" : "#e2e8f0"}`, background: expEnc ? "#fffbeb" : "#fff", cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+                        <span style={{ fontSize: 18, fontWeight: 900, color: "#f59e0b" }}>{u.encaminhadas}</span>
+                        <span style={{ fontSize: 11, color: "#64748b" }}>encaminhadas</span>
+                      </button>
+                    </div>
+                    {listaAberta && listaAberta.length > 0 && (
+                      <div style={{ padding: "10px 16px", borderTop: "1px solid #f1f5f9", background: "#fff" }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: "#475569", marginBottom: 8 }}>{expCad ? "Comunicações cadastradas" : "Comunicações encaminhadas"} por {u.nome}</div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                          {listaAberta.map(c => {
+                            const al = alunos.find(a => a.id === c.aluno_id);
+                            return (
+                              <div key={c.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 10px", borderRadius: 8, background: "#f8fafc", border: "1px solid #f1f5f9", flexWrap: "wrap", gap: 6 }}>
+                                <div>
+                                  <div style={{ fontSize: 13, fontWeight: 600, color: "#1e293b" }}>{c.titulo}</div>
+                                  <div style={{ fontSize: 11, color: "#94a3b8" }}>{al?.nome} · {al?.turma} · {c.data_registro}</div>
+                                </div>
+                                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                                  {c.urgencia && <Badge color={getUrgColor(c.urgencia)}>{c.urgencia}</Badge>}
+                                  <Badge color={getStColor(c.status)}>{getStLabel(c.status)}</Badge>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                    {listaAberta && listaAberta.length === 0 && (
+                      <div style={{ padding: "12px 16px", borderTop: "1px solid #f1f5f9", background: "#fff", textAlign: "center", color: "#94a3b8", fontSize: 13 }}>Nenhum registro.</div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+        )}
+
+        {/* Aba: Registros (conteúdo original) */}
+        {abaCom === "registros" && <Card>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 10 }}>
             <h3 style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>Histórico de Registros</h3>
             <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="🔍 Buscar..." className="busca-input" style={{ padding: "8px 14px", border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 13, outline: "none", width: 240 }} />
@@ -2896,7 +3158,7 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
               );
             })}
           </div>
-        </Card>
+        </Card>}
         {resolving && <ModalResolucao item={resolving} alunos={alunos} equipe={equipe} onClose={() => setResolving(null)} onResolve={resolveEnc} />}
       </div>
     );
@@ -3454,8 +3716,13 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
       </div>
       <nav style={{ flex: 1, padding: "12px 8px", display: "flex", flexDirection: "column", gap: 2 }}>
         {nav.map(item => (
-          <button key={item.id} onClick={() => { setPagina(item.id); setMenuAberto(false); }} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: 8, border: "none", cursor: "pointer", textAlign: "left", fontSize: 13, fontWeight: pagina === item.id ? 800 : 500, background: pagina === item.id ? "#eff6ff" : "transparent", color: pagina === item.id ? "#2563eb" : "#475569" }}>
+          <button key={item.id} onClick={() => { setPagina(item.id); setMenuAberto(false); }} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: 8, border: "none", cursor: "pointer", textAlign: "left", fontSize: 13, fontWeight: pagina === item.id ? 800 : 500, background: pagina === item.id ? "#eff6ff" : "transparent", color: pagina === item.id ? "#2563eb" : "#475569", position: "relative" }}>
             <span style={{ fontSize: 15 }}>{item.icon}</span>{item.label}
+            {item.pendentes > 0 && (
+              <span style={{ marginLeft: "auto", minWidth: 20, height: 20, borderRadius: 10, background: "#ef4444", color: "#fff", fontSize: 11, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 6px", lineHeight: 1 }}>
+                {item.pendentes}
+              </span>
+            )}
           </button>
         ))}
       </nav>
@@ -3507,7 +3774,9 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
           <button className="topbar-hamburger" onClick={() => setMenuAberto(true)} style={{ display: "none", alignItems: "center", justifyContent: "center", width: 36, height: 36, border: "none", background: "none", cursor: "pointer", fontSize: 20, color: "#475569" }}>☰</button>
           <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 12 }}>
             <div style={{ textAlign: "right" }}><div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b" }}>{profile.nome}</div><div style={{ fontSize: 11, color: "#94a3b8" }}>{perfilLabel(profile.perfil)}</div></div>
-            <Av initials={profile.avatar || (profile.nome || "?").slice(0, 2).toUpperCase()} color="#2563eb" />
+            <button onClick={() => setModalMeuPerfil(true)} style={{ background: "none", border: "2px solid transparent", borderRadius: "50%", padding: 0, cursor: "pointer", transition: "border-color .2s" }} title="Meu Perfil">
+              <Av initials={profile.avatar || (profile.nome || "?").slice(0, 2).toUpperCase()} color="#2563eb" src={profile.foto_url} />
+            </button>
           </div>
         </div>
         <div className="main-content" style={{ flex: 1, padding: 28, overflowY: "auto" }}>
@@ -3526,6 +3795,7 @@ function SchoolApp({ user, profile, escola, onLogout, onVoltarAdmin, onVoltarHub
       {modalNovoAluno && <ModalNovoAluno onClose={() => setModalNovoAluno(false)} onSave={addAluno} profile={profile} escolaId={escola.id} />}
       {alunoSel && <PerfilAluno aluno={alunoSel} comunicacoes={comunicacoes} reunioes={reunioes} profile={profile} onClose={() => setAlunoSel(null)} onAlunoAtualizado={atualizarAluno} escola={escola} />}
       {comParaImprimir && <ModalConfirmarImpressao comunicacao={comParaImprimir} aluno={alunos.find(a => a.id === comParaImprimir.aluno_id)} escola={escola} profile={profile} onClose={() => setComParaImprimir(null)} />}
+      {modalMeuPerfil && <ModalMeuPerfil profile={profile} user={user} onClose={() => setModalMeuPerfil(false)} onUpdate={(p) => { onProfileUpdate(p); setModalMeuPerfil(false); }} />}
     </div>
   );
 }
@@ -3670,6 +3940,7 @@ export default function App() {
       profile={profile}
       escola={escola}
       onLogout={handleLogout}
+      onProfileUpdate={setProfile}
       onVoltarAdmin={voltarAdmin}
     />
   );
