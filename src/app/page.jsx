@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { supabase } from "../lib/supabase";
 import { apiPost } from "../lib/api-client";
 import { urlAssinadaAnexo } from "../lib/anexos";
+import InteligenciaPage from "./inteligencia";
 // ── HELPERS ────────────────────────────────────────────────────────────────────
 const getRiscoColor = (r) => r >= 60 ? "#ef4444" : r >= 30 ? "#f59e0b" : "#22c55e";
 const getRiscoBg = (r) => r >= 60 ? "#fef2f2" : r >= 30 ? "#fffbeb" : "#f0fdf4";
@@ -2803,6 +2804,8 @@ function SchoolApp({ user, profile, escola, onLogout, onProfileUpdate, onVoltarA
 
   const nav = [
     { id: "dashboard", icon: "📊", label: "Dashboard" },
+    ...(["DIRECAO", "SUPER_ADMIN", "NUCLEO", "RETENCAO"].includes(profile.perfil)
+      ? [{ id: "inteligencia", icon: "🧠", label: "Inteligência" }] : []),
     ...(!isProfessor ? [{ id: "alunos", icon: "👨‍🎓", label: "Alunos" }] : []),
     ...(!isProfessor ? [{ id: "turmas", icon: "🏫", label: "Turmas" }] : []),
     { id: "comunicacoes", icon: "💬", label: "Comunicações", pendentes: pendenciaComunicacoes },
@@ -3844,6 +3847,9 @@ function SchoolApp({ user, profile, escola, onLogout, onProfileUpdate, onVoltarA
         </div>
         <div className="main-content" style={{ flex: 1, padding: 28, overflowY: "auto" }}>
           {pagina === "dashboard" && <DashboardPage />}
+          {pagina === "inteligencia" && (
+            <InteligenciaPage comunicacoes={comsVisiveis} alunos={alunos} escola={escola} />
+          )}
           {pagina === "alunos" && <AlunosPage />}
           {pagina === "turmas" && <TurmasPage />}
           {pagina === "comunicacoes" && <ComunicacoesPage />}
