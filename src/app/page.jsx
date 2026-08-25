@@ -45,6 +45,29 @@ const Input = ({ label, error, hint, ...props }) => (
   </div>
 );
 
+let _turmasCache = null;
+// Turma era texto livre e virou 52 grafias para 38 turmas reais.
+// O datalist sugere as turmas ja existentes sem impedir criar uma nova.
+const DatalistTurmas = () => {
+  const [turmas, setTurmas] = useState(_turmasCache || []);
+  useEffect(() => {
+    if (_turmasCache) return;
+    supabase.from("alunos").select("turma").not("turma", "is", null).then(({ data }) => {
+      _turmasCache = [...new Set((data || []).map(a => a.turma))].sort();
+      setTurmas(_turmasCache);
+    });
+  }, []);
+  return <datalist id="lista-turmas">{turmas.map(t => <option key={t} value={t} />)}</datalist>;
+};
+
+const InputTurma = ({ value, onChange, label = "Turma" }) => (
+  <>
+    <Input label={label} value={value} onChange={onChange} list="lista-turmas"
+      placeholder="Ex: 3º Ano - A" hint="Escolha uma turma existente para não criar duplicadas" />
+    <DatalistTurmas />
+  </>
+);
+
 const Sel = ({ label, error, children, ...props }) => (
   <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
     {label && <label style={{ fontSize: 12, fontWeight: 600, color: error ? "#ef4444" : "#475569" }}>{label}</label>}
@@ -1621,7 +1644,7 @@ function BuscaMotivo({ motivos, value, onChange, error }) {
 // ── MODAIS SISTEMA ESCOLAR ─────────────────────────────────────────────────────
 function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos: motivosInit, escolaId }) {
   const [motivos, setMotivos] = useState(motivosInit || []);
-  const [f, setF] = useState({ alunoId: "", titulo: "", detalhes: "", urgencia: "", comQuem: "", via: "", motivoId: "", motivoCustom: "", motivoCustomPontos: "0", encaminhar: false, encDestino: "", encResponsavelId: "", encResponsavelNome: "", encObs: "" });
+  const [f, setF] = useState({ alunoId: "", titulo: "", detalhes: "", urgencia: "", comQuem: "", via: "", motivoId: "", motivoCustom: "", motivoCustomPontos: "0", encaminhar: false, encDestino: "", encResponsavelId: "", encResponsavelNome: "", encObs: "", dataOcorrencia: new Date().toISOString().slice(0, 10), turno: "" });
   const [arquivo, setArquivo] = useState(null);
   const [err, setErr] = useState({});
   const [saving, setSaving] = useState(false);
@@ -1712,6 +1735,7 @@ function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos: motiv
       enc_obs: f.encObs || null, enc_status: f.encaminhar ? "PENDENTE" : null,
       status: f.encaminhar ? "PENDENTE" : "CONCLUÍDO", com_quem: f.comQuem === "Profissional Externo" ? `Profissional Externo — ${f.profExterno}` : f.comQuem,
       via_comunicacao: f.via,
+      data_ocorrencia: f.dataOcorrencia || null, turno: f.turno || null,
       arquivo_url: arquivoUrl, arquivo_nome: arquivoNome
     };
     const { data, error } = await supabase.from("comunicacoes").insert([payload]).select().single();
@@ -1805,6 +1829,21 @@ function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos: motiv
                   {Number(f.motivoCustomPontos) > 0 ? `⚠️ +${f.motivoCustomPontos} pontos de risco` : `✓ ${Math.abs(Number(f.motivoCustomPontos))} pontos de risco reduzidos`}
                 </div>
               )}
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <Input label="Quando aconteceu" type="date" value={f.dataOcorrencia}
+                max={new Date().toISOString().slice(0, 10)}
+                onChange={e => upd("dataOcorrencia", e.target.value)}
+                hint="Data do fato, não do registro" />
+              <Sel label="Momento do dia" value={f.turno} onChange={e => upd("turno", e.target.value)}>
+                <option value="">— Não informado —</option>
+                <option value="Entrada">🚪 Entrada</option>
+                <option value="Manhã">🌅 Manhã</option>
+                <option value="Intervalo">⚽ Intervalo / Recreio</option>
+                <option value="Tarde">☀️ Tarde</option>
+                <option value="Saída">🚌 Saída</option>
+                <option value="Noite">🌙 Noite</option>
+              </Sel>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               <Sel label="Via de Comunicação *" error={err.via} value={f.via} onChange={e => upd("via", e.target.value)}>
@@ -2320,13 +2359,14 @@ function ModalNovoAluno({ onClose, onSave, profile, escolaId }) {
                       <td style={{ ...tdS, textAlign: "center", fontSize: 11, color: "#94a3b8", fontWeight: 700 }}>{i + 1}</td>
                       <td style={tdS}><input value={l.nome} onChange={e => updLinha(i, "nome", e.target.value)} onPaste={e => handlePaste(e, i, "nome")} placeholder="Nome completo" style={inpS(ok)} /></td>
                       <td style={tdS}><input value={l.responsavel} onChange={e => updLinha(i, "responsavel", e.target.value)} onPaste={e => handlePaste(e, i, "responsavel")} placeholder="Nome do responsável" style={inpS(false)} /></td>
-                      <td style={tdS}><input value={l.turma} onChange={e => updLinha(i, "turma", e.target.value)} onPaste={e => handlePaste(e, i, "turma")} placeholder="Ex: 3º A" style={inpS(false)} /></td>
+                      <td style={tdS}><input value={l.turma} onChange={e => updLinha(i, "turma", e.target.value)} onPaste={e => handlePaste(e, i, "turma")} list="lista-turmas" placeholder="Ex: 3º Ano - A" style={inpS(false)} /></td>
                       <td style={tdS}><input value={l.telefone} onChange={e => updLinha(i, "telefone", e.target.value)} onPaste={e => handlePaste(e, i, "telefone")} placeholder="(00) 00000-0000" style={inpS(false)} /></td>
                     </tr>);
                   })}
                 </tbody>
               </table></div>
             </div>
+            <DatalistTurmas />
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <button onClick={addLinhas} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "#2563eb", fontWeight: 600, padding: 0 }}>+ Adicionar 5 linhas</button>
               <span style={{ fontSize: 13, color: linhasValidas.length > 0 ? "#16a34a" : "#64748b", fontWeight: linhasValidas.length > 0 ? 700 : 400 }}>
@@ -2337,7 +2377,7 @@ function ModalNovoAluno({ onClose, onSave, profile, escolaId }) {
           {modo === "individual" && (<>
             <Input label="Nome completo *" value={f.nome} onChange={e => upd("nome", e.target.value)} placeholder="Nome do aluno" />
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-              <Input label="Turma" value={f.turma} onChange={e => upd("turma", e.target.value)} placeholder="Ex: 3º A" />
+              <InputTurma value={f.turma} onChange={e => upd("turma", e.target.value)} />
               <Input label="RM / Matrícula" value={f.rm} onChange={e => upd("rm", e.target.value)} placeholder="Ex: 2024001" />
             </div>
             <Input label="Nome do Responsável" value={f.responsavel} onChange={e => upd("responsavel", e.target.value)} placeholder="Nome completo do responsável" />
@@ -2379,7 +2419,7 @@ function ModalEditarAluno({ aluno, onClose, onSave }) {
         <MBody>
           <Input label="Nome completo *" value={f.nome} onChange={e => upd("nome", e.target.value)} placeholder="Nome do aluno" />
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <Input label="Turma" value={f.turma} onChange={e => upd("turma", e.target.value)} placeholder="Ex: 3º A" />
+            <InputTurma value={f.turma} onChange={e => upd("turma", e.target.value)} />
             <Input label="RM / Matrícula" value={f.rm} onChange={e => upd("rm", e.target.value)} placeholder="Ex: 2024001" />
           </div>
           <Input label="Nome do Responsável" value={f.responsavel} onChange={e => upd("responsavel", e.target.value)} placeholder="Nome completo do responsável" />
