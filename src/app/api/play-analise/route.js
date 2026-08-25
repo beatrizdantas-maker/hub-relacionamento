@@ -1,13 +1,16 @@
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { usuarioAutenticado, naoAutorizado } from "../../../lib/api-auth";
 
 const client = new Anthropic();
 
 export async function POST(req) {
-  const { totalAlunos, comPontos, semPontos, media, desengajados, bimestre, nomeMoeda } = await req.json();
+  if (!(await usuarioAutenticado(req))) return naoAutorizado();
+
+  const { totalAlunos, comPontos, semPontos, media, desengajados, bimestre } = await req.json();
   try {
     const msg = await client.messages.create({
-      model: "claude-opus-4-5",
+      model: "claude-haiku-4-5-20251001",
       max_tokens: 500,
       messages: [{ role: "user", content: `Analise estes dados de engajamento escolar do ${bimestre}º bimestre: Total: ${totalAlunos}, Com pontos: ${comPontos}, Sem pontos: ${semPontos}, Média: ${media}, Em risco: ${desengajados}. Escreva análise pedagógica em português, máximo 4 frases, com sugestão prática.` }]
     });

@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "../lib/supabase";
+import { apiPost } from "../lib/api-client";
 // ── HELPERS ────────────────────────────────────────────────────────────────────
 const getRiscoColor = (r) => r >= 60 ? "#ef4444" : r >= 30 ? "#f59e0b" : "#22c55e";
 const getRiscoBg = (r) => r >= 60 ? "#fef2f2" : r >= 30 ? "#fffbeb" : "#f0fdf4";
@@ -393,11 +394,7 @@ function CampoRelato({ value, onChange, onBlur }) {
     if (!value?.trim()) return;
     setResumindo(true); setResumo("");
     try {
-      const res = await fetch("/api/resumir", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ texto: value }),
-      });
+      const res = await apiPost("/api/resumir", { texto: value });
       const data = await res.json();
       setResumo(data.resumo || "Não foi possível gerar o resumo.");
     } catch { setResumo("Erro ao conectar com a IA."); }
@@ -1618,11 +1615,7 @@ function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos: motiv
     setIaAnalisando(true); setIaSugestao(null);
     try {
       const listaMotivos = motivos.map(m => `- ${m.nome} (${m.pontos > 0 ? '+' : ''}${m.pontos} pts, id: ${m.id})`).join('\n');
-      const resp = await fetch('/api/sugerir-motivo', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ relato: texto, motivos })
-      });
+      const resp = await apiPost('/api/sugerir-motivo', { relato: texto, motivos });
       const data = await resp.json();
       if (!data.error) setIaSugestao(data);
     } catch (e) { /* silencioso */ }
@@ -2393,11 +2386,7 @@ function PerfilAluno({ aluno: alunoInicial, comunicacoes, reunioes, onClose, pro
     setAnalisando(true);
     setAnalise(null);
     try {
-      const res = await fetch("/api/analisar-risco", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ aluno, comunicacoes: coms, reunioes: reunioesA, score: aluno.risco }),
-      });
+      const res = await apiPost("/api/analisar-risco", { aluno, comunicacoes: coms, reunioes: reunioesA, score: aluno.risco });
       const data = await res.json();
       if (data.analise) {
         setAnalise(data.analise);
@@ -2580,10 +2569,11 @@ function ModalMeuPerfil({ profile, user, onClose, onUpdate }) {
     let fotoUrl = profile.foto_url || null;
     if (foto) {
       const ext = foto.name.split(".").pop();
-      const path = `perfil/${profile.id}/foto.${ext}`;
-      const { error: upErr } = await supabase.storage.from("comunicacoes-anexos").upload(path, foto, { upsert: true });
+      // bucket "avatars" e publico; "comunicacoes-anexos" e privado e nao gera link publico
+      const path = `${profile.id}/foto.${ext}`;
+      const { error: upErr } = await supabase.storage.from("avatars").upload(path, foto, { upsert: true });
       if (upErr) { setErrMsg("Erro ao enviar foto: " + upErr.message); setSaving(false); return; }
-      const { data: urlData } = supabase.storage.from("comunicacoes-anexos").getPublicUrl(path);
+      const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
       fotoUrl = urlData.publicUrl;
     }
 

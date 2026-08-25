@@ -1,5 +1,9 @@
+import { usuarioAutenticado, naoAutorizado } from "../../../lib/api-auth";
+
 export async function POST(request) {
   try {
+    if (!(await usuarioAutenticado(request))) return naoAutorizado();
+
     const { aluno, comunicacoes, reunioes, score } = await request.json();
 
     const historicoTexto = comunicacoes.map(c =>

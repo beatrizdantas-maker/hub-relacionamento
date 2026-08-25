@@ -1,7 +1,10 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { usuarioAutenticado, naoAutorizado } from "../../../lib/api-auth";
 
 export async function POST(req) {
   try {
+    if (!(await usuarioAutenticado(req))) return naoAutorizado();
+
     const { relato, motivos } = await req.json();
     if (!relato || relato.trim().length < 5) {
       return Response.json({ error: "Relato muito curto" }, { status: 400 });

@@ -1,5 +1,9 @@
+import { usuarioAutenticado, naoAutorizado } from "../../../lib/api-auth";
+
 export async function POST(request) {
   try {
+    if (!(await usuarioAutenticado(request))) return naoAutorizado();
+
     const { texto } = await request.json();
     if (!texto?.trim()) {
       return Response.json({ error: "Texto vazio" }, { status: 400 });
