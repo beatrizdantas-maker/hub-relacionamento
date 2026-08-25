@@ -4,7 +4,10 @@ import { apiPost } from "../lib/api-client";
 import {
   PERIODOS, fatiarPeriodo, calcularSaude, calcularAtencaoAlunos, calcularTurmas,
   calcularPontosPositivos, calcularRecortes, montarResumoParaIA,
+  calcularSetores, detalharTurma, calcularSerie, calcularTempoPorUsuario,
 } from "../lib/inteligencia";
+import { graficoEvolucao, graficoSituacao, graficoSegmentos, graficoTurmas, graficoMotivos } from "../lib/graficos";
+import { relatorioPorTurma, relatorioPorSetor, relatorioExecutivo } from "../lib/relatorios";
 
 const CORES_NIVEL = {
   "PRIORITÁRIO": "#7c3aed",
@@ -65,12 +68,16 @@ const Barra = ({ nome, qtd, max, cor = "#2563eb", direita }) => (
   </div>
 );
 
-export default function InteligenciaPage({ comunicacoes, alunos, escola }) {
+/** Insere o SVG gerado pela lib de gráficos. Conteúdo próprio, sem entrada de terceiros. */
+const Grafico = ({ svg }) => <div dangerouslySetInnerHTML={{ __html: svg }} />;
+
+export default function InteligenciaPage({ comunicacoes, alunos, escola, profile, equipe }) {
   const [periodoId, setPeriodoId] = useState("30");
   const [segmento, setSegmento] = useState("");
   const [analise, setAnalise] = useState(null);
   const [gerando, setGerando] = useState(false);
   const [erroIA, setErroIA] = useState(null);
+  const [turmaRel, setTurmaRel] = useState("");
 
   const segmentos = useMemo(
     () => [...new Set(alunos.map(a => a.segmento).filter(Boolean))].sort(),
@@ -91,15 +98,20 @@ export default function InteligenciaPage({ comunicacoes, alunos, escola }) {
     const positivos = calcularPontosPositivos(atual, anterior, alunosFiltrados);
     const recortes = calcularRecortes(atual, anterior, alunosFiltrados);
 
+    const setores = calcularSetores(atual, anterior);
+    const serie = calcularSerie(atual, periodo.dias);
+    const usuarios = calcularTempoPorUsuario(atual, equipe);
+
     return {
-      periodo, saude, atencao, turmas, positivos, recortes,
+      periodo, saude, atencao, turmas, positivos, recortes, setores, serie, usuarios,
+      atual, anterior, alunosFiltrados,
       resumo: montarResumoParaIA({
         saude, atencao, turmas, positivos, recortes,
         periodo: periodo.label + (segmento ? " · " + segmento : ""),
         escola,
       }),
     };
-  }, [comunicacoes, alunos, periodoId, segmento, escola]);
+  }, [comunicacoes, alunos, equipe, periodoId, segmento, escola]);
 
   const { saude, atencao, turmas, positivos, recortes } = dados;
 
@@ -114,6 +126,29 @@ export default function InteligenciaPage({ comunicacoes, alunos, escola }) {
       setErroIA("Erro de conexão com a IA.");
     }
     setGerando(false);
+  };
+
+  const nomePorAluno = (id) => {
+    const a = alunos.find(x => x.id === id);
+    return a ? a.nome : "—";
+  };
+  const ctx = () => ({
+    periodo: dados.periodo.label + (segmento ? " · " + segmento : ""),
+    escola, profile,
+  });
+
+  const turmasComDados = useMemo(
+    () => turmas.filter(t => t.registros > 0).map(t => t.turma),
+    [turmas]
+  );
+
+  const emitirTurma = () => {
+    const alvo = turmaRel ? [turmaRel] : turmasComDados;
+    const detalhes = alvo
+      .map(nome => detalharTurma(dados.atual, dados.anterior, dados.alunosFiltrados, nome, turmas.find(t => t.turma === nome)))
+      .filter(t => t.registros > 0)
+      .sort((a, b) => b.negativos - a.negativos);
+    relatorioPorTurma({ turmas: detalhes, ...ctx() });
   };
 
   const destaqueTurmas = turmas.filter(t => t.desvio !== null && t.desvio > 25 && t.negativos >= 3).slice(0, 6);
@@ -172,6 +207,49 @@ export default function InteligenciaPage({ comunicacoes, alunos, escola }) {
             rodape={saude.amostraTempo ? "sobre " + saude.amostraTempo + " caso(s) com data" : "sem dado suficiente"} />
         </div>
 
+        {/* RELATÓRIOS IMPRIMÍVEIS */}
+        <div style={{ background: "#fff", borderRadius: 12, padding: 18, border: "1px solid #f1f5f9", boxShadow: "0 1px 4px rgba(0,0,0,.06)" }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 4 }}>
+            <span style={{ fontSize: 16 }}>📄</span>
+            <h3 style={{ margin: 0, fontSize: 14, fontWeight: 800, color: "#1e293b" }}>Relatórios para imprimir ou salvar em PDF</h3>
+          </div>
+          <p style={{ margin: "0 0 14px", fontSize: 12, color: "#94a3b8" }}>
+            Abrem em uma aba nova já formatados. Use <b>Imprimir</b> e escolha <b>&quot;Salvar como PDF&quot;</b> no destino.
+            Seguem o período e o segmento selecionados acima.
+          </p>
+
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+            <button onClick={() => relatorioExecutivo({ saude, atencao, turmas, positivos, recortes, analise, serie: dados.serie, usuarios: dados.usuarios, nomePorAluno, ...ctx() })}
+              style={{ padding: "10px 16px", borderRadius: 8, border: "none", background: "#1a4f8a", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+              📊 Relatório Executivo
+            </button>
+
+            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+              <select value={turmaRel} onChange={e => setTurmaRel(e.target.value)}
+                style={{ padding: "9px 10px", border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 13, background: "#fff", color: "#1e293b", maxWidth: 190 }}>
+                <option value="">Todas as turmas</option>
+                {turmasComDados.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+              <button onClick={emitirTurma} disabled={!turmasComDados.length}
+                style={{ padding: "10px 16px", borderRadius: 8, border: "none", background: turmasComDados.length ? "#2563eb" : "#cbd5e1", color: "#fff", fontSize: 13, fontWeight: 700, cursor: turmasComDados.length ? "pointer" : "default" }}>
+                🏫 Relatório por Turma
+              </button>
+            </div>
+
+            <button onClick={() => relatorioPorSetor({ setores: dados.setores, nomePorAluno, ...ctx() })}
+              disabled={!dados.setores.length}
+              style={{ padding: "10px 16px", borderRadius: 8, border: "none", background: dados.setores.length ? "#7c3aed" : "#cbd5e1", color: "#fff", fontSize: 13, fontWeight: 700, cursor: dados.setores.length ? "pointer" : "default" }}>
+              🏢 Relatório por Setor
+            </button>
+          </div>
+
+          {!analise && (
+            <div style={{ marginTop: 12, fontSize: 12, color: "#94a3b8" }}>
+              💡 O Relatório Executivo inclui a leitura da IA se você clicar antes em &quot;Gerar Análise com IA&quot;.
+            </div>
+          )}
+        </div>
+
         {/* ANÁLISE DA IA */}
         {erroIA && (
           <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 12, padding: 14, fontSize: 13, color: "#b91c1c" }}>{erroIA}</div>
@@ -227,6 +305,69 @@ export default function InteligenciaPage({ comunicacoes, alunos, escola }) {
             </div>
           </div>
         )}
+
+        {/* GRÁFICOS */}
+        <div style={{ background: "#fff", borderRadius: 12, padding: 18, border: "1px solid #f1f5f9", boxShadow: "0 1px 4px rgba(0,0,0,.06)" }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 4 }}>
+            <span style={{ fontSize: 16 }}>📈</span>
+            <h3 style={{ margin: 0, fontSize: 14, fontWeight: 800, color: "#1e293b" }}>Gráficos do período</h3>
+            <span style={{ fontSize: 11, color: "#94a3b8" }}>entram no Relatório Executivo</span>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 24, marginTop: 14 }}>
+            <div style={{ gridColumn: "1 / -1" }}><Grafico svg={graficoEvolucao(dados.serie)} /></div>
+            <Grafico svg={graficoSituacao(saude)} />
+            <Grafico svg={graficoMotivos(recortes.queixas)} />
+            <div style={{ gridColumn: "1 / -1" }}><Grafico svg={graficoTurmas(turmas)} /></div>
+            <div style={{ gridColumn: "1 / -1" }}><Grafico svg={graficoSegmentos(recortes.segmentos)} /></div>
+          </div>
+        </div>
+
+        {/* TEMPO DE RESPOSTA POR USUÁRIO */}
+        <Bloco titulo="Tempo de resposta por usuário" icone="⏱️" sub="para equilibrar carga, não para ranquear pessoas">
+          {dados.usuarios.length === 0 ? <Vazio>Nenhum encaminhamento com responsável no período.</Vazio> : (
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5, minWidth: 560 }}>
+                <thead>
+                  <tr style={{ color: "#94a3b8", fontSize: 10.5, textTransform: "uppercase", letterSpacing: 0.3 }}>
+                    <th style={{ textAlign: "left", padding: "6px 8px", borderBottom: "1.5px solid #e2e8f0", fontWeight: 700 }}>Profissional</th>
+                    <th style={{ textAlign: "right", padding: "6px 8px", borderBottom: "1.5px solid #e2e8f0", fontWeight: 700 }}>Tempo médio</th>
+                    <th style={{ textAlign: "right", padding: "6px 8px", borderBottom: "1.5px solid #e2e8f0", fontWeight: 700 }}>Recebidos</th>
+                    <th style={{ textAlign: "right", padding: "6px 8px", borderBottom: "1.5px solid #e2e8f0", fontWeight: 700 }}>Resolvidos</th>
+                    <th style={{ textAlign: "right", padding: "6px 8px", borderBottom: "1.5px solid #e2e8f0", fontWeight: 700 }}>Em aberto</th>
+                    <th style={{ textAlign: "right", padding: "6px 8px", borderBottom: "1.5px solid #e2e8f0", fontWeight: 700 }}>Parados</th>
+                    <th style={{ textAlign: "right", padding: "6px 8px", borderBottom: "1.5px solid #e2e8f0", fontWeight: 700 }}>Registrou</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {dados.usuarios.map(u => (
+                    <tr key={u.id} style={{ background: u.parados ? "#fef2f2" : "transparent" }}>
+                      <td style={{ padding: "7px 8px", borderBottom: "1px solid #f1f5f9", fontWeight: 600, color: "#1e293b" }}>{u.nome}</td>
+                      <td style={{ padding: "7px 8px", borderBottom: "1px solid #f1f5f9", textAlign: "right", fontWeight: 800,
+                                   color: u.tempoMedio === null ? "#cbd5e1" : u.tempoMedio <= 3 ? "#16a34a" : u.tempoMedio <= 7 ? "#f59e0b" : "#ef4444" }}>
+                        {u.tempoMedio === null ? "—" : u.tempoMedio + " d"}
+                        {u.amostra > 0 && <span style={{ fontSize: 10, color: "#94a3b8", fontWeight: 600 }}> ({u.amostra})</span>}
+                      </td>
+                      <td style={{ padding: "7px 8px", borderBottom: "1px solid #f1f5f9", textAlign: "right" }}>{u.recebidos || "—"}</td>
+                      <td style={{ padding: "7px 8px", borderBottom: "1px solid #f1f5f9", textAlign: "right", color: "#16a34a", fontWeight: 700 }}>
+                        {u.percResolvido === null ? "—" : u.percResolvido + "%"}
+                      </td>
+                      <td style={{ padding: "7px 8px", borderBottom: "1px solid #f1f5f9", textAlign: "right", color: "#f59e0b", fontWeight: 700 }}>{u.pendentes || "—"}</td>
+                      <td style={{ padding: "7px 8px", borderBottom: "1px solid #f1f5f9", textAlign: "right", color: "#ef4444", fontWeight: 700 }}>
+                        {u.parados ? u.parados : "—"}
+                        {u.maisAntigo > 0 && <span style={{ fontSize: 10, color: "#94a3b8", fontWeight: 600 }}> ({u.maisAntigo}d)</span>}
+                      </td>
+                      <td style={{ padding: "7px 8px", borderBottom: "1px solid #f1f5f9", textAlign: "right", color: "#64748b" }}>{u.registrou || "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 10, lineHeight: 1.6 }}>
+                O número entre parênteses no tempo médio é a quantidade de casos com data de resolução registrada — só esses entram na conta.
+                Em &quot;Parados&quot;, mostra os dias do caso mais antigo. Linhas em vermelho têm caso parado há 7 dias ou mais.
+              </div>
+            </div>
+          )}
+        </Bloco>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 14 }}>
           {/* ALUNOS QUE MERECEM ATENÇÃO */}

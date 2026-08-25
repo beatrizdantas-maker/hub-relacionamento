@@ -322,3 +322,184 @@ export function montarResumoParaIA({ saude, atencao, turmas, positivos, recortes
     pontos_positivos: { ...positivos, variacao: pct(positivos.variacao) },
   };
 }
+
+// ── DETALHAMENTO PARA OS RELATÓRIOS ────────────────────────────────────────
+// O painel mostra o resumo; o relatório precisa do detalhe por trás de cada linha.
+
+/** Visão completa de um setor: fila, tempo de resposta e onde está travando. */
+export function calcularSetores(atual, anterior) {
+  const encaminhados = atual.filter(c => c.encaminhamento && c.enc_destino);
+  const antes = contarPor(anterior.filter(c => c.encaminhamento && c.enc_destino), "enc_destino");
+  const porSetor = new Map();
+
+  for (const c of encaminhados) {
+    const s = c.enc_destino;
+    if (!porSetor.has(s))
+      porSetor.set(s, { setor: s, recebidos: 0, pendentes: 0, resolvidos: 0, criticos: 0,
+                        tempos: [], parados: [], responsaveis: new Map(), motivos: new Map() });
+    const r = porSetor.get(s);
+    r.recebidos++;
+    const pendente = c.enc_status === "PENDENTE";
+    if (pendente) r.pendentes++; else r.resolvidos++;
+    if (c.urgencia === "ALTA" && pendente) r.criticos++;
+
+    const d = diasAteResolver(c);
+    if (d !== null) r.tempos.push(d);
+
+    if (pendente && !c.resolucao) {
+      const dias = Math.round((new Date() - dataDoRegistro(c)) / 864e5);
+      if (dias >= 7) r.parados.push({ dias, motivo: c.motivo_nome || c.titulo, responsavel: c.enc_responsavel, aluno_id: c.aluno_id });
+    }
+    if (c.enc_responsavel) r.responsaveis.set(c.enc_responsavel, (r.responsaveis.get(c.enc_responsavel) || 0) + 1);
+    if (c.motivo_nome) r.motivos.set(c.motivo_nome, (r.motivos.get(c.motivo_nome) || 0) + 1);
+  }
+
+  return [...porSetor.values()].map(r => ({
+    setor: r.setor,
+    recebidos: r.recebidos,
+    pendentes: r.pendentes,
+    resolvidos: r.resolvidos,
+    criticos: r.criticos,
+    percResolvido: r.recebidos ? Math.round((r.resolvidos / r.recebidos) * 100) : 0,
+    tempoMedio: r.tempos.length ? Math.round(media(r.tempos) * 10) / 10 : null,
+    amostraTempo: r.tempos.length,
+    parados: r.parados.sort((a, b) => b.dias - a.dias),
+    variacao: variacao(r.recebidos, antes.get(r.setor) || 0),
+    responsaveis: topN(r.responsaveis, 5),
+    motivos: topN(r.motivos, 5),
+  })).sort((a, b) => b.recebidos - a.recebidos);
+}
+
+/** Tudo o que o relatório de uma turma precisa mostrar. */
+export function detalharTurma(atual, anterior, alunos, turma, resumoTurma) {
+  const daTurma = alunos.filter(a => a.turma === turma);
+  const ids = new Set(daTurma.map(a => a.id));
+  const regs = atual.filter(c => ids.has(c.aluno_id));
+  const regsAntes = anterior.filter(c => ids.has(c.aluno_id));
+  const negativos = regs.filter(ehNegativo);
+
+  const alunoPorId = new Map(daTurma.map(a => [a.id, a]));
+  const comRegistro = new Set(negativos.map(c => c.aluno_id));
+
+  return {
+    turma,
+    segmento: daTurma[0] && daTurma[0].segmento,
+    totalAlunos: daTurma.length,
+    registros: regs.length,
+    negativos: negativos.length,
+    positivos: regs.filter(ehPositivo).length,
+    resolvidos: regs.filter(c => c.status === "CONCLUÍDO").length,
+    criticos: negativos.filter(c => c.urgencia === "ALTA" && c.status !== "CONCLUÍDO").length,
+    encPendentes: regs.filter(c => c.encaminhamento && c.enc_status === "PENDENTE").length,
+    variacao: variacao(negativos.length, regsAntes.filter(ehNegativo).length),
+    porAluno: resumoTurma ? resumoTurma.porAluno : null,
+    mediaSegmento: resumoTurma ? resumoTurma.mediaSegmento : null,
+    desvio: resumoTurma ? resumoTurma.desvio : null,
+    alunosEnvolvidos: comRegistro.size,
+    concentracao: comRegistro.size ? Math.round((negativos.length / comRegistro.size) * 10) / 10 : 0,
+    motivos: topN(contarPor(negativos, "motivo_nome"), 6),
+    positivosTemas: topN(contarPor(regs.filter(ehPositivo), "motivo_nome"), 4),
+    profissionais: topN(contarPor(regs, "autor_nome"), 5),
+    setores: topN(contarPor(regs.filter(c => c.encaminhamento), "enc_destino"), 5),
+    alunosDetalhe: [...contarPor(negativos, "aluno_id").entries()]
+      .map(([id, qtd]) => ({
+        nome: (alunoPorId.get(id) || {}).nome || "—",
+        qtd,
+        criticos: negativos.filter(c => c.aluno_id === id && c.urgencia === "ALTA").length,
+      }))
+      .sort((a, b) => b.qtd - a.qtd),
+  };
+}
+
+/** Série temporal para os gráficos: agrupa por semana em períodos curtos e por mês nos longos. */
+export function calcularSerie(atual, dias) {
+  if (!atual.length) return { pontos: [], unidade: "semana" };
+  const porMes = !dias || dias > 90;
+  const balde = new Map();
+
+  for (const c of atual) {
+    const d = dataDoRegistro(c);
+    let chave, ordem;
+    if (porMes) {
+      ordem = d.getFullYear() * 100 + d.getMonth();
+      chave = d.toLocaleDateString("pt-BR", { month: "short", year: "2-digit" });
+    } else {
+      // segunda-feira da semana do registro
+      const seg = new Date(d);
+      seg.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+      seg.setHours(0, 0, 0, 0);
+      ordem = seg.getTime();
+      chave = seg.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+    }
+    if (!balde.has(ordem)) balde.set(ordem, { ordem, label: chave, atencao: 0, positivos: 0, total: 0 });
+    const b = balde.get(ordem);
+    b.total++;
+    if (ehNegativo(c)) b.atencao++;
+    if (ehPositivo(c)) b.positivos++;
+  }
+
+  return {
+    pontos: [...balde.values()].sort((a, b) => a.ordem - b.ordem),
+    unidade: porMes ? "mês" : "semana",
+  };
+}
+
+// ── TEMPO DE RESPOSTA POR USUÁRIO ──────────────────────────────────────────
+// Mede a fila de cada profissional: quanto ele recebeu, quanto devolveu e em
+// quantos dias. Serve para redistribuir carga, não para ranquear pessoas — por
+// isso mostramos também o tamanho da amostra e o caso mais antigo parado.
+export function calcularTempoPorUsuario(atual, equipe) {
+  const porPessoa = new Map();
+  const chave = (c) => c.enc_responsavel_id || c.enc_responsavel;
+
+  const garantir = (k, nome) => {
+    if (!porPessoa.has(k))
+      porPessoa.set(k, { id: k, nome, recebidos: 0, resolvidos: 0, pendentes: 0,
+                        criticos: 0, tempos: [], parados: 0, maisAntigo: 0, registrou: 0 });
+    return porPessoa.get(k);
+  };
+
+  const nomeDoPerfil = new Map((equipe || []).map(p => [p.id, p.nome]));
+  const hoje = new Date();
+
+  for (const c of atual) {
+    // encaminhamentos recebidos
+    const k = chave(c);
+    if (c.encaminhamento && k) {
+      const r = garantir(k, nomeDoPerfil.get(k) || c.enc_responsavel || "—");
+      r.recebidos++;
+      if (c.enc_status === "PENDENTE") {
+        r.pendentes++;
+        if (c.urgencia === "ALTA") r.criticos++;
+        if (!c.resolucao) {
+          const d = Math.round((hoje - dataDoRegistro(c)) / 864e5);
+          if (d >= 7) { r.parados++; if (d > r.maisAntigo) r.maisAntigo = d; }
+        }
+      } else {
+        r.resolvidos++;
+      }
+      const t = diasAteResolver(c);
+      if (t !== null) r.tempos.push(t);
+    }
+    // registros criados
+    if (c.autor_id) {
+      const a = garantir(c.autor_id, nomeDoPerfil.get(c.autor_id) || c.autor_nome || "—");
+      a.registrou++;
+    }
+  }
+
+  return [...porPessoa.values()]
+    .filter(p => p.recebidos > 0 || p.registrou > 0)
+    .map(p => ({
+      ...p,
+      tempoMedio: p.tempos.length ? Math.round(media(p.tempos) * 10) / 10 : null,
+      amostra: p.tempos.length,
+      percResolvido: p.recebidos ? Math.round((p.resolvidos / p.recebidos) * 100) : null,
+    }))
+    .sort((a, b) => {
+      if (a.tempoMedio === null && b.tempoMedio === null) return b.recebidos - a.recebidos;
+      if (a.tempoMedio === null) return 1;
+      if (b.tempoMedio === null) return -1;
+      return a.tempoMedio - b.tempoMedio;
+    });
+}

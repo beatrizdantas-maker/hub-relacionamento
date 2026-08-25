@@ -3865,7 +3865,7 @@ function SchoolApp({ user, profile, escola, onLogout, onProfileUpdate, onVoltarA
         <div className="main-content" style={{ flex: 1, padding: 28, overflowY: "auto" }}>
           {pagina === "dashboard" && <DashboardPage />}
           {pagina === "inteligencia" && (
-            <InteligenciaPage comunicacoes={comsVisiveis} alunos={alunos} escola={escola} />
+            <InteligenciaPage comunicacoes={comsVisiveis} alunos={alunos} escola={escola} profile={profile} equipe={equipe} />
           )}
           {pagina === "alunos" && <AlunosPage />}
           {pagina === "turmas" && <TurmasPage />}
