@@ -99,6 +99,51 @@ tr{page-break-inside:avoid;break-inside:avoid}
 @media print{.barra-acao{display:none}body{background:#fff}.pg{max-width:none;padding:0}}
 `;
 
+/** Tabela e gráficos por perfil cadastrado. Usada no Executivo e no de Setor. */
+function blocoPerfis(perfis) {
+  if (!perfis || !perfis.length) return "";
+  const comRecebidos = perfis.filter(p => p.recebidos > 0);
+  return `
+    <h2>Por perfil cadastrado</h2>
+    <div class="graficos evita-quebra">
+      ${graficoDuplo(perfis.filter(p => p.registrou > 0).map(p => ({
+          nome: p.rotulo, atencao: p.registrouAtencao, positivo: p.registrouPositivo,
+          sub: p.pessoas + " pessoa(s) · " + (p.porPessoa === null ? "—" : p.porPessoa) + " por pessoa" })),
+        { largura: 700, titulo: "Registros criados por perfil",
+          serieA: { campo: "atencao", nome: "De atenção", cor: "#ef4444" },
+          serieB: { campo: "positivo", nome: "Positivos", cor: "#22c55e" } })}
+      ${comRecebidos.length ? `<div style="margin-top:14px">${graficoDuplo(comRecebidos.map(p => ({
+          nome: p.rotulo, recebidos: p.recebidos, pendentes: p.pendentes,
+          sub: p.parados ? p.parados + " parado(s)" : "" })),
+        { largura: 700, titulo: "Encaminhamentos recebidos por perfil",
+          serieA: { campo: "recebidos", nome: "Recebidos", cor: "#7c3aed" },
+          serieB: { campo: "pendentes", nome: "Ainda em aberto", cor: "#f59e0b" } })}</div>` : ""}
+      ${comRecebidos.some(p => p.tempoMedio !== null) ? `<div style="margin-top:14px">${graficoValores(
+        comRecebidos.filter(p => p.tempoMedio !== null).map(p => ({ nome: p.rotulo, valor: p.tempoMedio })),
+        { largura: 700, titulo: "Tempo médio de resposta por perfil", sufixo: " d", inverso: true })}</div>` : ""}
+    </div>
+
+    <table>
+      <thead><tr>
+        <th>Perfil</th><th class="num">Pessoas</th><th class="num">Registrou</th><th class="num">Por pessoa</th>
+        <th class="num">Recebeu</th><th class="num">Resolveu</th><th class="num">Em aberto</th>
+        <th class="num">Parados</th><th class="num">Tempo médio</th>
+      </tr></thead>
+      <tbody>${perfis.map(p => `<tr${p.parados ? ' class="destaque"' : ""}>
+        <td><b>${esc(p.rotulo)}</b></td>
+        <td class="num">${p.pessoas || "—"}</td>
+        <td class="num">${p.registrou || "—"}</td>
+        <td class="num">${p.porPessoa === null ? "—" : p.porPessoa}</td>
+        <td class="num">${p.recebidos || "—"}</td>
+        <td class="num">${p.percResolvido === null ? "—" : p.percResolvido + "%"}</td>
+        <td class="num">${p.pendentes || "—"}</td>
+        <td class="num">${p.parados || "—"}${p.maisAntigo ? ` <span style="color:#94a3b8">(${p.maisAntigo}d)</span>` : ""}</td>
+        <td class="num">${p.tempoMedio === null ? "—" : p.tempoMedio + " d"}${p.amostraTempo ? ` <span style="color:#94a3b8">(${p.amostraTempo})</span>` : ""}</td>
+      </tr>`).join("")}</tbody>
+    </table>
+    <div class="nota">"Registrou" conta pelo perfil de quem criou o registro; "Recebeu", pelo perfil do responsável pelo encaminhamento. "Por pessoa" divide pelos profissionais cadastrados naquele perfil, para comparar equipes de tamanhos diferentes.</div>`;
+}
+
 const NIVEL_COR = { "PRIORITÁRIO": "#7c3aed", "ALTO": "#ef4444", "MODERADO": "#f59e0b", "BAIXO": "#22c55e" };
 
 function moldura({ titulo, subtitulo, escola, profile, corpo }) {
@@ -238,7 +283,7 @@ export function relatorioPorTurma({ turmas, periodo, escola, profile }) {
 }
 
 // ── RELATÓRIO POR SETOR ────────────────────────────────────────────────────
-export function relatorioPorSetor({ setores, periodo, escola, profile, nomePorAluno }) {
+export function relatorioPorSetor({ setores, perfis, periodo, escola, profile, nomePorAluno }) {
   if (!setores.length) { alert("Nenhum encaminhamento registrado no período selecionado."); return; }
 
   const totais = setores.reduce((a, s) => ({
@@ -274,6 +319,8 @@ export function relatorioPorSetor({ setores, periodo, escola, profile, nomePorAl
       <div style="margin-top:14px">${graficoValores(setores.map(x => ({ nome: x.setor, valor: x.percResolvido })),
         { largura: 700, titulo: "Percentual resolvido por setor", sufixo: "%", cor: "#22c55e" })}</div>
     </div>
+
+    ${blocoPerfis(perfis)}
 
     <h2>Comparativo entre setores</h2>
     <table>
@@ -393,7 +440,7 @@ export function relatorioAnaliseIA({ analise, saude, periodo, escola, profile })
 }
 
 // ── RELATÓRIO EXECUTIVO ────────────────────────────────────────────────────
-export function relatorioExecutivo({ saude, atencao, turmas, positivos, recortes, analise, serie, usuarios, relatos, periodo, escola, profile, nomePorAluno }) {
+export function relatorioExecutivo({ saude, atencao, turmas, positivos, recortes, analise, serie, usuarios, relatos, perfis, contexto, periodo, escola, profile, nomePorAluno }) {
   // Quando os relatos foram lidos, os temas do texto substituem a lista de
   // motivos — o motivo é escolhido numa lista e nem sempre descreve o ocorrido.
   const temasAtencao = relatos && relatos.atencao.length
@@ -456,6 +503,12 @@ export function relatorioExecutivo({ saude, atencao, turmas, positivos, recortes
             serieB: { campo: "pendentes", nome: "Ainda em aberto", cor: "#f59e0b" } })}</div>` : ""}
     </div>
 
+    ${contexto && contexto.baseAtipica ? `<div class="caixa alerta">
+      <b>Cuidado ao ler as variações.</b> O período usado como comparação teve ${contexto.anterior} registros,
+      ${contexto.baseBaixa ? "bem abaixo" : "bem acima"} do normal da escola (${contexto.tipico} por período).
+      Isso ${contexto.baseBaixa ? "infla" : "achata"} os percentuais desta página.${contexto.baseBaixa ? " Um período de recesso ou férias costuma causar isso." : ""}
+      Prefira os números absolutos, ou emita o relatório com um período maior.</div>` : ""}
+
     ${blocoIA}
 
     <div class="quebra"></div>
@@ -515,6 +568,8 @@ export function relatorioExecutivo({ saude, atencao, turmas, positivos, recortes
         <td>${esc(t.nome)}</td><td class="num">${t.antes}</td><td class="num">${t.agora}</td>
         <td class="num" style="color:#ef4444">${t.alta !== null ? "+" + t.alta + "%" : "novo"}</td>
       </tr>`).join("")}</tbody></table>` : ""}
+
+    ${blocoPerfis(perfis)}
 
     ${usuarios && usuarios.length ? `<h2>Tempo de resposta por usuário</h2>
       <table><thead><tr>

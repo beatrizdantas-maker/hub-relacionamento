@@ -5,7 +5,7 @@ import {
   PERIODOS, fatiarPeriodo, calcularSaude, calcularAtencaoAlunos, calcularTurmas,
   calcularPontosPositivos, calcularRecortes, montarResumoParaIA,
   calcularSetores, detalharTurma, calcularSerie, calcularTempoPorUsuario,
-  amostraDeRelatos, classificarRelatos,
+  amostraDeRelatos, classificarRelatos, calcularContexto, calcularPorPerfil,
 } from "../lib/inteligencia";
 import { graficoEvolucao, graficoSituacao, graficoSegmentos, graficoTurmas, graficoMotivos,
          graficoValores, graficoDuplo } from "../lib/graficos";
@@ -107,9 +107,12 @@ export default function InteligenciaPage({ comunicacoes, alunos, escola, profile
     const serie = calcularSerie(atual, periodo.dias);
     const usuarios = calcularTempoPorUsuario(atual, equipe);
     const relatos = classificarRelatos(atual, temas);
+    const contexto = calcularContexto(base, periodo.dias);
+    const perfis = calcularPorPerfil(atual, anterior, equipe, temas);
 
     return {
       periodo, saude, atencao, turmas, positivos, recortes, setores, serie, usuarios, relatos,
+      contexto, perfis,
       atual, anterior, alunosFiltrados,
       resumo: montarResumoParaIA({
         saude, atencao, turmas, positivos, recortes, relatos,
@@ -148,27 +151,54 @@ export default function InteligenciaPage({ comunicacoes, alunos, escola, profile
     [turmas]
   );
 
-  const emitirTurma = () => {
-    const alvo = turmaRel ? [turmaRel] : turmasComDados;
-    const detalhes = alvo
-      .map(nome => detalharTurma(dados.atual, dados.anterior, dados.alunosFiltrados, nome, turmas.find(t => t.turma === nome), temas))
-      .filter(t => t.registros > 0)
-      .sort((a, b) => b.negativos - a.negativos);
-    relatorioPorTurma({ turmas: detalhes, ...ctx() });
-  };
-
-  const lerRelatos = async () => {
+  /**
+   * Devolve os temas do texto, lendo os relatos se ainda não foram lidos.
+   * Os relatórios chamam isto antes de emitir: sem isso eles cairiam
+   * silenciosamente na contagem por motivo selecionado, que é o que
+   * queríamos justamente evitar.
+   */
+  const garantirTemas = async () => {
+    if (temas) return temas;
     setLendoRelatos(true); setErroTemas(null);
     try {
       const amostra = amostraDeRelatos(dados.atual);
       const res = await apiPost("/api/temas", { relatos: amostra.relatos });
       const json = await res.json();
-      if (json.temas) setTemas(json.temas);
-      else setErroTemas(json.error || "Não foi possível identificar os temas.");
+      setLendoRelatos(false);
+      if (json.temas) { setTemas(json.temas); return json.temas; }
+      setErroTemas(json.error || "Não foi possível identificar os temas.");
+      return null;
     } catch {
+      setLendoRelatos(false);
       setErroTemas("Erro de conexão com a IA.");
+      return null;
     }
-    setLendoRelatos(false);
+  };
+
+  const lerRelatos = async () => { await garantirTemas(); };
+
+  const emitirTurma = async () => {
+    const t = await garantirTemas();
+    const alvo = turmaRel ? [turmaRel] : turmasComDados;
+    const detalhes = alvo
+      .map(nome => detalharTurma(dados.atual, dados.anterior, dados.alunosFiltrados, nome, turmas.find(x => x.turma === nome), t))
+      .filter(x => x.registros > 0)
+      .sort((a, b) => b.negativos - a.negativos);
+    relatorioPorTurma({ turmas: detalhes, ...ctx() });
+  };
+
+  const emitirSetor = async () => {
+    const t = await garantirTemas();
+    relatorioPorSetor({ setores: calcularSetores(dados.atual, dados.anterior, t), perfis: dados.perfis, nomePorAluno, ...ctx() });
+  };
+
+  const emitirExecutivo = async () => {
+    const t = await garantirTemas();
+    relatorioExecutivo({
+      saude, atencao, turmas, positivos, recortes, analise,
+      serie: dados.serie, usuarios: dados.usuarios, perfis: dados.perfis, contexto: dados.contexto,
+      relatos: classificarRelatos(dados.atual, t), nomePorAluno, ...ctx(),
+    });
   };
 
   const destaqueTurmas = turmas.filter(t => t.desvio !== null && t.desvio > 25 && t.negativos >= 3).slice(0, 6);
@@ -213,7 +243,9 @@ export default function InteligenciaPage({ comunicacoes, alunos, escola, profile
         {/* SAÚDE DO RELACIONAMENTO */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(155px, 1fr))", gap: 12 }}>
           <Kpi label="Registros" valor={saude.total} delta={saude.variacaoTotal} inverso
-            rodape={dados.periodo.dias ? "vs. " + dados.periodo.dias + " dias anteriores" : "todo o histórico"} />
+            rodape={dados.periodo.dias
+              ? "vs. " + (dados.contexto ? dados.contexto.anterior + " nos " + dados.periodo.dias + " dias anteriores" : dados.periodo.dias + " dias anteriores")
+              : "todo o histórico"} />
           <Kpi label="Resolvidos" valor={saude.percResolvidos + "%"} cor="#16a34a"
             rodape={saude.resolvidos + " de " + saude.total} />
           <Kpi label="Em acompanhamento" valor={saude.pendentes} cor="#f59e0b"
@@ -227,6 +259,16 @@ export default function InteligenciaPage({ comunicacoes, alunos, escola, profile
             rodape={saude.amostraTempo ? "sobre " + saude.amostraTempo + " caso(s) com data" : "sem dado suficiente"} />
         </div>
 
+        {dados.contexto && dados.contexto.baseAtipica && (
+          <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 12, padding: "12px 16px", fontSize: 12.5, color: "#92400e", lineHeight: 1.6 }}>
+            <b>⚠️ Cuidado ao ler as variações.</b> O período usado como comparação teve <b>{dados.contexto.anterior} registros</b>,
+            {dados.contexto.baseBaixa ? " bem abaixo " : " bem acima "}
+            do normal da escola (<b>{dados.contexto.tipico}</b> por período). Isso {dados.contexto.baseBaixa ? "infla" : "achata"} os percentuais.
+            {dados.contexto.baseBaixa && " Um período de recesso ou férias costuma causar isso."}
+            {" "}Prefira olhar os números absolutos, ou escolha um período maior.
+          </div>
+        )}
+
         {/* RELATÓRIOS IMPRIMÍVEIS */}
         <div style={{ background: "#fff", borderRadius: 12, padding: 18, border: "1px solid #f1f5f9", boxShadow: "0 1px 4px rgba(0,0,0,.06)" }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 4 }}>
@@ -239,7 +281,7 @@ export default function InteligenciaPage({ comunicacoes, alunos, escola, profile
           </p>
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-            <button onClick={() => relatorioExecutivo({ saude, atencao, turmas, positivos, recortes, analise, serie: dados.serie, usuarios: dados.usuarios, relatos: dados.relatos, nomePorAluno, ...ctx() })}
+            <button onClick={emitirExecutivo}
               style={{ padding: "10px 16px", borderRadius: 8, border: "none", background: "#1a4f8a", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
               📊 Relatório Executivo
             </button>
@@ -256,7 +298,7 @@ export default function InteligenciaPage({ comunicacoes, alunos, escola, profile
               </button>
             </div>
 
-            <button onClick={() => relatorioPorSetor({ setores: dados.setores, nomePorAluno, ...ctx() })}
+            <button onClick={emitirSetor}
               disabled={!dados.setores.length}
               style={{ padding: "10px 16px", borderRadius: 8, border: "none", background: dados.setores.length ? "#7c3aed" : "#cbd5e1", color: "#fff", fontSize: 13, fontWeight: 700, cursor: dados.setores.length ? "pointer" : "default" }}>
               🏢 Relatório por Setor
@@ -365,7 +407,7 @@ export default function InteligenciaPage({ comunicacoes, alunos, escola, profile
                 style={{ padding: "9px 16px", borderRadius: 8, border: "none", background: "#7c3aed", color: "#fff", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
                 🖨️ Imprimir esta análise
               </button>
-              <button onClick={() => relatorioExecutivo({ saude, atencao, turmas, positivos, recortes, analise, serie: dados.serie, usuarios: dados.usuarios, relatos: dados.relatos, nomePorAluno, ...ctx() })}
+              <button onClick={emitirExecutivo}
                 style={{ padding: "9px 16px", borderRadius: 8, border: "1.5px solid #c4b5fd", background: "#fff", color: "#6d28d9", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
                 📊 Relatório completo
               </button>
@@ -388,6 +430,79 @@ export default function InteligenciaPage({ comunicacoes, alunos, escola, profile
             <div style={{ gridColumn: "1 / -1" }}><Grafico svg={graficoSegmentos(recortes.segmentos)} /></div>
           </div>
         </div>
+
+        {/* VISÃO POR PERFIL CADASTRADO */}
+        <Bloco titulo="Por perfil cadastrado" icone="🧑‍🏫"
+          sub="quem registra e quem responde, pela função de cada um">
+          {dados.perfis.length === 0 ? <Vazio>Nenhum registro vinculado a um perfil cadastrado no período.</Vazio> : (<>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 24, marginBottom: 16 }}>
+              <Grafico svg={graficoDuplo(
+                dados.perfis.filter(p => p.registrou > 0).map(p => ({
+                  nome: p.rotulo, atencao: p.registrouAtencao, positivo: p.registrouPositivo,
+                  sub: p.pessoas + " pessoa(s) · " + (p.porPessoa ?? "—") + " por pessoa",
+                })),
+                { titulo: "Registros criados por perfil", largura: 560,
+                  serieA: { campo: "atencao", nome: "De atenção", cor: "#ef4444" },
+                  serieB: { campo: "positivo", nome: "Positivos", cor: "#22c55e" } })} />
+              {dados.perfis.some(p => p.recebidos > 0) && (
+                <Grafico svg={graficoDuplo(
+                  dados.perfis.filter(p => p.recebidos > 0).map(p => ({
+                    nome: p.rotulo, recebidos: p.recebidos, pendentes: p.pendentes,
+                    sub: p.parados ? p.parados + " parado(s), mais antigo " + p.maisAntigo + "d" : "sem casos parados",
+                  })),
+                  { titulo: "Encaminhamentos recebidos por perfil", largura: 560,
+                    serieA: { campo: "recebidos", nome: "Recebidos", cor: "#7c3aed" },
+                    serieB: { campo: "pendentes", nome: "Ainda em aberto", cor: "#f59e0b" } })} />
+              )}
+            </div>
+
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5, minWidth: 640 }}>
+                <thead>
+                  <tr style={{ color: "#94a3b8", fontSize: 10.5, textTransform: "uppercase", letterSpacing: 0.3 }}>
+                    {["Perfil", "Pessoas", "Registrou", "Por pessoa", "Recebeu", "Resolveu", "Em aberto", "Parados", "Tempo médio"].map((h, i) => (
+                      <th key={h} style={{ textAlign: i === 0 ? "left" : "right", padding: "6px 8px", borderBottom: "1.5px solid #e2e8f0", fontWeight: 700 }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {dados.perfis.map(p => (
+                    <tr key={p.perfil} style={{ background: p.parados ? "#fef2f2" : "transparent" }}>
+                      <td style={{ padding: "7px 8px", borderBottom: "1px solid #f1f5f9", fontWeight: 700, color: "#1e293b" }}>{p.rotulo}</td>
+                      <td style={{ padding: "7px 8px", borderBottom: "1px solid #f1f5f9", textAlign: "right", color: "#64748b" }}>{p.pessoas || "—"}</td>
+                      <td style={{ padding: "7px 8px", borderBottom: "1px solid #f1f5f9", textAlign: "right" }}>
+                        {p.registrou || "—"}
+                        {p.variacaoRegistrou !== null && p.registrou > 0 && (
+                          <span style={{ marginLeft: 5, fontSize: 10, fontWeight: 800, color: p.variacaoRegistrou > 0 ? "#16a34a" : "#94a3b8" }}>
+                            {p.variacaoRegistrou > 0 ? "↑" : "↓"}{Math.abs(p.variacaoRegistrou)}%
+                          </span>
+                        )}
+                      </td>
+                      <td style={{ padding: "7px 8px", borderBottom: "1px solid #f1f5f9", textAlign: "right", color: "#64748b" }}>{p.porPessoa ?? "—"}</td>
+                      <td style={{ padding: "7px 8px", borderBottom: "1px solid #f1f5f9", textAlign: "right" }}>{p.recebidos || "—"}</td>
+                      <td style={{ padding: "7px 8px", borderBottom: "1px solid #f1f5f9", textAlign: "right", color: "#16a34a", fontWeight: 700 }}>
+                        {p.percResolvido === null ? "—" : p.percResolvido + "%"}
+                      </td>
+                      <td style={{ padding: "7px 8px", borderBottom: "1px solid #f1f5f9", textAlign: "right", color: "#f59e0b", fontWeight: 700 }}>{p.pendentes || "—"}</td>
+                      <td style={{ padding: "7px 8px", borderBottom: "1px solid #f1f5f9", textAlign: "right", color: "#ef4444", fontWeight: 700 }}>
+                        {p.parados || "—"}{p.maisAntigo > 0 && <span style={{ fontSize: 10, color: "#94a3b8", fontWeight: 600 }}> ({p.maisAntigo}d)</span>}
+                      </td>
+                      <td style={{ padding: "7px 8px", borderBottom: "1px solid #f1f5f9", textAlign: "right", fontWeight: 700,
+                                   color: p.tempoMedio === null ? "#cbd5e1" : p.tempoMedio <= 3 ? "#16a34a" : p.tempoMedio <= 7 ? "#f59e0b" : "#ef4444" }}>
+                        {p.tempoMedio === null ? "—" : p.tempoMedio + " d"}
+                        {p.amostraTempo > 0 && <span style={{ fontSize: 10, color: "#94a3b8", fontWeight: 600 }}> ({p.amostraTempo})</span>}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 10, lineHeight: 1.6 }}>
+                &quot;Registrou&quot; conta pelo perfil de quem criou o registro. &quot;Recebeu&quot; conta pelo perfil do responsável pelo encaminhamento.
+                &quot;Por pessoa&quot; divide pelos profissionais cadastrados naquele perfil, para comparar equipes de tamanhos diferentes.
+              </div>
+            </div>
+          </>)}
+        </Bloco>
 
         {/* TEMPO DE RESPOSTA POR USUÁRIO */}
         <Bloco titulo="Tempo de resposta por usuário" icone="⏱️" sub="para equilibrar carga, não para ranquear pessoas">

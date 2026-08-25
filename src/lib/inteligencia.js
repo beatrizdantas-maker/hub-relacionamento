@@ -622,3 +622,133 @@ export function classificarRelatos(atual, temas) {
     coberturaPositivo: contagem.positivo ? Math.round((1 - contagem.semTema.positivo / contagem.positivo) * 100) : 0,
   };
 }
+
+// ── CONTEXTO DA COMPARAÇÃO ─────────────────────────────────────────────────
+// Uma variação percentual só significa alguma coisa se a base for típica.
+// Comparar agosto contra julho (recesso) produz "+142%" que não representa
+// mudança nenhuma na escola. Aqui medimos o volume normal da escola e
+// avisamos quando o período de comparação estiver fora do padrão.
+export function calcularContexto(base, dias) {
+  if (!dias || !base.length) return null;
+
+  const agora = new Date();
+  const janelas = [];
+  for (let k = 1; k <= 6; k++) {
+    const fim = new Date(agora.getTime() - dias * k * 864e5);
+    const inicio = new Date(agora.getTime() - dias * (k + 1) * 864e5);
+    const n = base.filter(c => { const d = dataDoRegistro(c); return d >= inicio && d < fim; }).length;
+    janelas.push(n);
+  }
+
+  const comDados = janelas.filter(n => n > 0);
+  if (comDados.length < 3) return null;
+
+  const ordenado = [...comDados].sort((a, b) => a - b);
+  const tipico = ordenado[Math.floor(ordenado.length / 2)];   // mediana
+  const anterior = janelas[0];
+  if (!tipico) return null;
+
+  const proporcao = Math.round((anterior / tipico) * 100);
+  return {
+    anterior,
+    tipico,
+    proporcao,
+    // base muito abaixo do normal infla a variação; muito acima, esconde alta
+    baseAtipica: proporcao <= 65 || proporcao >= 150,
+    baseBaixa: proporcao <= 65,
+    janelas,
+  };
+}
+
+// ── VISÃO POR PERFIL CADASTRADO ────────────────────────────────────────────
+// O campo de destino do encaminhamento é texto livre e na prática tem pouquíssimos
+// valores, o que torna a visão "por setor" pobre. O perfil cadastrado de cada
+// usuário é mais rico e mais fiel à estrutura real da escola.
+export const PERFIL_LABEL = {
+  DIRECAO: "Direção", PSICOLOGO: "Psicólogo", SECRETARIA: "Secretaria",
+  PROFESSOR: "Professor", NUCLEO: "Núcleo Pedagógico", "RECEPÇÃO": "Recepção",
+  PSICOPEDAGOGO: "Psicopedagogo", FINANCEIRO: "Financeiro", RETENCAO: "Retenção",
+  SUPER_ADMIN: "Administrador",
+};
+const rotuloPerfil = (p) => PERFIL_LABEL[p] || p || "Sem perfil";
+
+export function calcularPorPerfil(atual, anterior, equipe, temas) {
+  const perfilPorId = new Map((equipe || []).map(p => [p.id, p.perfil]));
+  const perfilPorNome = new Map((equipe || []).map(p => [(p.nome || "").trim().toLowerCase(), p.perfil]));
+  const pessoasPorPerfil = new Map();
+  for (const p of equipe || []) {
+    const k = p.perfil || "—";
+    if (!pessoasPorPerfil.has(k)) pessoasPorPerfil.set(k, new Set());
+    pessoasPorPerfil.get(k).add(p.id);
+  }
+
+  // registros antigos podem ter só o nome do responsável, sem o id
+  const perfilDoResponsavel = (c) =>
+    perfilPorId.get(c.enc_responsavel_id) ||
+    perfilPorNome.get((c.enc_responsavel || "").trim().toLowerCase()) ||
+    null;
+
+  const grupos = new Map();
+  const garantir = (perfil) => {
+    if (!grupos.has(perfil))
+      grupos.set(perfil, {
+        perfil, rotulo: rotuloPerfil(perfil),
+        pessoas: (pessoasPorPerfil.get(perfil) || new Set()).size,
+        registrou: 0, registrouAtencao: 0, registrouPositivo: 0,
+        recebidos: 0, resolvidos: 0, pendentes: 0, criticos: 0, parados: 0,
+        maisAntigo: 0, tempos: [], autoria: [], quemRegistrou: new Map(),
+      });
+    return grupos.get(perfil);
+  };
+
+  const hoje = new Date();
+  const antesRegistrou = new Map();
+  for (const c of anterior || []) {
+    const p = perfilPorId.get(c.autor_id);
+    if (p) antesRegistrou.set(p, (antesRegistrou.get(p) || 0) + 1);
+  }
+
+  for (const c of atual) {
+    const pAutor = perfilPorId.get(c.autor_id);
+    if (pAutor) {
+      const g = garantir(pAutor);
+      g.registrou++;
+      if (ehNegativo(c)) g.registrouAtencao++;
+      if (ehPositivo(c)) g.registrouPositivo++;
+      g.autoria.push(c);
+      if (c.autor_nome) g.quemRegistrou.set(c.autor_nome, (g.quemRegistrou.get(c.autor_nome) || 0) + 1);
+    }
+
+    if (c.encaminhamento) {
+      const pResp = perfilDoResponsavel(c);
+      if (pResp) {
+        const g = garantir(pResp);
+        g.recebidos++;
+        if (c.enc_status === "PENDENTE") {
+          g.pendentes++;
+          if (c.urgencia === "ALTA") g.criticos++;
+          if (!c.resolucao) {
+            const d = Math.round((hoje - dataDoRegistro(c)) / 864e5);
+            if (d >= 7) { g.parados++; if (d > g.maisAntigo) g.maisAntigo = d; }
+          }
+        } else g.resolvidos++;
+        const t = diasAteResolver(c);
+        if (t !== null) g.tempos.push(t);
+      }
+    }
+  }
+
+  return [...grupos.values()].map(g => ({
+    perfil: g.perfil, rotulo: g.rotulo, pessoas: g.pessoas,
+    registrou: g.registrou, registrouAtencao: g.registrouAtencao, registrouPositivo: g.registrouPositivo,
+    variacaoRegistrou: variacao(g.registrou, antesRegistrou.get(g.perfil) || 0),
+    porPessoa: g.pessoas ? Math.round((g.registrou / g.pessoas) * 10) / 10 : null,
+    recebidos: g.recebidos, resolvidos: g.resolvidos, pendentes: g.pendentes,
+    criticos: g.criticos, parados: g.parados, maisAntigo: g.maisAntigo,
+    percResolvido: g.recebidos ? Math.round((g.resolvidos / g.recebidos) * 100) : null,
+    tempoMedio: g.tempos.length ? Math.round(media(g.tempos) * 10) / 10 : null,
+    amostraTempo: g.tempos.length,
+    quemRegistrou: topN(g.quemRegistrou, 5),
+    temasTexto: temas ? classificarRelatos(g.autoria, temas) : null,
+  })).sort((a, b) => (b.registrou + b.recebidos) - (a.registrou + a.recebidos));
+}
