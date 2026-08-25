@@ -211,3 +211,99 @@ export function graficoMotivos(itens, { largura = 640, titulo = "Motivos de aten
 
   return moldura({ titulo, largura, altura: itens.length * linhaAlt + 34, conteudo: linhas });
 }
+
+// ── COMPARATIVO DE UMA SÉRIE COM UNIDADE (dias, %, etc.) ───────────────────
+// Diferente do gráfico de motivos: aqui o valor não é contagem, então não faz
+// sentido mostrar percentual do total. Mostra a média como linha de referência.
+export function graficoValores(itens, { largura = 640, titulo, sufixo = "", cor = CORES.neutro, rotulo = 190, inverso = false } = {}) {
+  const dados = (itens || []).filter(i => i.valor !== null && i.valor !== undefined);
+  if (!dados.length) return `<div style="font-size:12px;color:#94a3b8">Sem dados suficientes para comparar.</div>`;
+
+  const linhaAlt = 25;
+  const larguraBarra = largura - rotulo - 60;
+  const max = Math.max(...dados.map(d => d.valor)) || 1;
+  const med = dados.reduce((a, d) => a + d.valor, 0) / dados.length;
+  const xMedia = rotulo + (med / max) * larguraBarra;
+
+  const linhas = dados.map((d, i) => {
+    const yb = i * linhaAlt;
+    const w = Math.max(2, (d.valor / max) * larguraBarra);
+    // com "inverso", valor alto é ruim (ex.: dias parados)
+    const c = inverso ? (d.valor > med * 1.5 ? CORES.atencao : d.valor < med * 0.6 ? CORES.positivo : cor) : cor;
+    const nome = d.nome.length > 28 ? d.nome.slice(0, 27) + "…" : d.nome;
+    return `
+      <text x="0" y="${yb + 14}" font-size="10.5" fill="${CORES.titulo}" ${FONTE}>${esc(nome)}</text>
+      <rect x="${rotulo}" y="${yb + 4}" width="${w}" height="13" rx="3" fill="${c}"/>
+      <text x="${rotulo + w + 6}" y="${yb + 14.5}" font-size="10" font-weight="700" fill="${c}" ${FONTE}>${d.valor}${sufixo}</text>`;
+  }).join("");
+
+  const alturaPlot = dados.length * linhaAlt;
+  return moldura({
+    titulo, largura, altura: alturaPlot + 48,
+    conteudo: `
+      ${linhas}
+      <line x1="${xMedia}" y1="0" x2="${xMedia}" y2="${alturaPlot}" stroke="#94a3b8" stroke-width="1" stroke-dasharray="3 3"/>
+      <text x="${xMedia}" y="${alturaPlot + 13}" font-size="9.5" text-anchor="middle" fill="#94a3b8" ${FONTE}>média ${Math.round(med * 10) / 10}${sufixo}</text>`,
+  });
+}
+
+// ── COMPARATIVO DE DUAS SÉRIES LADO A LADO ─────────────────────────────────
+export function graficoDuplo(itens, { largura = 640, titulo, serieA, serieB, rotulo = 150, sub } = {}) {
+  if (!itens || !itens.length) return `<div style="font-size:12px;color:#94a3b8">Sem dados para comparar.</div>`;
+
+  const linhaAlt = 40, larguraBarra = largura - rotulo - 52;
+  const max = Math.max(1, ...itens.map(i => Math.max(i[serieA.campo] || 0, i[serieB.campo] || 0)));
+
+  const linhas = itens.map((it, i) => {
+    const yb = i * linhaAlt;
+    const va = it[serieA.campo] || 0, vb = it[serieB.campo] || 0;
+    const la = (va / max) * larguraBarra, lb = (vb / max) * larguraBarra;
+    const nome = String(it.nome).length > 22 ? String(it.nome).slice(0, 21) + "…" : it.nome;
+    return `
+      <text x="0" y="${yb + 15}" font-size="10.5" font-weight="600" fill="${CORES.titulo}" ${FONTE}>${esc(nome)}</text>
+      ${it.sub ? `<text x="0" y="${yb + 28}" font-size="9" fill="#94a3b8" ${FONTE}>${esc(it.sub)}</text>` : ""}
+      <rect x="${rotulo}" y="${yb + 3}" width="${Math.max(1, la)}" height="13" rx="3" fill="${serieA.cor}"/>
+      <text x="${rotulo + Math.max(1, la) + 6}" y="${yb + 13.5}" font-size="10" font-weight="700" fill="${serieA.cor}" ${FONTE}>${va}${serieA.sufixo || ""}</text>
+      <rect x="${rotulo}" y="${yb + 20}" width="${Math.max(1, lb)}" height="13" rx="3" fill="${serieB.cor}"/>
+      <text x="${rotulo + Math.max(1, lb) + 6}" y="${yb + 30.5}" font-size="10" font-weight="700" fill="${serieB.cor}" ${FONTE}>${vb}${serieB.sufixo || ""}</text>`;
+  }).join("");
+
+  return moldura({
+    titulo: titulo + (sub ? " — " + sub : ""),
+    legenda: [{ nome: serieA.nome, cor: serieA.cor }, { nome: serieB.nome, cor: serieB.cor }],
+    largura, altura: itens.length * linhaAlt + 56,
+    conteudo: linhas,
+  });
+}
+
+// ── UMA TURMA CONTRA AS OUTRAS DO SEGMENTO ─────────────────────────────────
+export function graficoTurmaVsSegmento(turma, { largura = 640 } = {}) {
+  if (!turma || turma.porAluno === null || turma.mediaSegmento === null || turma.desvio === null)
+    return `<div style="font-size:12px;color:#94a3b8">Sem base de comparação: o segmento precisa de ao menos 3 turmas.</div>`;
+
+  const itens = [
+    { nome: turma.turma, valor: Math.round(turma.porAluno * 100) / 100, destaque: true },
+    { nome: "Média das outras de " + (turma.segmento || "—"), valor: Math.round(turma.mediaSegmento * 100) / 100 },
+  ];
+  const max = Math.max(...itens.map(i => i.valor)) || 1;
+  const rotulo = 240, larguraBarra = largura - rotulo - 60;
+
+  const linhas = itens.map((it, i) => {
+    const yb = i * 30;
+    const w = Math.max(2, (it.valor / max) * larguraBarra);
+    const cor = it.destaque ? (turma.desvio > 25 ? CORES.atencao : CORES.neutro) : "#cbd5e1";
+    return `
+      <text x="0" y="${yb + 16}" font-size="10.5" font-weight="${it.destaque ? 700 : 400}" fill="${CORES.titulo}" ${FONTE}>${esc(it.nome)}</text>
+      <rect x="${rotulo}" y="${yb + 5}" width="${w}" height="15" rx="3" fill="${cor}"/>
+      <text x="${rotulo + w + 6}" y="${yb + 16.5}" font-size="10.5" font-weight="700" fill="${cor}" ${FONTE}>${it.valor.toFixed(2)}</text>`;
+  }).join("");
+
+  return moldura({
+    titulo: "Registros de atenção por aluno",
+    largura, altura: 106,
+    conteudo: `${linhas}
+      <text x="0" y="78" font-size="10.5" font-weight="800" fill="${turma.desvio > 0 ? CORES.atencao : "#16a34a"}" ${FONTE}>
+        ${turma.desvio > 0 ? "+" : ""}${turma.desvio}% em relação às outras turmas do segmento
+      </text>`,
+  });
+}

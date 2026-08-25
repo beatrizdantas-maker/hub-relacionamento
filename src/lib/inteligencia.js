@@ -334,7 +334,7 @@ export function montarResumoParaIA({ saude, atencao, turmas, positivos, recortes
 // O painel mostra o resumo; o relatório precisa do detalhe por trás de cada linha.
 
 /** Visão completa de um setor: fila, tempo de resposta e onde está travando. */
-export function calcularSetores(atual, anterior) {
+export function calcularSetores(atual, anterior, temas) {
   const encaminhados = atual.filter(c => c.encaminhamento && c.enc_destino);
   const antes = contarPor(anterior.filter(c => c.encaminhamento && c.enc_destino), "enc_destino");
   const porSetor = new Map();
@@ -361,8 +361,16 @@ export function calcularSetores(atual, anterior) {
     if (c.motivo_nome) r.motivos.set(c.motivo_nome, (r.motivos.get(c.motivo_nome) || 0) + 1);
   }
 
+  // temas do texto dos relatos que chegaram a cada setor
+  const porSetorComs = new Map();
+  for (const c of encaminhados) {
+    if (!porSetorComs.has(c.enc_destino)) porSetorComs.set(c.enc_destino, []);
+    porSetorComs.get(c.enc_destino).push(c);
+  }
+
   return [...porSetor.values()].map(r => ({
     setor: r.setor,
+    temasTexto: temas ? classificarRelatos(porSetorComs.get(r.setor) || [], temas) : null,
     recebidos: r.recebidos,
     pendentes: r.pendentes,
     resolvidos: r.resolvidos,
@@ -378,7 +386,7 @@ export function calcularSetores(atual, anterior) {
 }
 
 /** Tudo o que o relatório de uma turma precisa mostrar. */
-export function detalharTurma(atual, anterior, alunos, turma, resumoTurma) {
+export function detalharTurma(atual, anterior, alunos, turma, resumoTurma, temas) {
   const daTurma = alunos.filter(a => a.turma === turma);
   const ids = new Set(daTurma.map(a => a.id));
   const regs = atual.filter(c => ids.has(c.aluno_id));
@@ -390,6 +398,7 @@ export function detalharTurma(atual, anterior, alunos, turma, resumoTurma) {
 
   return {
     turma,
+    temasTexto: temas ? classificarRelatos(regs, temas) : null,
     segmento: daTurma[0] && daTurma[0].segmento,
     totalAlunos: daTurma.length,
     registros: regs.length,
@@ -522,14 +531,36 @@ const normalizar = (t) => (t || "").toLowerCase().normalize("NFD").replace(/\p{D
 
 const temRelato = (c) => c.detalhes && c.detalhes.trim().length > 15;
 
-/** Amostra espalhada pelo período, para a IA descobrir os temas sem custo alto. */
+/**
+ * Amostra espalhada pelo período, para a IA descobrir os temas sem custo alto.
+ *
+ * A cota é dividida entre os dois lados. Sorteando da lista inteira, o lado
+ * mais volumoso ocupa quase todas as vagas e o outro chega à IA com poucos
+ * exemplos — aí ela não consegue formar temas daquele lado. Aqui cada lado tem
+ * cota própria, e a sobra de um é aproveitada pelo outro.
+ */
 export function amostraDeRelatos(atual, { limite = 150, corte = 400 } = {}) {
   const uteis = atual.filter(temRelato);
-  const passo = Math.max(1, Math.ceil(uteis.length / limite));
-  const escolhidos = uteis.filter((_, i) => i % passo === 0).slice(0, limite);
+  const negativos = uteis.filter(ehNegativo);
+  const positivos = uteis.filter(ehPositivo);
+
+  const metade = Math.floor(limite / 2);
+  const cotaPos = Math.min(positivos.length, Math.max(metade, limite - negativos.length));
+  const cotaNeg = Math.min(negativos.length, limite - cotaPos);
+
+  const espalhar = (lista, cota) => {
+    if (cota <= 0 || !lista.length) return [];
+    const passo = Math.max(1, Math.ceil(lista.length / cota));
+    return lista.filter((_, i) => i % passo === 0).slice(0, cota);
+  };
+
+  const escolhidos = [...espalhar(negativos, cotaNeg), ...espalhar(positivos, cotaPos)];
+
   return {
     total: uteis.length,
     amostrados: escolhidos.length,
+    deAtencao: Math.min(negativos.length, cotaNeg),
+    positivos: Math.min(positivos.length, cotaPos),
     relatos: escolhidos.map((c, i) => ({
       i,
       positivo: ehPositivo(c),

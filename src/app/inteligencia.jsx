@@ -7,7 +7,8 @@ import {
   calcularSetores, detalharTurma, calcularSerie, calcularTempoPorUsuario,
   amostraDeRelatos, classificarRelatos,
 } from "../lib/inteligencia";
-import { graficoEvolucao, graficoSituacao, graficoSegmentos, graficoTurmas, graficoMotivos } from "../lib/graficos";
+import { graficoEvolucao, graficoSituacao, graficoSegmentos, graficoTurmas, graficoMotivos,
+         graficoValores, graficoDuplo } from "../lib/graficos";
 import { relatorioPorTurma, relatorioPorSetor, relatorioExecutivo, relatorioAnaliseIA } from "../lib/relatorios";
 
 const CORES_NIVEL = {
@@ -102,7 +103,7 @@ export default function InteligenciaPage({ comunicacoes, alunos, escola, profile
     const positivos = calcularPontosPositivos(atual, anterior, alunosFiltrados);
     const recortes = calcularRecortes(atual, anterior, alunosFiltrados);
 
-    const setores = calcularSetores(atual, anterior);
+    const setores = calcularSetores(atual, anterior, temas);
     const serie = calcularSerie(atual, periodo.dias);
     const usuarios = calcularTempoPorUsuario(atual, equipe);
     const relatos = classificarRelatos(atual, temas);
@@ -150,7 +151,7 @@ export default function InteligenciaPage({ comunicacoes, alunos, escola, profile
   const emitirTurma = () => {
     const alvo = turmaRel ? [turmaRel] : turmasComDados;
     const detalhes = alvo
-      .map(nome => detalharTurma(dados.atual, dados.anterior, dados.alunosFiltrados, nome, turmas.find(t => t.turma === nome)))
+      .map(nome => detalharTurma(dados.atual, dados.anterior, dados.alunosFiltrados, nome, turmas.find(t => t.turma === nome), temas))
       .filter(t => t.registros > 0)
       .sort((a, b) => b.negativos - a.negativos);
     relatorioPorTurma({ turmas: detalhes, ...ctx() });
@@ -267,6 +268,37 @@ export default function InteligenciaPage({ comunicacoes, alunos, escola, profile
               💡 O Relatório Executivo inclui a leitura da IA se você clicar antes em &quot;Gerar Análise com IA&quot;.
             </div>
           )}
+
+          {/* prévia dos comparativos que entram nos relatórios */}
+          <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid #f1f5f9" }}>
+            <div style={{ fontSize: 11, fontWeight: 800, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.3, marginBottom: 14 }}>
+              Comparativos incluídos nos relatórios
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 24 }}>
+              {dados.setores.length > 0 && (<>
+                <Grafico svg={graficoDuplo(
+                  dados.setores.map(x => ({ nome: x.setor, recebidos: x.recebidos, resolvidos: x.resolvidos, sub: x.pendentes + " em aberto" })),
+                  { titulo: "Recebidos x resolvidos por setor", largura: 560,
+                    serieA: { campo: "recebidos", nome: "Recebidos", cor: "#7c3aed" },
+                    serieB: { campo: "resolvidos", nome: "Resolvidos", cor: "#22c55e" } })} />
+                <Grafico svg={graficoValores(
+                  dados.setores.map(x => ({ nome: x.setor, valor: x.tempoMedio })),
+                  { titulo: "Tempo médio de resposta por setor", sufixo: " d", inverso: true, largura: 560 })} />
+              </>)}
+              {dados.usuarios.filter(u => u.tempoMedio !== null).length > 0 && (
+                <Grafico svg={graficoValores(
+                  dados.usuarios.filter(u => u.tempoMedio !== null).map(u => ({ nome: u.nome, valor: u.tempoMedio })),
+                  { titulo: "Tempo médio por profissional", sufixo: " d", inverso: true, largura: 560 })} />
+              )}
+              {dados.usuarios.filter(u => u.recebidos > 0).length > 0 && (
+                <Grafico svg={graficoDuplo(
+                  dados.usuarios.filter(u => u.recebidos > 0).map(u => ({ nome: u.nome, recebidos: u.recebidos, pendentes: u.pendentes, sub: u.parados ? u.parados + " parado(s)" : "" })),
+                  { titulo: "Carga por profissional", largura: 560,
+                    serieA: { campo: "recebidos", nome: "Recebidos", cor: "#2563eb" },
+                    serieB: { campo: "pendentes", nome: "Ainda em aberto", cor: "#f59e0b" } })} />
+              )}
+            </div>
+          </div>
         </div>
 
         {/* ANÁLISE DA IA */}

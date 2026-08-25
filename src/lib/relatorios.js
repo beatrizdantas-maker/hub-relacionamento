@@ -6,7 +6,8 @@
 // escolher "Salvar como PDF" — por isso não é preciso biblioteca de PDF.
 // ============================================================================
 
-import { graficoEvolucao, graficoSituacao, graficoSegmentos, graficoTurmas, graficoMotivos } from "./graficos";
+import { graficoEvolucao, graficoSituacao, graficoSegmentos, graficoTurmas, graficoMotivos,
+         graficoValores, graficoDuplo, graficoTurmaVsSegmento } from "./graficos";
 
 const esc = (v) => String(v == null ? "" : v)
   .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -162,17 +163,35 @@ export function relatorioPorTurma({ turmas, periodo, escola, profile }) {
         <div class="kpi"><div class="l">Enc. em aberto</div><div class="v" style="color:#f59e0b">${t.encPendentes}</div><div class="r">aguardando setor</div></div>
       </div>
 
+      <div class="graficos evita-quebra">${graficoTurmaVsSegmento(t, { largura: 700 })}</div>
+
       <div class="caixa ${t.desvio > 25 ? "alerta" : ""}" style="margin-top:12px">
         <b>Comparação com o segmento.</b> ${leitura}
         ${t.porAluno !== null ? `<div class="nota">Esta turma: ${t.porAluno.toFixed(2)} registros de atenção por aluno · Média das outras turmas de ${esc(t.segmento)}: ${t.mediaSegmento === null ? "—" : t.mediaSegmento.toFixed(2)}.</div>` : ""}
         ${concentracao ? `<div class="nota">${concentracao}</div>` : ""}
       </div>
 
-      ${t.motivos.length ? `<div class="graficos evita-quebra">${graficoMotivos(t.motivos, { largura: 700, titulo: "Motivos de atenção em " + esc(t.turma) })}</div>` : ""}
+      ${(() => {
+        // Quando os relatos foram lidos, o gráfico e as listas usam os temas do
+        // TEXTO. O motivo é escolhido numa lista e nem sempre descreve o fato.
+        const lidos = t.temasTexto && t.temasTexto.atencao.length;
+        const itens = lidos ? t.temasTexto.atencao.map(x => ({ nome: x.nome, qtd: x.qtd })) : t.motivos;
+        if (!itens.length) return "";
+        return `<div class="graficos evita-quebra">${graficoMotivos(itens, {
+          largura: 700,
+          titulo: (lidos ? "Temas de atenção em " : "Motivos de atenção em ") + esc(t.turma),
+        })}</div>
+        ${lidos ? `<div class="nota" style="margin-top:-12px">Temas lidos do texto dos relatos desta turma · ${t.temasTexto.analisados.atencao} relato(s) · ${t.temasTexto.coberturaAtencao}% se encaixaram em algum tema.</div>` : ""}`;
+      })()}
 
       <div class="cols evita-quebra">
         <div>
-          ${t.positivosTemas.length ? `<h3>Registros positivos</h3>${listaBarras(t.positivosTemas, "#22c55e")}` : ""}
+          ${(() => {
+            const lidos = t.temasTexto && t.temasTexto.positivo.length;
+            const itens = lidos ? t.temasTexto.positivo.map(x => ({ nome: x.nome, qtd: x.qtd })) : t.positivosTemas;
+            if (!itens.length) return "";
+            return `<h3>${lidos ? "Temas positivos (do texto do relato)" : "Registros positivos"}</h3>${listaBarras(itens, "#22c55e")}`;
+          })()}
           ${t.setores.length ? `<h3>Setores acionados</h3>${listaBarras(t.setores, "#7c3aed")}` : ""}
         </div>
         <div>
@@ -224,6 +243,17 @@ export function relatorioPorSetor({ setores, periodo, escola, profile, nomePorAl
           { largura: 700, titulo: "Casos parados por setor (7 dias ou mais)" }) : ""}
     </div>
 
+    <div class="graficos evita-quebra">
+      ${graficoDuplo(setores.map(x => ({ nome: x.setor, recebidos: x.recebidos, resolvidos: x.resolvidos, sub: x.pendentes + " em aberto" })),
+        { largura: 700, titulo: "Recebidos x resolvidos por setor",
+          serieA: { campo: "recebidos", nome: "Recebidos", cor: "#7c3aed" },
+          serieB: { campo: "resolvidos", nome: "Resolvidos", cor: "#22c55e" } })}
+      <div style="margin-top:14px">${graficoValores(setores.map(x => ({ nome: x.setor, valor: x.tempoMedio })),
+        { largura: 700, titulo: "Tempo médio de resposta por setor", sufixo: " d", inverso: true })}</div>
+      <div style="margin-top:14px">${graficoValores(setores.map(x => ({ nome: x.setor, valor: x.percResolvido })),
+        { largura: 700, titulo: "Percentual resolvido por setor", sufixo: "%", cor: "#22c55e" })}</div>
+    </div>
+
     <h2>Comparativo entre setores</h2>
     <table>
       <thead><tr>
@@ -253,8 +283,21 @@ export function relatorioPorSetor({ setores, periodo, escola, profile, nomePorAl
       </div>
 
       <div class="cols evita-quebra">
-        <div><h3>Motivos que chegam a este setor</h3>${listaBarras(s.motivos, "#7c3aed")}</div>
-        <div><h3>Responsáveis designados</h3>${listaBarras(s.responsaveis, "#2563eb")}</div>
+        <div>${(() => {
+          const lidos = s.temasTexto && s.temasTexto.atencao.length;
+          const itens = lidos ? s.temasTexto.atencao.map(x => ({ nome: x.nome, qtd: x.qtd })) : s.motivos;
+          return `<h3>${lidos ? "O que de fato chega a este setor (do texto)" : "Motivos que chegam a este setor"}</h3>
+            ${listaBarras(itens, "#7c3aed")}
+            ${lidos ? `<div class="nota">Lido do texto dos relatos encaminhados a este setor.</div>` : ""}`;
+        })()}</div>
+        <div>
+          <h3>Responsáveis designados</h3>${listaBarras(s.responsaveis, "#2563eb")}
+          ${/* setor recebe encaminhamento, que quase sempre é caso de atenção;
+                se houver registro positivo encaminhado, ele aparece aqui */""}
+          ${s.temasTexto && s.temasTexto.positivo.length
+            ? `<h3>Temas positivos encaminhados</h3>${listaBarras(s.temasTexto.positivo.map(x => ({ nome: x.nome, qtd: x.qtd })), "#22c55e")}`
+            : ""}
+        </div>
       </div>
 
       <h3>Casos parados há 7 dias ou mais</h3>
@@ -380,6 +423,16 @@ export function relatorioExecutivo({ saude, atencao, turmas, positivos, recortes
       </div>
       <div style="margin-top:14px">${graficoTurmas(turmas, { largura: 700 })}</div>
       <div style="margin-top:14px">${graficoSegmentos(recortes.segmentos, { largura: 700 })}</div>
+      ${recortes.setores.length ? `<div style="margin-top:14px">${graficoMotivos(recortes.setores, { largura: 700, titulo: "Encaminhamentos por setor", cor: "#7c3aed" })}</div>` : ""}
+      ${usuarios && usuarios.length ? `
+        <div style="margin-top:14px">${graficoValores(
+          usuarios.filter(u => u.tempoMedio !== null).map(u => ({ nome: u.nome, valor: u.tempoMedio })),
+          { largura: 700, titulo: "Tempo médio de resposta por profissional", sufixo: " d", inverso: true })}</div>
+        <div style="margin-top:14px">${graficoDuplo(
+          usuarios.filter(u => u.recebidos > 0).map(u => ({ nome: u.nome, recebidos: u.recebidos, pendentes: u.pendentes, sub: u.parados ? u.parados + " parado(s)" : "" })),
+          { largura: 700, titulo: "Carga por profissional",
+            serieA: { campo: "recebidos", nome: "Recebidos", cor: "#2563eb" },
+            serieB: { campo: "pendentes", nome: "Ainda em aberto", cor: "#f59e0b" } })}</div>` : ""}
     </div>
 
     ${blocoIA}
