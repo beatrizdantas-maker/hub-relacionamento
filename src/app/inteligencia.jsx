@@ -7,7 +7,7 @@ import {
   calcularSetores, detalharTurma, calcularSerie, calcularTempoPorUsuario,
 } from "../lib/inteligencia";
 import { graficoEvolucao, graficoSituacao, graficoSegmentos, graficoTurmas, graficoMotivos } from "../lib/graficos";
-import { relatorioPorTurma, relatorioPorSetor, relatorioExecutivo } from "../lib/relatorios";
+import { relatorioPorTurma, relatorioPorSetor, relatorioExecutivo, relatorioAnaliseIA } from "../lib/relatorios";
 
 const CORES_NIVEL = {
   "PRIORITÁRIO": "#7c3aed",
@@ -302,6 +302,22 @@ export default function InteligenciaPage({ comunicacoes, alunos, escola, profile
                   ))}
                 </div>
               )}
+            </div>
+
+            {/* imprimir somente esta leitura */}
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", justifyContent: "flex-end",
+                          marginTop: 16, paddingTop: 14, borderTop: "1px solid #e9d5ff" }}>
+              <span style={{ fontSize: 11.5, color: "#94a3b8", marginRight: "auto" }}>
+                Leitura da IA sobre os números do período. Confira antes de decidir.
+              </span>
+              <button onClick={() => relatorioAnaliseIA({ analise, saude, ...ctx() })}
+                style={{ padding: "9px 16px", borderRadius: 8, border: "none", background: "#7c3aed", color: "#fff", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
+                🖨️ Imprimir esta análise
+              </button>
+              <button onClick={() => relatorioExecutivo({ saude, atencao, turmas, positivos, recortes, analise, serie: dados.serie, usuarios: dados.usuarios, nomePorAluno, ...ctx() })}
+                style={{ padding: "9px 16px", borderRadius: 8, border: "1.5px solid #c4b5fd", background: "#fff", color: "#6d28d9", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
+                📊 Relatório completo
+              </button>
             </div>
           </div>
         )}

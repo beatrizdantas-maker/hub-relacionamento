@@ -278,6 +278,56 @@ export function relatorioPorSetor({ setores, periodo, escola, profile, nomePorAl
   }));
 }
 
+// ── SÓ A LEITURA DA IA ─────────────────────────────────────────────────────
+// Documento curto, para levar a uma reunião sem o relatório completo atrás.
+export function relatorioAnaliseIA({ analise, saude, periodo, escola, profile }) {
+  if (!analise) { alert("Gere a análise com IA antes de imprimir."); return; }
+
+  const lista = (itens, cor) => (itens || []).map(t => `<li style="color:${cor}">${esc(t)}</li>`).join("");
+
+  const corpo = `
+    <div class="kpis">
+      <div class="kpi"><div class="l">Registros</div><div class="v">${saude.total}${seta(saude.variacaoTotal)}</div><div class="r">no período</div></div>
+      <div class="kpi"><div class="l">Resolvidos</div><div class="v" style="color:#16a34a">${saude.percResolvidos}%</div><div class="r">${saude.resolvidos} de ${saude.total}</div></div>
+      <div class="kpi"><div class="l">Em acompanhamento</div><div class="v" style="color:#f59e0b">${saude.pendentes}</div><div class="r">${saude.encPendentes} enc. em aberto</div></div>
+      <div class="kpi"><div class="l">Críticos</div><div class="v" style="color:#ef4444">${saude.criticos}</div><div class="r">urgência alta em aberto</div></div>
+    </div>
+
+    ${analise.sintese ? `<div class="caixa" style="margin-top:16px;background:#faf5ff;border-color:#e9d5ff">
+      <div style="font-size:15px;font-weight:800;line-height:1.5">${esc(analise.sintese)}</div></div>` : ""}
+
+    ${analise.observar_agora ? `<h2>O que a gestão deve observar agora</h2>
+      <div class="caixa alerta" style="font-size:12.5px;line-height:1.7">${esc(analise.observar_agora)}</div>` : ""}
+
+    ${Array.isArray(analise.prioridades) && analise.prioridades.length ? `
+      <h2>Prioridades do período</h2>
+      ${analise.prioridades.map((p, i) => `
+        <div class="caixa evita-quebra" style="display:flex;gap:12px;align-items:flex-start">
+          <div style="width:22px;height:22px;border-radius:11px;background:#7c3aed;color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0">${i + 1}</div>
+          <div>
+            <div style="font-size:13px;font-weight:800">${esc(p.titulo)}</div>
+            ${p.detalhe ? `<div style="font-size:11.5px;color:#64748b;margin-top:3px">${esc(p.detalhe)}</div>` : ""}
+            ${p.acao ? `<div style="font-size:11.5px;color:#1a4f8a;margin-top:6px;font-weight:700">→ ${esc(p.acao)}</div>` : ""}
+          </div>
+        </div>`).join("")}` : ""}
+
+    <div class="cols evita-quebra">
+      ${Array.isArray(analise.indo_bem) && analise.indo_bem.length ? `<div>
+        <h2>O que está indo bem</h2>
+        <ul style="padding-left:16px;font-size:12px;line-height:1.75">${lista(analise.indo_bem, "#166534")}</ul></div>` : ""}
+      ${Array.isArray(analise.atencao_silenciosa) && analise.atencao_silenciosa.length ? `<div>
+        <h2>Padrões que passariam despercebidos</h2>
+        <ul style="padding-left:16px;font-size:12px;line-height:1.75">${lista(analise.atencao_silenciosa, "#92400e")}</ul></div>` : ""}
+    </div>
+
+    <div class="nota" style="margin-top:20px">
+      Leitura gerada por inteligência artificial a partir dos indicadores calculados pelo sistema.
+      Os números são exatos; a interpretação é sugestão de leitura e não substitui a avaliação da equipe pedagógica.
+    </div>`;
+
+  abrir(moldura({ titulo: "Leitura do Relacionamento", subtitulo: periodo, escola, profile, corpo }));
+}
+
 // ── RELATÓRIO EXECUTIVO ────────────────────────────────────────────────────
 export function relatorioExecutivo({ saude, atencao, turmas, positivos, recortes, analise, serie, usuarios, periodo, escola, profile, nomePorAluno }) {
   const destaqueTurmas = turmas.filter(t => t.desvio !== null && t.desvio > 25 && t.negativos >= 3).slice(0, 8);
