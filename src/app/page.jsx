@@ -2837,6 +2837,21 @@ function SchoolApp({ user, profile, escola, onLogout, onProfileUpdate, onVoltarA
           </div>
           <Btn icon="+" onClick={() => setModalNovaCom(true)}>Nova Comunicação</Btn>
         </div>
+        {["DIRECAO", "SUPER_ADMIN", "NUCLEO", "RETENCAO"].includes(profile.perfil) && (
+          <button onClick={() => setPagina("inteligencia")}
+            style={{ display: "flex", alignItems: "center", gap: 14, width: "100%", textAlign: "left", cursor: "pointer",
+              padding: "16px 18px", borderRadius: 12, border: "1px solid #e9d5ff",
+              background: "linear-gradient(135deg,#faf5ff,#eff6ff)", fontFamily: "inherit" }}>
+            <span style={{ fontSize: 28 }}>🧠</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 15, fontWeight: 800, color: "#1e293b" }}>Inteligência do Relacionamento</div>
+              <div style={{ fontSize: 12.5, color: "#64748b", marginTop: 2 }}>
+                Alunos que merecem atenção, turmas fora da curva e o que está indo bem — com análise da IA.
+              </div>
+            </div>
+            <span style={{ padding: "8px 16px", borderRadius: 8, background: "#7c3aed", color: "#fff", fontSize: 13, fontWeight: 700, flexShrink: 0 }}>Abrir</span>
+          </button>
+        )}
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
           {[{ label: "Total de Alunos", value: total, icon: "👨‍🎓", color: "#2563eb" }, { label: "Enc. Pendentes", value: pendentes.length, icon: "📨", color: "#f59e0b" }, { label: "Em Risco Alto", value: alto.length, icon: "⚠️", color: "#ef4444" }, { label: "Comunicações", value: comsVisiveis.length, icon: "💬", color: "#7c3aed" }].map(m => (
             <Card key={m.label} style={{ flex: 1, minWidth: 160 }}>
