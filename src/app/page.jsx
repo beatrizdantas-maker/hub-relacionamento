@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "../lib/supabase";
 import { apiPost } from "../lib/api-client";
+import { urlAssinadaAnexo } from "../lib/anexos";
 // ── HELPERS ────────────────────────────────────────────────────────────────────
 const getRiscoColor = (r) => r >= 60 ? "#ef4444" : r >= 30 ? "#f59e0b" : "#22c55e";
 const getRiscoBg = (r) => r >= 60 ? "#fef2f2" : r >= 30 ? "#fffbeb" : "#f0fdf4";
@@ -61,6 +62,27 @@ const Av = ({ initials = "?", color = "#2563eb", size = 36, src }) => (
     ? <img src={src} alt="" style={{ width: size, height: size, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
     : <div style={{ width: size, height: size, borderRadius: "50%", background: color + "18", color, fontSize: size * 0.33, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{initials}</div>
 );
+
+const AnexoLink = ({ url, nome }) => {
+  const [abrindo, setAbrindo] = useState(false);
+  if (!url) return null;
+  const abrir = async (e) => {
+    e.stopPropagation();
+    setAbrindo(true);
+    const aba = window.open("", "_blank"); // abre antes do await p/ nao cair no bloqueador de pop-up
+    const { url: assinada, erro } = await urlAssinadaAnexo(url);
+    if (erro) { if (aba) aba.close(); alert("Não foi possível abrir o anexo: " + erro); }
+    else if (aba) aba.location.href = assinada;
+    else window.location.href = assinada;
+    setAbrindo(false);
+  };
+  return (
+    <button onClick={abrir} disabled={abrindo} title={nome || "Anexo"}
+      style={{ marginTop: 8, display: "inline-flex", alignItems: "center", gap: 6, maxWidth: "100%", padding: "6px 10px", borderRadius: 6, border: "1px solid #dbeafe", background: "#eff6ff", color: "#2563eb", fontSize: 12, fontWeight: 600, cursor: abrindo ? "wait" : "pointer" }}>
+      📎 <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{abrindo ? "Abrindo..." : (nome || "Ver anexo")}</span>
+    </button>
+  );
+};
 
 const Overlay = ({ children, onClose }) => (
   <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,.55)", zIndex: 500, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
@@ -1667,11 +1689,14 @@ function ModalNovaCom({ onClose, onSave, profile, alunos, equipe, motivos: motiv
       const ext = arquivo.name.split(".").pop();
       const path = `${escolaId || profile.escola_id}/${Date.now()}.${ext}`;
       const { data: upData, error: upErr } = await supabase.storage.from("comunicacoes-anexos").upload(path, arquivo);
-      if (!upErr && upData) {
-        const { data: urlData } = supabase.storage.from("comunicacoes-anexos").getPublicUrl(path);
-        arquivoUrl = urlData?.publicUrl || null;
-        arquivoNome = arquivo.name;
+      if (upErr) {
+        alert("Não foi possível enviar o anexo: " + upErr.message);
+        setSaving(false);
+        return;
       }
+      // bucket privado: guardamos o caminho. O link é assinado na hora de abrir.
+      arquivoUrl = upData?.path || path;
+      arquivoNome = arquivo.name;
     }
 
     const payload = {
@@ -2072,11 +2097,14 @@ function ModalResolucao({ item, onClose, onResolve, alunos, equipe }) {
       const ext = arquivo.name.split(".").pop();
       const path = `${item.escola_id}/${Date.now()}.${ext}`;
       const { data: upData, error: upErr } = await supabase.storage.from("comunicacoes-anexos").upload(path, arquivo);
-      if (!upErr && upData) {
-        const { data: urlData } = supabase.storage.from("comunicacoes-anexos").getPublicUrl(path);
-        arquivoUrl = urlData?.publicUrl || null;
-        arquivoNome = arquivo.name;
+      if (upErr) {
+        alert("Não foi possível enviar o anexo: " + upErr.message);
+        setSaving(false);
+        return;
       }
+      // bucket privado: guardamos o caminho. O link é assinado na hora de abrir.
+      arquivoUrl = upData?.path || path;
+      arquivoNome = arquivo.name;
     }
 
     const historicoAnterior = item.resolucao ? item.resolucao + "\n\n" : "";
@@ -2118,6 +2146,7 @@ function ModalResolucao({ item, onClose, onResolve, alunos, equipe }) {
               <div style={{ fontSize: 13, color: "#475569", lineHeight: 1.6, padding: "10px 12px", background: "#fff", borderRadius: 8, borderLeft: "3px solid #1a4f8a" }}>
                 <div style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", marginBottom: 4 }}>RELATO ORIGINAL</div>
                 {item.detalhes}
+                <AnexoLink url={item.arquivo_url} nome={item.arquivo_nome} />
               </div>
             )}
             {item.enc_destino && <div style={{ fontSize: 12, color: "#7c3aed", marginTop: 8 }}>→ Encaminhado para: {item.enc_destino} / {item.enc_responsavel}</div>}
@@ -2485,6 +2514,7 @@ function PerfilAluno({ aluno: alunoInicial, comunicacoes, reunioes, onClose, pro
                     </div>
                     <div style={{ fontSize: 13, color: "#64748b", marginTop: 4 }}>{t.item.detalhes || t.item.descricao}</div>
                     {t.tipo === "com" && t.item.resolucao && <div style={{ marginTop: 8, padding: "6px 10px", background: "#f0fdf4", borderRadius: 6, fontSize: 12, color: "#16a34a", borderLeft: "3px solid #22c55e" }}>✓ {t.item.resolucao}</div>}
+                    {t.tipo === "com" && <AnexoLink url={t.item.arquivo_url} nome={t.item.arquivo_nome} />}
                     {t.tipo === "reu" && (() => { const p = t.item.convocados?.find(c => c.aluno_id === aluno.id); return <div style={{ fontSize: 12, marginTop: 4, color: p?.compareceu ? "#16a34a" : "#ef4444", fontWeight: 700 }}>{p?.compareceu ? "✓ Responsável compareceu" : "✗ Responsável não compareceu"}</div>; })()}
                   </div>
                 </div>
@@ -2519,6 +2549,7 @@ function PerfilAluno({ aluno: alunoInicial, comunicacoes, reunioes, onClose, pro
                   </div>
                   <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 4 }}>{c.data_registro} · {c.enc_destino} → {c.enc_responsavel}</div>
                   {c.resolucao && <div style={{ marginTop: 8, padding: "6px 10px", background: "#f0fdf4", borderRadius: 6, fontSize: 12, color: "#16a34a" }}>✓ {c.resolucao}</div>}
+                  <AnexoLink url={c.arquivo_url} nome={c.arquivo_nome} />
                 </div>
               ))}
             </div>
@@ -3142,6 +3173,7 @@ function SchoolApp({ user, profile, escola, onLogout, onProfileUpdate, onVoltarA
                       {c.com_quem && <div style={{ fontSize: 12, color: "#94a3b8" }}>Com: {c.com_quem}</div>}
                       {c.encaminhamento && <div style={{ fontSize: 12, color: "#7c3aed", marginTop: 4 }}>→ {c.enc_destino} / {c.enc_responsavel}</div>}
                       {c.resolucao && <div style={{ marginTop: 10, padding: "8px 12px", background: "#f0fdf4", borderRadius: 8, fontSize: 13, color: "#16a34a", borderLeft: "3px solid #22c55e" }}>✓ {c.resolucao}</div>}
+                      <AnexoLink url={c.arquivo_url} nome={c.arquivo_nome} />
                     </div>
                   )}
                 </div>
@@ -3240,6 +3272,7 @@ function SchoolApp({ user, profile, escola, onLogout, onProfileUpdate, onVoltarA
                     </div>
                   </div>
                   {c.resolucao && <div style={{ marginTop: 10, padding: "8px 12px", background: "#f0fdf4", borderRadius: 8, fontSize: 13, color: "#16a34a", borderLeft: "3px solid #22c55e" }}>✓ {c.resolucao}</div>}
+                      <AnexoLink url={c.arquivo_url} nome={c.arquivo_nome} />
                 </div>
               );
             })}
