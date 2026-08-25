@@ -1,4 +1,4 @@
-import { usuarioAutenticado, naoAutorizado } from "../../../lib/api-auth";
+import { usuarioAutenticado, naoAutorizado, erroAmigavel } from "../../../lib/api-auth";
 
 export async function POST(request) {
   try {
@@ -65,6 +65,8 @@ Com base nesses dados, responda EXATAMENTE neste formato JSON (sem markdown, sem
 
     return Response.json({ analise });
   } catch (err) {
-    return Response.json({ error: "Erro interno: " + err.message }, { status: 500 });
+    const e = erroAmigavel(err);
+    console.error("[analisar-risco]", err);
+    return Response.json({ error: e.msg }, { status: e.status });
   }
 }

@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { usuarioAutenticado, naoAutorizado } from "../../../lib/api-auth";
+import { usuarioAutenticado, naoAutorizado, erroAmigavel } from "../../../lib/api-auth";
 
 export async function POST(req) {
   try {
@@ -39,7 +39,9 @@ Regra de pontos: positivo = situação de risco/problema. Negativo = situação 
     const clean = txt.replace(/```json|```/g, "").trim();
     const result = JSON.parse(clean);
     return Response.json(result);
-  } catch (e) {
-    return Response.json({ error: e.message }, { status: 500 });
+  } catch (err) {
+    const e = erroAmigavel(err);
+    console.error("[sugerir-motivo]", err);
+    return Response.json({ error: e.msg }, { status: e.status });
   }
 }

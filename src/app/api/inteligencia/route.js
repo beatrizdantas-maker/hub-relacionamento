@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { usuarioAutenticado, naoAutorizado } from "../../../lib/api-auth";
+import { usuarioAutenticado, naoAutorizado, erroAmigavel } from "../../../lib/api-auth";
 
 // A IA NÃO conta nada: ela recebe os números já calculados pelo navegador e
 // devolve leitura e recomendação de ação. Isso mantém o custo baixo e evita
@@ -49,6 +49,8 @@ export async function POST(request) {
     const limpo = txt.replace(/```json|```/g, "").trim();
     return Response.json({ analise: JSON.parse(limpo) });
   } catch (err) {
-    return Response.json({ error: "Erro ao gerar análise: " + err.message }, { status: 500 });
+    const e = erroAmigavel(err);
+    console.error("[inteligencia]", err);
+    return Response.json({ error: e.msg }, { status: e.status });
   }
 }

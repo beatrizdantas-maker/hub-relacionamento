@@ -442,7 +442,7 @@ function CampoRelato({ value, onChange, onBlur }) {
     try {
       const res = await apiPost("/api/resumir", { texto: value });
       const data = await res.json();
-      setResumo(data.resumo || "Não foi possível gerar o resumo.");
+      setResumo(data.resumo || data.error || "Não foi possível gerar o resumo.");
     } catch { setResumo("Erro ao conectar com a IA."); }
     setResumindo(false);
   };
@@ -2458,7 +2458,9 @@ function PerfilAluno({ aluno: alunoInicial, comunicacoes, reunioes, onClose, pro
     try {
       const res = await apiPost("/api/analisar-risco", { aluno, comunicacoes: coms, reunioes: reunioesA, score: aluno.risco });
       const data = await res.json();
-      if (data.analise) {
+      if (data.error) {
+        setAnalise({ nivel: "—", justificativa: data.error, acao_sugerida: "Tente novamente mais tarde." });
+      } else if (data.analise) {
         setAnalise(data.analise);
         // Salvar análise no banco
         await supabase.from("analises_risco").insert([{

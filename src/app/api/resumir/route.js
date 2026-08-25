@@ -1,4 +1,4 @@
-import { usuarioAutenticado, naoAutorizado } from "../../../lib/api-auth";
+import { usuarioAutenticado, naoAutorizado, erroAmigavel } from "../../../lib/api-auth";
 
 export async function POST(request) {
   try {
@@ -28,6 +28,8 @@ export async function POST(request) {
     const resumo = data.content?.[0]?.text || "Não foi possível gerar o resumo.";
     return Response.json({ resumo });
   } catch (err) {
-    return Response.json({ error: "Erro interno: " + err.message }, { status: 500 });
+    const e = erroAmigavel(err);
+    console.error("[resumir]", err);
+    return Response.json({ error: e.msg }, { status: e.status });
   }
 }
