@@ -329,7 +329,15 @@ export function relatorioAnaliseIA({ analise, saude, periodo, escola, profile })
 }
 
 // ── RELATÓRIO EXECUTIVO ────────────────────────────────────────────────────
-export function relatorioExecutivo({ saude, atencao, turmas, positivos, recortes, analise, serie, usuarios, periodo, escola, profile, nomePorAluno }) {
+export function relatorioExecutivo({ saude, atencao, turmas, positivos, recortes, analise, serie, usuarios, relatos, periodo, escola, profile, nomePorAluno }) {
+  // Quando os relatos foram lidos, os temas do texto substituem a lista de
+  // motivos — o motivo é escolhido numa lista e nem sempre descreve o ocorrido.
+  const temasAtencao = relatos && relatos.atencao.length
+    ? relatos.atencao.map(t => ({ nome: t.nome, qtd: t.qtd }))
+    : recortes.queixas;
+  const tituloTemas = relatos && relatos.atencao.length
+    ? "Principais temas de atenção (lidos do texto dos relatos)"
+    : "Principais motivos de atenção (pelo motivo selecionado)";
   const destaqueTurmas = turmas.filter(t => t.desvio !== null && t.desvio > 25 && t.negativos >= 3).slice(0, 8);
 
   const blocoIA = analise ? `
@@ -368,7 +376,7 @@ export function relatorioExecutivo({ saude, atencao, turmas, positivos, recortes
       ${serie ? graficoEvolucao(serie, { largura: 700 }) : ""}
       <div class="cols" style="margin-top:14px">
         <div>${graficoSituacao(saude, { largura: 320 })}</div>
-        <div>${graficoMotivos(recortes.queixas, { largura: 340 })}</div>
+        <div>${graficoMotivos(temasAtencao, { largura: 340, titulo: relatos ? 'Temas de atenção (do relato)' : 'Motivos de atenção' })}</div>
       </div>
       <div style="margin-top:14px">${graficoTurmas(turmas, { largura: 700 })}</div>
       <div style="margin-top:14px">${graficoSegmentos(recortes.segmentos, { largura: 700 })}</div>
@@ -403,8 +411,9 @@ export function relatorioExecutivo({ saude, atencao, turmas, positivos, recortes
 
     <div class="cols">
       <div>
-        <h2>Principais motivos de atenção</h2>
-        ${listaBarras(recortes.queixas, "#ef4444")}
+        <h2>${tituloTemas}</h2>
+        ${listaBarras(temasAtencao, "#ef4444")}
+        ${relatos ? `<div class="nota">${relatos.analisados.atencao} relato(s) lidos · ${relatos.coberturaAtencao}% se encaixaram em algum tema. Os temas saem do texto escrito, não da lista de motivos.</div>` : ""}
       </div>
       <div>
         <h2>Setores mais acionados</h2>
@@ -415,8 +424,8 @@ export function relatorioExecutivo({ saude, atencao, turmas, positivos, recortes
     <h2>O que está indo bem</h2>
     <div class="cols">
       <div>
-        <h3>Temas positivos mais citados</h3>
-        ${listaBarras(positivos.temas, "#22c55e")}
+        <h3>${relatos && relatos.positivo.length ? "Temas positivos (lidos do texto dos relatos)" : "Temas positivos mais citados"}</h3>
+        ${listaBarras(relatos && relatos.positivo.length ? relatos.positivo.map(t => ({ nome: t.nome, qtd: t.qtd })) : positivos.temas, "#22c55e")}
       </div>
       <div>
         ${positivos.reducoes.length ? `<h3>Problemas que diminuíram</h3>

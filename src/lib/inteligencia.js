@@ -293,7 +293,7 @@ export function calcularRecortes(atual, anterior, alunos) {
 const pct = (v) => (v === null || v === undefined ? null : (v > 0 ? "+" : "") + v + "%");
 
 /** Pacote enxuto que vai para a IA: números prontos, sem dados brutos. */
-export function montarResumoParaIA({ saude, atencao, turmas, positivos, recortes, periodo, escola }) {
+export function montarResumoParaIA({ saude, atencao, turmas, positivos, recortes, relatos, periodo, escola }) {
   const { variacaoTotal, variacaoNegativos, percResolvidos, ...restoSaude } = saude;
   return {
     escola: escola && escola.nome,
@@ -313,7 +313,14 @@ export function montarResumoParaIA({ saude, atencao, turmas, positivos, recortes
       .filter(t => t.desvio !== null && t.desvio > 25 && t.negativos >= 3)
       .slice(0, 6)
       .map(t => ({ turma: t.turma, segmento: t.segmento, registros: t.negativos, alunos: t.alunos, acima_da_media_do_segmento: t.desvio + "%" })),
-    principais_queixas: recortes.queixas,
+    // Quando os relatos foram lidos, os temas do TEXTO valem mais que o motivo
+    // escolhido na lista: o motivo costuma ser generico e nem sempre descreve
+    // o que de fato aconteceu.
+    ...(relatos && relatos.atencao.length
+      ? { temas_dos_relatos: relatos.atencao.map(t => ({ tema: t.nome, o_que_e: t.descricao, qtd: t.qtd })),
+          observacao_temas: "Estes temas foram lidos do texto dos relatos e sao mais confiaveis que a lista de motivos. Baseie a analise neles.",
+          motivos_selecionados_na_lista: recortes.queixas }
+      : { principais_queixas: recortes.queixas }),
     temas_emergentes: recortes.emergentes,
     segmentos: recortes.segmentos,
     setores_mais_acionados: recortes.setores,
@@ -502,4 +509,85 @@ export function calcularTempoPorUsuario(atual, equipe) {
       if (b.tempoMedio === null) return -1;
       return a.tempoMedio - b.tempoMedio;
     });
+}
+
+// ── TEMAS EXTRAÍDOS DO TEXTO DO RELATO ─────────────────────────────────────
+// O motivo é escolhido numa lista e nem sempre reflete o que de fato foi
+// escrito. Aqui os temas saem do texto: a IA lê uma amostra e devolve os temas
+// com os termos que os identificam; a contagem é feita aqui, em cima de TODOS
+// os relatos do período. IA interpreta, JavaScript conta.
+
+/** Tira acento e caixa, para o termo casar mesmo escrito de outro jeito. */
+const normalizar = (t) => (t || "").toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, "");
+
+const temRelato = (c) => c.detalhes && c.detalhes.trim().length > 15;
+
+/** Amostra espalhada pelo período, para a IA descobrir os temas sem custo alto. */
+export function amostraDeRelatos(atual, { limite = 150, corte = 400 } = {}) {
+  const uteis = atual.filter(temRelato);
+  const passo = Math.max(1, Math.ceil(uteis.length / limite));
+  const escolhidos = uteis.filter((_, i) => i % passo === 0).slice(0, limite);
+  return {
+    total: uteis.length,
+    amostrados: escolhidos.length,
+    relatos: escolhidos.map((c, i) => ({
+      i,
+      positivo: ehPositivo(c),
+      texto: c.detalhes.trim().slice(0, corte),
+    })),
+  };
+}
+
+/** Conta quantos relatos do período casam com cada tema. Contagem exata, local. */
+export function classificarRelatos(atual, temas) {
+  if (!temas) return null;
+
+  const preparar = (lista) => (lista || []).map(t => ({
+    nome: t.nome,
+    descricao: t.descricao,
+    termos: (t.termos || []).map(normalizar).filter(Boolean),
+    qtd: 0,
+    exemplos: [],
+  }));
+
+  const grupos = { atencao: preparar(temas.atencao), positivo: preparar(temas.positivo) };
+  const contagem = { atencao: 0, positivo: 0, semTema: { atencao: 0, positivo: 0 } };
+
+  for (const c of atual) {
+    if (!temRelato(c)) continue;
+    const positivo = ehPositivo(c);
+    const negativo = ehNegativo(c);
+    if (!positivo && !negativo) continue;
+
+    const faixa = positivo ? "positivo" : "atencao";
+    contagem[faixa]++;
+    const texto = normalizar(c.detalhes);
+
+    // vale o tema com mais termos encontrados; empate fica com o primeiro
+    let melhor = null, melhorPontos = 0;
+    for (const t of grupos[faixa]) {
+      let pontos = 0;
+      for (const termo of t.termos) if (texto.includes(termo)) pontos++;
+      if (pontos > melhorPontos) { melhorPontos = pontos; melhor = t; }
+    }
+
+    if (melhor) {
+      melhor.qtd++;
+      if (melhor.exemplos.length < 3)
+        melhor.exemplos.push({ trecho: c.detalhes.trim().slice(0, 160), aluno_id: c.aluno_id, data: c.data_registro });
+    } else {
+      contagem.semTema[faixa]++;
+    }
+  }
+
+  const limpar = (g) => g.filter(t => t.qtd > 0).sort((a, b) => b.qtd - a.qtd)
+    .map(t => ({ nome: t.nome, descricao: t.descricao, qtd: t.qtd, exemplos: t.exemplos }));
+
+  return {
+    atencao: limpar(grupos.atencao),
+    positivo: limpar(grupos.positivo),
+    analisados: contagem,
+    coberturaAtencao: contagem.atencao ? Math.round((1 - contagem.semTema.atencao / contagem.atencao) * 100) : 0,
+    coberturaPositivo: contagem.positivo ? Math.round((1 - contagem.semTema.positivo / contagem.positivo) * 100) : 0,
+  };
 }

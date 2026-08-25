@@ -5,6 +5,7 @@ import {
   PERIODOS, fatiarPeriodo, calcularSaude, calcularAtencaoAlunos, calcularTurmas,
   calcularPontosPositivos, calcularRecortes, montarResumoParaIA,
   calcularSetores, detalharTurma, calcularSerie, calcularTempoPorUsuario,
+  amostraDeRelatos, classificarRelatos,
 } from "../lib/inteligencia";
 import { graficoEvolucao, graficoSituacao, graficoSegmentos, graficoTurmas, graficoMotivos } from "../lib/graficos";
 import { relatorioPorTurma, relatorioPorSetor, relatorioExecutivo, relatorioAnaliseIA } from "../lib/relatorios";
@@ -78,6 +79,9 @@ export default function InteligenciaPage({ comunicacoes, alunos, escola, profile
   const [gerando, setGerando] = useState(false);
   const [erroIA, setErroIA] = useState(null);
   const [turmaRel, setTurmaRel] = useState("");
+  const [temas, setTemas] = useState(null);
+  const [lendoRelatos, setLendoRelatos] = useState(false);
+  const [erroTemas, setErroTemas] = useState(null);
 
   const segmentos = useMemo(
     () => [...new Set(alunos.map(a => a.segmento).filter(Boolean))].sort(),
@@ -101,17 +105,18 @@ export default function InteligenciaPage({ comunicacoes, alunos, escola, profile
     const setores = calcularSetores(atual, anterior);
     const serie = calcularSerie(atual, periodo.dias);
     const usuarios = calcularTempoPorUsuario(atual, equipe);
+    const relatos = classificarRelatos(atual, temas);
 
     return {
-      periodo, saude, atencao, turmas, positivos, recortes, setores, serie, usuarios,
+      periodo, saude, atencao, turmas, positivos, recortes, setores, serie, usuarios, relatos,
       atual, anterior, alunosFiltrados,
       resumo: montarResumoParaIA({
-        saude, atencao, turmas, positivos, recortes,
+        saude, atencao, turmas, positivos, recortes, relatos,
         periodo: periodo.label + (segmento ? " · " + segmento : ""),
         escola,
       }),
     };
-  }, [comunicacoes, alunos, equipe, periodoId, segmento, escola]);
+  }, [comunicacoes, alunos, equipe, periodoId, segmento, escola, temas]);
 
   const { saude, atencao, turmas, positivos, recortes } = dados;
 
@@ -151,6 +156,20 @@ export default function InteligenciaPage({ comunicacoes, alunos, escola, profile
     relatorioPorTurma({ turmas: detalhes, ...ctx() });
   };
 
+  const lerRelatos = async () => {
+    setLendoRelatos(true); setErroTemas(null);
+    try {
+      const amostra = amostraDeRelatos(dados.atual);
+      const res = await apiPost("/api/temas", { relatos: amostra.relatos });
+      const json = await res.json();
+      if (json.temas) setTemas(json.temas);
+      else setErroTemas(json.error || "Não foi possível identificar os temas.");
+    } catch {
+      setErroTemas("Erro de conexão com a IA.");
+    }
+    setLendoRelatos(false);
+  };
+
   const destaqueTurmas = turmas.filter(t => t.desvio !== null && t.desvio > 25 && t.negativos >= 3).slice(0, 6);
   const maxQueixa = recortes.queixas.length ? recortes.queixas[0].qtd : 0;
   const maxSetor = recortes.setores.length ? recortes.setores[0].qtd : 0;
@@ -167,11 +186,11 @@ export default function InteligenciaPage({ comunicacoes, alunos, escola, profile
           </p>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <select value={periodoId} onChange={e => { setPeriodoId(e.target.value); setAnalise(null); }}
+          <select value={periodoId} onChange={e => { setPeriodoId(e.target.value); setAnalise(null); setTemas(null); }}
             style={{ padding: "8px 12px", border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 13, background: "#fff", color: "#1e293b" }}>
             {PERIODOS.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
           </select>
-          <select value={segmento} onChange={e => { setSegmento(e.target.value); setAnalise(null); }}
+          <select value={segmento} onChange={e => { setSegmento(e.target.value); setAnalise(null); setTemas(null); }}
             style={{ padding: "8px 12px", border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 13, background: "#fff", color: "#1e293b" }}>
             <option value="">Todos os segmentos</option>
             {segmentos.map(s => <option key={s} value={s}>{s}</option>)}
@@ -219,7 +238,7 @@ export default function InteligenciaPage({ comunicacoes, alunos, escola, profile
           </p>
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-            <button onClick={() => relatorioExecutivo({ saude, atencao, turmas, positivos, recortes, analise, serie: dados.serie, usuarios: dados.usuarios, nomePorAluno, ...ctx() })}
+            <button onClick={() => relatorioExecutivo({ saude, atencao, turmas, positivos, recortes, analise, serie: dados.serie, usuarios: dados.usuarios, relatos: dados.relatos, nomePorAluno, ...ctx() })}
               style={{ padding: "10px 16px", borderRadius: 8, border: "none", background: "#1a4f8a", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
               📊 Relatório Executivo
             </button>
@@ -314,7 +333,7 @@ export default function InteligenciaPage({ comunicacoes, alunos, escola, profile
                 style={{ padding: "9px 16px", borderRadius: 8, border: "none", background: "#7c3aed", color: "#fff", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
                 🖨️ Imprimir esta análise
               </button>
-              <button onClick={() => relatorioExecutivo({ saude, atencao, turmas, positivos, recortes, analise, serie: dados.serie, usuarios: dados.usuarios, nomePorAluno, ...ctx() })}
+              <button onClick={() => relatorioExecutivo({ saude, atencao, turmas, positivos, recortes, analise, serie: dados.serie, usuarios: dados.usuarios, relatos: dados.relatos, nomePorAluno, ...ctx() })}
                 style={{ padding: "9px 16px", borderRadius: 8, border: "1.5px solid #c4b5fd", background: "#fff", color: "#6d28d9", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
                 📊 Relatório completo
               </button>
@@ -421,16 +440,62 @@ export default function InteligenciaPage({ comunicacoes, alunos, escola, profile
             )}
           </Bloco>
 
-          {/* PRINCIPAIS QUEIXAS */}
-          <Bloco titulo="Principais motivos de atenção" icone="📌">
-            {recortes.queixas.length === 0 ? <Vazio>Sem registros de atenção no período.</Vazio> :
-              recortes.queixas.map(q => <Barra key={q.nome} nome={q.nome} qtd={q.qtd} max={maxQueixa} cor="#ef4444" />)}
+          {/* TEMAS DE ATENÇÃO — extraídos do texto do relato */}
+          <Bloco titulo="Principais temas de atenção" icone="📌"
+            sub={dados.relatos ? "lidos do texto do relato" : "clique para ler os relatos"}>
+            {!dados.relatos ? (
+              <div>
+                <div style={{ fontSize: 12.5, color: "#64748b", lineHeight: 1.6, marginBottom: 12 }}>
+                  Abaixo, os temas saem do <b>que foi escrito no relato</b>, e não do motivo escolhido na lista —
+                  que muitas vezes não descreve o que de fato aconteceu.
+                </div>
+                <button onClick={lerRelatos} disabled={lendoRelatos}
+                  style={{ padding: "9px 16px", borderRadius: 8, border: "none", background: "#7c3aed", color: "#fff", fontSize: 12.5, fontWeight: 700, cursor: lendoRelatos ? "default" : "pointer" }}>
+                  {lendoRelatos ? "Lendo os relatos..." : "🔎 Analisar os relatos"}
+                </button>
+                {erroTemas && <div style={{ marginTop: 10, fontSize: 12, color: "#b91c1c" }}>{erroTemas}</div>}
+                <details style={{ marginTop: 14 }}>
+                  <summary style={{ fontSize: 11.5, color: "#94a3b8", cursor: "pointer" }}>Ver a contagem antiga, por motivo selecionado</summary>
+                  <div style={{ marginTop: 10 }}>
+                    {recortes.queixas.map(q => <Barra key={q.nome} nome={q.nome} qtd={q.qtd} max={maxQueixa} cor="#cbd5e1" />)}
+                  </div>
+                </details>
+              </div>
+            ) : dados.relatos.atencao.length === 0 ? (
+              <Vazio>Nenhum tema identificado nos relatos de atenção do período.</Vazio>
+            ) : (
+              <div>
+                {dados.relatos.atencao.map(t => (
+                  <div key={t.nome} style={{ marginBottom: 12 }}>
+                    <Barra nome={t.nome} qtd={t.qtd} max={dados.relatos.atencao[0].qtd} cor="#ef4444" />
+                    {t.descricao && <div style={{ fontSize: 11, color: "#94a3b8", marginTop: -4, lineHeight: 1.5 }}>{t.descricao}</div>}
+                  </div>
+                ))}
+                <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 10, lineHeight: 1.6 }}>
+                  {dados.relatos.analisados.atencao} relato(s) de atenção lidos · {dados.relatos.coberturaAtencao}% se encaixaram em algum tema.
+                  <button onClick={lerRelatos} disabled={lendoRelatos}
+                    style={{ marginLeft: 8, background: "none", border: "none", color: "#7c3aed", fontWeight: 700, cursor: "pointer", fontSize: 11, padding: 0 }}>
+                    {lendoRelatos ? "lendo..." : "reanalisar"}
+                  </button>
+                </div>
+              </div>
+            )}
           </Bloco>
 
           {/* O QUE ESTÁ INDO BEM */}
           <Bloco titulo="O que está indo bem" icone="⭐" sub={positivos.totalPositivos + " registros positivos"}>
-            {positivos.temas.length > 0 && (<>
-              <div style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", marginBottom: 6 }}>MAIS CITADOS</div>
+            {dados.relatos && dados.relatos.positivo.length > 0 ? (<>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", marginBottom: 6 }}>TEMAS DOS RELATOS</div>
+              {dados.relatos.positivo.map(t => (
+                <div key={t.nome} style={{ marginBottom: 12 }}>
+                  <Barra nome={t.nome} qtd={t.qtd} max={dados.relatos.positivo[0].qtd} cor="#22c55e" />
+                  {t.descricao && <div style={{ fontSize: 11, color: "#94a3b8", marginTop: -4, lineHeight: 1.5 }}>{t.descricao}</div>}
+                </div>
+              ))}
+            </>) : positivos.temas.length > 0 && (<>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", marginBottom: 6 }}>
+                MAIS CITADOS <span style={{ fontWeight: 500, textTransform: "none" }}>(por motivo selecionado)</span>
+              </div>
               {positivos.temas.map(t => <Barra key={t.nome} nome={t.nome} qtd={t.qtd} max={positivos.temas[0].qtd} cor="#22c55e" />)}
             </>)}
             {positivos.reducoes.length > 0 && (<>
