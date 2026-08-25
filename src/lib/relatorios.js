@@ -76,6 +76,24 @@ tr.destaque td{background:#fef2f2}
 .graficos svg{display:block}
 .quebra{page-break-before:always}
 .evita-quebra{page-break-inside:avoid}
+/* Cada turma ocupa a sua própria folha A4. A quebra vai DEPOIS da seção
+   (e não antes da seguinte) para que a última página não saia em branco. */
+.turma-pagina{page-break-after:always;break-after:page}
+.turma-pagina:last-child{page-break-after:auto;break-after:auto}
+.turma-pagina h2{margin-top:0}
+/* versão compacta, para a turma caber em uma folha */
+.turma-pagina .kpi{padding:7px 9px}
+.turma-pagina .kpi .v{font-size:17px}
+.turma-pagina .graficos{margin:12px 0 14px}
+.turma-pagina h3{margin:12px 0 6px}
+.turma-pagina td{padding:5px 8px;font-size:11px}
+.turma-pagina th{padding:5px 8px}
+/* o topo da turma (titulo, numeros e graficos) nunca se separa */
+.turma-pagina .topo-turma{page-break-inside:avoid;break-inside:avoid}
+/* se a lista de alunos for longa e passar para a folha seguinte,
+   o cabecalho da tabela se repete no alto da continuacao */
+thead{display:table-header-group}
+tr{page-break-inside:avoid;break-inside:avoid}
 .barra-acao{position:sticky;top:0;background:#1a4f8a;color:#fff;padding:11px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:13px}
 .barra-acao button{background:#fff;color:#1a4f8a;border:none;border-radius:7px;padding:8px 18px;font-weight:800;cursor:pointer;font-size:13px;font-family:inherit}
 @media print{.barra-acao{display:none}body{background:#fff}.pg{max-width:none;padding:0}}
@@ -152,7 +170,8 @@ export function relatorioPorTurma({ turmas, periodo, escola, profile }) {
              : ""}`
       : "";
 
-    return `<div class="${i > 0 ? "quebra" : ""}">
+    return `<section class="turma-pagina">
+      <div class="topo-turma">
       <h2>${esc(t.turma)} <span style="font-weight:500;color:#94a3b8">· ${esc(t.segmento || "—")} · ${t.totalAlunos} alunos</span></h2>
       <div class="kpis">
         <div class="kpi"><div class="l">Registros</div><div class="v">${t.registros}</div><div class="r">no período</div></div>
@@ -163,7 +182,7 @@ export function relatorioPorTurma({ turmas, periodo, escola, profile }) {
         <div class="kpi"><div class="l">Enc. em aberto</div><div class="v" style="color:#f59e0b">${t.encPendentes}</div><div class="r">aguardando setor</div></div>
       </div>
 
-      <div class="graficos evita-quebra">${graficoTurmaVsSegmento(t, { largura: 700 })}</div>
+      <div class="graficos evita-quebra">${graficoTurmaVsSegmento(t, { largura: 660 })}</div>
 
       <div class="caixa ${t.desvio > 25 ? "alerta" : ""}" style="margin-top:12px">
         <b>Comparação com o segmento.</b> ${leitura}
@@ -178,11 +197,13 @@ export function relatorioPorTurma({ turmas, periodo, escola, profile }) {
         const itens = lidos ? t.temasTexto.atencao.map(x => ({ nome: x.nome, qtd: x.qtd })) : t.motivos;
         if (!itens.length) return "";
         return `<div class="graficos evita-quebra">${graficoMotivos(itens, {
-          largura: 700,
+          largura: 660,
           titulo: (lidos ? "Temas de atenção em " : "Motivos de atenção em ") + esc(t.turma),
         })}</div>
         ${lidos ? `<div class="nota" style="margin-top:-12px">Temas lidos do texto dos relatos desta turma · ${t.temasTexto.analisados.atencao} relato(s) · ${t.temasTexto.coberturaAtencao}% se encaixaram em algum tema.</div>` : ""}`;
       })()}
+
+      </div>
 
       <div class="cols evita-quebra">
         <div>
@@ -206,7 +227,7 @@ export function relatorioPorTurma({ turmas, periodo, escola, profile }) {
         <tbody>${alunosLinhas}</tbody>
       </table>
       <div class="nota">Linhas destacadas indicam aluno com registro de urgência alta. Presença nesta lista significa necessidade de acompanhamento, não julgamento sobre o estudante.</div>
-    </div>`;
+    </section>`;
   }).join("");
 
   abrir(moldura({
