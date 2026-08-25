@@ -37,10 +37,32 @@ export function erroAmigavel(err) {
     return { msg: "A IA está sobrecarregada no momento. Tente de novo em alguns minutos.", status: 429 };
   if (status === 401 || /api.?key|authentication/i.test(txt))
     return { msg: "A chave de acesso à IA está inválida. Avise o responsável técnico.", status: 500 };
+  if (status === 404 || /model.*not.?found|"model":|model: claude/i.test(txt))
+    return { msg: "O modelo de IA configurado não está mais disponível. Avise o responsável técnico.", status: 500 };
   if (/timeout|ETIMEDOUT|ECONNRESET|fetch failed/i.test(txt))
     return { msg: "A IA demorou demais para responder. Tente novamente.", status: 504 };
   if (err instanceof SyntaxError || /JSON/i.test(txt))
     return { msg: "A IA devolveu uma resposta fora do formato esperado. Tente novamente.", status: 502 };
 
   return { msg: "Não foi possível gerar a análise agora. Tente novamente em instantes.", status: 500 };
+}
+
+/**
+ * Extrai o texto da resposta da IA.
+ *
+ * Nao use msg.content[0].text: os modelos atuais raciocinam antes de responder,
+ * entao o primeiro bloco costuma ser do tipo "thinking" e o texto vem depois.
+ * Tambem avisa quando a resposta foi cortada por falta de max_tokens, senao o
+ * JSON chega pela metade e o erro aparece como "formato inesperado".
+ */
+export function textoDaResposta(msg) {
+  const bloco = (msg.content || []).find(b => b.type === "text");
+  if (!bloco) {
+    if (msg.stop_reason === "max_tokens")
+      throw new Error("resposta truncada: max_tokens atingido antes do texto");
+    throw new Error("a IA nao retornou bloco de texto");
+  }
+  if (msg.stop_reason === "max_tokens")
+    throw new Error("resposta truncada: max_tokens atingido");
+  return bloco.text;
 }

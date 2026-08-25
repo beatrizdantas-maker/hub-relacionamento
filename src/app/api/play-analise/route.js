@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
-import { usuarioAutenticado, naoAutorizado } from "../../../lib/api-auth";
+import { usuarioAutenticado, naoAutorizado, textoDaResposta } from "../../../lib/api-auth";
 
 const client = new Anthropic();
 
@@ -14,7 +14,7 @@ export async function POST(req) {
       max_tokens: 500,
       messages: [{ role: "user", content: `Analise estes dados de engajamento escolar do ${bimestre}º bimestre: Total: ${totalAlunos}, Com pontos: ${comPontos}, Sem pontos: ${semPontos}, Média: ${media}, Em risco: ${desengajados}. Escreva análise pedagógica em português, máximo 4 frases, com sugestão prática.` }]
     });
-    return NextResponse.json({ analise: msg.content[0].text });
+    return NextResponse.json({ analise: textoDaResposta(msg) });
   } catch {
     return NextResponse.json({ analise: "Não foi possível gerar a análise." });
   }

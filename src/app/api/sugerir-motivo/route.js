@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { usuarioAutenticado, naoAutorizado, erroAmigavel } from "../../../lib/api-auth";
+import { usuarioAutenticado, naoAutorizado, erroAmigavel, textoDaResposta } from "../../../lib/api-auth";
 
 export async function POST(req) {
   try {
@@ -16,8 +16,8 @@ export async function POST(req) {
     ).join("\n");
 
     const msg = await client.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 300,
+      model: "claude-sonnet-5",
+      max_tokens: 2000,
       messages: [{
         role: "user",
         content: `Analise este relato escolar e identifique o motivo mais adequado da lista.
@@ -35,7 +35,7 @@ Regra de pontos: positivo = situação de risco/problema. Negativo = situação 
       }]
     });
 
-    const txt = msg.content[0]?.text || "";
+    const txt = textoDaResposta(msg);
     const clean = txt.replace(/```json|```/g, "").trim();
     const result = JSON.parse(clean);
     return Response.json(result);

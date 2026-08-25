@@ -289,12 +289,21 @@ export function calcularRecortes(atual, anterior, alunos) {
   };
 }
 
+/** Percentuais viram texto com "%", senão a IA lê "+139%" como "+139 registros". */
+const pct = (v) => (v === null || v === undefined ? null : (v > 0 ? "+" : "") + v + "%");
+
 /** Pacote enxuto que vai para a IA: números prontos, sem dados brutos. */
 export function montarResumoParaIA({ saude, atencao, turmas, positivos, recortes, periodo, escola }) {
+  const { variacaoTotal, variacaoNegativos, percResolvidos, ...restoSaude } = saude;
   return {
     escola: escola && escola.nome,
     periodo,
-    saude,
+    saude: {
+      ...restoSaude,
+      percentual_resolvidos: percResolvidos + "%",
+      variacao_total_vs_periodo_anterior: pct(variacaoTotal),
+      variacao_registros_de_atencao: pct(variacaoNegativos),
+    },
     alunos_atencao: atencao.slice(0, 8).map(a => ({
       nome: a.nome, turma: a.turma, nivel: a.nivel,
       registros: a.registros, criticos: a.criticos,
@@ -310,6 +319,6 @@ export function montarResumoParaIA({ saude, atencao, turmas, positivos, recortes
     setores_mais_acionados: recortes.setores,
     turnos: recortes.turnos,
     encaminhamentos_parados: { total: recortes.totalParados, exemplos: recortes.parados.slice(0, 5) },
-    pontos_positivos: positivos,
+    pontos_positivos: { ...positivos, variacao: pct(positivos.variacao) },
   };
 }

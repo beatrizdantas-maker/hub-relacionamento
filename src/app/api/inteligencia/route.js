@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { usuarioAutenticado, naoAutorizado, erroAmigavel } from "../../../lib/api-auth";
+import { usuarioAutenticado, naoAutorizado, erroAmigavel, textoDaResposta } from "../../../lib/api-auth";
 
 // A IA NÃO conta nada: ela recebe os números já calculados pelo navegador e
 // devolve leitura e recomendação de ação. Isso mantém o custo baixo e evita
@@ -14,6 +14,10 @@ REGRAS OBRIGATÓRIAS:
 - Toda prioridade precisa de uma AÇÃO concreta e executável, não conselho genérico.
 - Nunca rotule criança. Fale de situação e de necessidade de acompanhamento.
 - Pontuação positiva significa situação de atenção; negativa significa elogio ou avanço.
+- Campos que terminam em "%" são VARIAÇÃO PERCENTUAL, nunca quantidade. "+139%" quer dizer
+  que o volume mais que dobrou, e não que houve 139 registros a mais.
+- Em turma com poucos alunos, um percentual alto pode vir de pouquíssimos registros. Diga isso
+  quando acontecer, em vez de tratar como problema grave.
 
 Responda APENAS com JSON válido, sem markdown, neste formato:
 {
@@ -39,13 +43,13 @@ export async function POST(request) {
 
     const client = new Anthropic();
     const msg = await client.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 2000,
+      model: "claude-sonnet-5",
+      max_tokens: 6000,
       system: SISTEMA,
       messages: [{ role: "user", content: "Indicadores do período:\n\n" + JSON.stringify(resumo, null, 1) }],
     });
 
-    const txt = (msg.content[0] && msg.content[0].text) || "";
+    const txt = textoDaResposta(msg);
     const limpo = txt.replace(/```json|```/g, "").trim();
     return Response.json({ analise: JSON.parse(limpo) });
   } catch (err) {

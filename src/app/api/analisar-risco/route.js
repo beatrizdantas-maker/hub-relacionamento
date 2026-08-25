@@ -1,4 +1,4 @@
-import { usuarioAutenticado, naoAutorizado, erroAmigavel } from "../../../lib/api-auth";
+import { usuarioAutenticado, naoAutorizado, erroAmigavel, textoDaResposta } from "../../../lib/api-auth";
 
 export async function POST(request) {
   try {
@@ -50,7 +50,7 @@ Com base nesses dados, responda EXATAMENTE neste formato JSON (sem markdown, sem
     });
 
     const data = await res.json();
-    const texto = data.content?.[0]?.text || "{}";
+    const texto = textoDaResposta(data);
 
     let analise;
     try {
