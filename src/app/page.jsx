@@ -4,6 +4,7 @@ import { supabase } from "../lib/supabase";
 import { apiPost } from "../lib/api-client";
 import { urlAssinadaAnexo } from "../lib/anexos";
 import InteligenciaPage from "./inteligencia";
+import IntegracoesPage from "./integracoes";
 // ── HELPERS ────────────────────────────────────────────────────────────────────
 const getRiscoColor = (r) => r >= 60 ? "#ef4444" : r >= 30 ? "#f59e0b" : "#22c55e";
 const getRiscoBg = (r) => r >= 60 ? "#fef2f2" : r >= 30 ? "#fffbeb" : "#f0fdf4";
@@ -2815,6 +2816,7 @@ function SchoolApp({ user, profile, escola, onLogout, onProfileUpdate, onVoltarA
     ...(!isProfessor ? [{ id: "reunioes", icon: "📅", label: "Reuniões" }] : []),
     ...(!isProfessor ? [{ id: "retencao", icon: "📉", label: "Retenção", pendentes: pendenciaRetencao }] : []),
     ...(profile.perfil === "DIRECAO" || profile.perfil === "SUPER_ADMIN" ? [{ id: "equipe", icon: "👥", label: "Equipe" }] : []),
+    ...(profile.perfil === "DIRECAO" || profile.perfil === "SUPER_ADMIN" ? [{ id: "integracoes", icon: "🔌", label: "Integrações" }] : []),
   ];
 
   if (loading) return <Loading msg="Carregando dados da escola..." />;
@@ -3874,6 +3876,7 @@ function SchoolApp({ user, profile, escola, onLogout, onProfileUpdate, onVoltarA
           {pagina === "reunioes" && <ReunioesPage />}
           {pagina === "retencao" && <RetencaoPage />}
           {pagina === "equipe" && <EquipePage />}
+          {pagina === "integracoes" && <IntegracoesPage escola={escola} />}
         </div>
       </div>
       {modalNovaCom && <ModalNovaCom onClose={() => setModalNovaCom(false)} onSave={addCom} profile={profile} alunos={alunos} equipe={equipe} motivos={motivos} escolaId={escola.id} />}
