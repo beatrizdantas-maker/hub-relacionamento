@@ -175,3 +175,29 @@ export function faltando(objeto, obrigatorios) {
   const faltam = obrigatorios.filter(c => objeto[c] === undefined || objeto[c] === null || objeto[c] === "");
   return faltam.length ? faltam : null;
 }
+
+// ── normalização de valores vindos de fora ─────────────────────────────────
+// Integração externa raramente manda o texto exato com acento e caixa certa.
+// Exigir "CONCLUÍDO" literal faz a API recusar pedido correto por detalhe de
+// digitação. Aceitamos as variações e gravamos sempre o valor canônico.
+const semAcento = (v) =>
+  String(v || "").trim().toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, "");
+
+const STATUS = {
+  pendente: "PENDENTE", aberto: "PENDENTE", novo: "PENDENTE",
+  resolvendo: "RESOLVENDO", "em andamento": "RESOLVENDO", andamento: "RESOLVENDO",
+  concluido: "CONCLUÍDO", resolvido: "CONCLUÍDO", finalizado: "CONCLUÍDO",
+  fechado: "CONCLUÍDO", encerrado: "CONCLUÍDO",
+};
+
+const URGENCIA = {
+  baixa: "BAIXA", baixo: "BAIXA",
+  media: "MEDIA", medio: "MEDIA", moderada: "MEDIA", normal: "MEDIA",
+  alta: "ALTA", alto: "ALTA", critica: "ALTA", urgente: "ALTA",
+};
+
+export const normalizarStatus = (v) => STATUS[semAcento(v)] || null;
+export const normalizarUrgencia = (v) => URGENCIA[semAcento(v)] || null;
+
+export const VALORES_STATUS = "PENDENTE, RESOLVENDO, CONCLUIDO (acento e maiúscula são opcionais)";
+export const VALORES_URGENCIA = "BAIXA, MEDIA, ALTA (acento e maiúscula são opcionais)";

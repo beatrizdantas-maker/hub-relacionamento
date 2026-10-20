@@ -1,4 +1,5 @@
-import { rota, json, erro, paginacao, envelope, corpo, apenasCampos, faltando } from "../../../../lib/api-v1";
+import { rota, json, erro, paginacao, envelope, corpo, apenasCampos, faltando,
+         normalizarStatus, normalizarUrgencia, VALORES_STATUS, VALORES_URGENCIA } from "../../../../lib/api-v1";
 
 const CAMPOS = `id, aluno_id, data_registro, data_ocorrencia, titulo, detalhes, urgencia,
   autor_id, autor_nome, com_quem, via_comunicacao, turno,
@@ -67,6 +68,14 @@ export const POST = rota(async ({ db, escola, chave, request }) => {
     campos.motivo_pontos = motivo.pontos;
   }
 
+  if (campos.urgencia !== undefined) {
+    const u = normalizarUrgencia(campos.urgencia);
+    if (!u) return erro("urgencia inválida. Use: " + VALORES_URGENCIA, 422);
+    campos.urgencia = u;
+  }
+  if (dados.status !== undefined && !normalizarStatus(dados.status))
+    return erro("status inválido. Use: " + VALORES_STATUS, 422);
+
   const encaminhou = campos.encaminhamento === true;
   const registro = {
     ...campos,
@@ -75,7 +84,7 @@ export const POST = rota(async ({ db, escola, chave, request }) => {
     titulo: campos.titulo || campos.motivo_nome || "Registro via integração",
     autor_nome: dados.autor_nome || ("Integração: " + chave.nome),
     enc_status: encaminhou ? "PENDENTE" : null,
-    status: encaminhou ? "PENDENTE" : (dados.status || "CONCLUÍDO"),
+    status: encaminhou ? "PENDENTE" : (normalizarStatus(dados.status) || "CONCLUÍDO"),
   };
 
   const { data, error } = await db.from("comunicacoes").insert([registro]).select(CAMPOS).single();

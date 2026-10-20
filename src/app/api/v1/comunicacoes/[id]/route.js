@@ -1,4 +1,5 @@
-import { rota, json, erro, corpo, apenasCampos } from "../../../../../lib/api-v1";
+import { rota, json, erro, corpo, apenasCampos,
+         normalizarStatus, normalizarUrgencia, VALORES_STATUS, VALORES_URGENCIA } from "../../../../../lib/api-v1";
 
 const CAMPOS = `id, aluno_id, data_registro, titulo, detalhes, urgencia, autor_nome,
   motivo_nome, motivo_pontos, encaminhamento, enc_destino, enc_responsavel, enc_status,
@@ -33,12 +34,17 @@ export const PATCH = rota(async ({ db, escola, chave, params, request }) => {
     mudancas.resolucao = `${anterior}[${hoje}] ${dados.resolucao} · Por: ${autor}`;
   }
 
+  if (dados.urgencia !== undefined) {
+    const u = normalizarUrgencia(dados.urgencia);
+    if (!u) return erro("urgencia inválida. Use: " + VALORES_URGENCIA, 422);
+    mudancas.urgencia = u;
+  }
+
   if (dados.status) {
-    const validos = ["PENDENTE", "RESOLVENDO", "CONCLUÍDO"];
-    if (!validos.includes(dados.status))
-      return erro("status inválido. Use: " + validos.join(", "), 422);
-    mudancas.status = dados.status;
-    mudancas.enc_status = dados.status === "CONCLUÍDO" ? "RESOLVIDO" : dados.status;
+    const st = normalizarStatus(dados.status);
+    if (!st) return erro("status inválido. Use: " + VALORES_STATUS, 422);
+    mudancas.status = st;
+    mudancas.enc_status = st === "CONCLUÍDO" ? "RESOLVIDO" : st;
   }
 
   if (!Object.keys(mudancas).length)
