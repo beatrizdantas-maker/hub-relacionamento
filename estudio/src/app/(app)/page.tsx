@@ -6,7 +6,8 @@ import { Selo } from "@/components/ui/Selo";
 
 export default async function PaginaInicio() {
   const ctx = await obterContexto();
-  const hoje = new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long", timeZone: ctx.empresaAtiva?.fuso_horario ?? "America/Sao_Paulo" });
+  const hojeBruto = new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long", timeZone: ctx.empresaAtiva?.fuso_horario ?? "America/Sao_Paulo" });
+  const hoje = hojeBruto.charAt(0).toUpperCase() + hojeBruto.slice(1);
 
   if (!ctx.empresaAtiva) {
     return (
@@ -28,7 +29,7 @@ export default async function PaginaInicio() {
     <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-sm capitalize text-texto-2">{hoje}</p>
+          <p className="text-sm text-texto-2">{hoje}</p>
           <h1 className="text-3xl font-semibold tracking-tight">{e.nome}</h1>
         </div>
         <Selo tom="neutro">Você é {rotuloPapel(ctx.papel)}</Selo>

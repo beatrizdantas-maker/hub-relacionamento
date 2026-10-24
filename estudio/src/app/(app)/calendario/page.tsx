@@ -1,3 +1,46 @@
-import { EmBreve } from "@/components/ui/EmBreve";
+import { exigirEmpresaAtiva } from "@/lib/contexto";
+import { criarClienteServidor } from "@/lib/supabase/server";
+import { ehDataISO, hojeNaEmpresa, inicioDaSemana, somarDias } from "@/lib/datas";
+import { Calendario } from "@/components/calendario/Calendario";
+
 export const metadata = { title: "Calendário" };
-export default function Pagina() { return <EmBreve titulo="Calendário" etapa={4} descricao="Semana e dia, editor de conteúdo e de stories." />; }
+
+type Busca = { semana?: string; dia?: string; formato?: string; abrir?: string };
+
+export default async function PaginaCalendario({ searchParams }: { searchParams: Promise<Busca> }) {
+  const sp = await searchParams;
+  const ctx = await exigirEmpresaAtiva();
+  const empresa = ctx.empresaAtiva;
+  const hoje = hojeNaEmpresa(empresa.fuso_horario);
+  const dia = ehDataISO(sp.dia) ? sp.dia : null;
+  const segunda = dia ? inicioDaSemana(dia) : ehDataISO(sp.semana) ? inicioDaSemana(sp.semana) : inicioDaSemana(hoje);
+  const domingo = somarDias(segunda, 6);
+
+  const supabase = await criarClienteServidor();
+  const [{ data: conteudos }, { data: stories }, { data: campanhas }] = await Promise.all([
+    supabase.from("conteudos").select("*").eq("empresa_id", empresa.id).gte("data", segunda).lte("data", domingo).order("data").order("hora", { nullsFirst: false }),
+    supabase.from("stories").select("*").eq("empresa_id", empresa.id).gte("data", segunda).lte("data", domingo).order("data"),
+    supabase.from("campanhas").select("id, nome").eq("empresa_id", empresa.id).order("nome"),
+  ]);
+  const ids = (conteudos ?? []).map((c) => c.id);
+  const { data: tarefas } = ids.length
+    ? await supabase.from("tarefas").select("*").in("conteudo_id", ids).order("prazo")
+    : { data: [] };
+
+  return (
+    <Calendario
+      empresa={{ id: empresa.id, nome: empresa.nome, fuso: empresa.fuso_horario, pilares: empresa.pilares ?? [], ritmo: empresa.ritmo_semanal ?? [] }}
+      papel={ctx.papel}
+      usuarioId={ctx.usuario.id}
+      hoje={hoje}
+      segunda={segunda}
+      dia={dia}
+      filtro={sp.formato ?? "todos"}
+      abrir={sp.abrir ?? null}
+      conteudos={conteudos ?? []}
+      stories={stories ?? []}
+      tarefas={tarefas ?? []}
+      campanhas={campanhas ?? []}
+    />
+  );
+}

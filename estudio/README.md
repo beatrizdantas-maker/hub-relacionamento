@@ -75,6 +75,15 @@ Proteção contra perda do que está sendo digitado:
 - **Bloqueio otimista**: a seção salva só se `empresas.atualizado_em` ainda for o valor carregado. Se outro membro salvou antes, o servidor devolve a versão atual.
 - **Mesclagem de três vias** (`src/lib/mesclagem.ts`, com testes): campos que só a outra pessoa mudou entram sozinhos; campos que os dois mudaram pedem escolha ("minha versão" ou "versão da outra pessoa") antes de salvar.
 
+## Calendário (Etapa 4)
+
+- `/calendario?semana=AAAA-MM-DD` (visão por semana: 7 colunas no computador, dias empilhados no celular) e `/calendario?dia=AAAA-MM-DD` (detalhe completo: roteiro, legenda com copiar, ganchos, arte, notas e as telas dos stories numeradas). Filtro `formato=Reels|Carrossel|Estático|Stories`. `abrir=novo` abre o editor de conteúdo novo (usado pelo Início).
+- **Editor de conteúdo** (painel lateral / folha de baixo): data, hora, formato, status, tema, tipo, pilar, objetivo, campanha, CTA, roteiro, ganchos (Reels), legenda, arte, notas. Salvar, Aprovar, Copiar legenda, Excluir com confirmação na tela. Mudar a data reagenda: mostra "Reagendado para dd/mm", mantém as tarefas ligadas e desloca os prazos das tarefas abertas pelo mesmo número de dias (nunca para antes de hoje).
+- **Tarefas padrão** (`src/lib/tarefasPadrao.ts`, com testes): escolhidas pelo formato e pelo campo "tipo" (prova social, texto na tela, Reels comum, carrossel/estático). Criadas ao salvar um conteúdo novo (opção marcada por padrão) ou pelo botão no editor; não duplica.
+- **Editor de stories**: data, objetivo, status, post ligado e telas (tipo, texto e opções da interação: pergunta, opções, emoji, link, data), com adicionar, remover, subir e descer. Sequência padrão de 4 telas em stories novos.
+- "Aprovar as N sugestões da semana" aprova conteúdos e stories com status `sugestao` na semana exibida.
+- Colaborador muda só o status (conteúdo, stories e as próprias tarefas); Leitor só vê. Tudo garantido pelo RLS.
+
 ## Papéis e permissões
 
 | Ação | Dono | Editor | Colaborador | Leitor |
@@ -117,7 +126,7 @@ estudio/
 1. ✅ Projeto, autenticação, tabelas, RLS e políticas por papel
 2. ✅ Empresas: cadastro, seletor, convites e membros
 3. ✅ Marca e ritmo semanal
-4. Calendário com editor de conteúdo e de stories
+4. ✅ Calendário com editor de conteúdo e de stories
 5. Tarefas
 6. Painel com registro manual
 7. Integração com o Metricool
