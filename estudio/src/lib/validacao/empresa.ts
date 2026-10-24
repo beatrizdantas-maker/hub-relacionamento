@@ -68,3 +68,43 @@ export const esquemaConvite = z.object({
   email: z.string().trim().toLowerCase().email("Informe um e-mail válido"),
   papel: z.enum(["dono", "editor", "colaborador", "leitor"]),
 });
+
+// ---------- Seções da tela Marca (cada uma salva só os próprios campos) ----------
+export const esquemaSecaoIdentidade = esquemaEmpresa
+  .pick({ nome: true, perfil_instagram: true, sobre: true, tom_de_voz: true, regras_de_linguagem: true, regras_de_imagem: true, cor_primaria: true, cor_secundaria: true })
+  .extend({ fuso_horario: z.string().regex(/^[A-Za-z_]+\/[A-Za-z_]+$/, "Fuso horário inválido") });
+export const esquemaSecaoPublico = esquemaEmpresa.pick({ publico: true, objetivos: true, pilares: true, melhores_horarios: true });
+export const esquemaSecaoMetas = esquemaEmpresa.pick({ metas: true });
+export const esquemaSecaoRitmo = esquemaEmpresa.pick({ ritmo_semanal: true });
+
+export const ESQUEMAS_SECOES = {
+  identidade: esquemaSecaoIdentidade,
+  publico: esquemaSecaoPublico,
+  metas: esquemaSecaoMetas,
+  ritmo: esquemaSecaoRitmo,
+} as const;
+export type SecaoMarca = keyof typeof ESQUEMAS_SECOES;
+
+const dataOuNula = z
+  .string()
+  .trim()
+  .optional()
+  .nullable()
+  .transform((v) => (v ? v : null))
+  .refine((v) => v === null || /^\d{4}-\d{2}-\d{2}$/.test(v), "Data no formato AAAA-MM-DD");
+
+export const esquemaCampanha = z
+  .object({
+    id: z.string().uuid().optional(),
+    nome: z.string().trim().min(1, "Informe o nome da campanha").max(120),
+    inicio: dataOuNula,
+    fim: dataOuNula,
+    descricao: textoOpcional,
+  })
+  .refine((c) => !c.inicio || !c.fim || c.fim >= c.inicio, { message: "O fim precisa ser depois do início", path: ["fim"] });
+export type EntradaCampanha = z.input<typeof esquemaCampanha>;
+
+export const esquemaIntegracao = z.object({
+  metricool_brand_id: z.string().trim().max(60).optional().transform((v) => (v ? v : null)),
+  metricool_token: z.string().trim().max(500).optional().transform((v) => (v ? v : null)),
+});

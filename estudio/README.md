@@ -66,6 +66,15 @@ As três migrations já foram aplicadas no GAME e o teste de RLS passou lá. Par
 - **Equipe** (`/empresas/<id>/membros`): membros com papel; Dono altera papéis, remove, convida por e-mail; qualquer membro sai (menos o último Dono) e edita o próprio nome.
 - **Convites**: criam um registro em `convites` (token, 7 dias) e disparam um e-mail de acesso pelo próprio Supabase (template "Magic Link") que leva a `/convite/<token>`. O link também pode ser copiado e enviado por WhatsApp. Para aceitar, a pessoa precisa entrar com o mesmo e-mail do convite. Atenção: o SMTP padrão do Supabase tem limite baixo de envios por hora; configure um SMTP próprio em Authentication → SMTP Settings para uso real.
 
+## Marca (Etapa 3)
+
+`/marca` edita a empresa ativa em seções independentes: Identidade (nome, @, sobre, tom de voz, regras de linguagem e de imagem, cores, fuso horário), Público e objetivos (público, objetivos, pilares, melhores horários), Metas do mês, Ritmo semanal, Campanhas (lista editável) e Integração com o Metricool (só Dono; token cifrado com `ESTUDIO_CRYPTO_KEY`).
+
+Proteção contra perda do que está sendo digitado:
+- **Rascunho local**: cada seção guarda o que está sendo digitado em `localStorage`; recarregar a página restaura e avisa.
+- **Bloqueio otimista**: a seção salva só se `empresas.atualizado_em` ainda for o valor carregado. Se outro membro salvou antes, o servidor devolve a versão atual.
+- **Mesclagem de três vias** (`src/lib/mesclagem.ts`, com testes): campos que só a outra pessoa mudou entram sozinhos; campos que os dois mudaram pedem escolha ("minha versão" ou "versão da outra pessoa") antes de salvar.
+
 ## Papéis e permissões
 
 | Ação | Dono | Editor | Colaborador | Leitor |
@@ -107,7 +116,7 @@ estudio/
 
 1. ✅ Projeto, autenticação, tabelas, RLS e políticas por papel
 2. ✅ Empresas: cadastro, seletor, convites e membros
-3. Marca e ritmo semanal
+3. ✅ Marca e ritmo semanal
 4. Calendário com editor de conteúdo e de stories
 5. Tarefas
 6. Painel com registro manual
