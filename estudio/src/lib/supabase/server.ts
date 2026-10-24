@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import type { Database } from "@/lib/tipos/database";
+import { SUPABASE_CHAVE_PUBLICA, SUPABASE_URL } from "./config";
 
 /**
  * Cliente Supabase para Server Components, Server Actions e Route Handlers.
@@ -10,8 +11,8 @@ import type { Database } from "@/lib/tipos/database";
 export async function criarClienteServidor() {
   const cookieStore = await cookies();
   return createServerClient<Database, "estudio">(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    SUPABASE_URL,
+    SUPABASE_CHAVE_PUBLICA,
     {
       db: { schema: "estudio" },
       cookies: {
@@ -38,7 +39,7 @@ export async function criarClienteServidor() {
 export function criarClienteAdmin() {
   const chave = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!chave) throw new Error("SUPABASE_SERVICE_ROLE_KEY não configurada");
-  return createClient<Database, "estudio">(process.env.NEXT_PUBLIC_SUPABASE_URL!, chave, {
+  return createClient<Database, "estudio">(SUPABASE_URL, chave, {
     db: { schema: "estudio" },
     auth: { persistSession: false, autoRefreshToken: false },
   });
