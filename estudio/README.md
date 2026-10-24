@@ -92,6 +92,18 @@ Proteção contra perda do que está sendo digitado:
 - Contador de atrasadas no ícone de Tarefas (barra lateral e barra inferior), calculado no layout para a empresa ativa.
 - Colaborador só muda o status das próprias tarefas (caixa e seletor desabilitados nas outras); Dono e Editor fazem tudo. O RLS garante no banco.
 
+## Painel de evolução (Etapa 6)
+
+- `/painel` (semanas) e `/painel?visao=meses`. `abrir=registrar` abre o formulário da semana passada.
+- **Comparação**: último período completo contra o anterior. Semana completa = domingo já passou; mês completo = todas as semanas que começam nele já fecharam. Períodos parciais aparecem nos gráficos e no histórico com o selo "parcial", mas nunca entram na comparação.
+- **Indicadores**: seguidores, seguidores líquidos, visualizações, alcance, engajamento (interações ÷ alcance dos posts, em %, diferença em p.p.), compartilhamentos, salvamentos, respostas aos stories, cliques no link, mensagens no direct. Valor nulo mostra "sem dado", nunca zero. Selo da fonte: Metricool, registro manual, ou Metricool ajustado à mão.
+- **Meses** somam as semanas que começam no mês; seguidores = última semana com dado.
+- **Gráficos** em SVG puro (`GraficoLinha`, `GraficoBarras`): desenhados na largura real do contêiner, tooltip e crosshair no hover/toque/teclado, parciais em tracejado ou translúcido, barras verdes/vermelhas com o sinal no número.
+- **Metas do mês** (`progressoMetas`, testada): semanas que começam no mês + posts publicados nele. Visualizações por dia usa os dias com dado registrados.
+- **Melhores conteúdos**: `resultados_posts` dos últimos 6 meses, ordenável por alcance, interações, salvamentos e compartilhamentos, filtro por formato, link para o post e edição.
+- **Registro manual**: semana (qualquer dia vira a segunda-feira), todos os campos opcionais, notas. Se a semana veio do Metricool, mantém a fonte e marca `editado_manual`. Resultado de post manual com interações calculadas ao salvar.
+- "Atualizar do Metricool" fica desabilitado até a Etapa 7.
+
 ## Papéis e permissões
 
 | Ação | Dono | Editor | Colaborador | Leitor |
@@ -136,7 +148,7 @@ estudio/
 3. ✅ Marca e ritmo semanal
 4. ✅ Calendário com editor de conteúdo e de stories
 5. ✅ Tarefas
-6. Painel com registro manual
+6. ✅ Painel com registro manual
 7. Integração com o Metricool
 8. IA: sugestões e geração de calendário
 9. Início
