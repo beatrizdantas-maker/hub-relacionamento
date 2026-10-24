@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, CalendarDays, Home, Lightbulb, ListChecks, LogOut, Palette } from "lucide-react";
+import { BarChart3, Building2, CalendarDays, Home, Lightbulb, ListChecks, LogOut, Palette } from "lucide-react";
 import { SeletorTema } from "./SeletorTema";
+import { SeletorEmpresa } from "./SeletorEmpresa";
 
 const NAV = [
   { href: "/", rotulo: "Início", Icone: Home },
@@ -20,11 +21,28 @@ export interface UsuarioCasca {
   nome: string | null;
 }
 
+export interface EmpresaResumo {
+  id: string;
+  nome: string;
+  cor_primaria: string;
+  arquivada: boolean;
+}
+
 /**
  * Casca do app: barra lateral no computador, barra inferior com 6 ícones no
- * celular. O seletor de empresa (Etapa 2) entra no topo.
+ * celular. O seletor de empresa fica no topo nas duas versões.
  */
-export function Casca({ usuario, children }: { usuario: UsuarioCasca; children: React.ReactNode }) {
+export function Casca({
+  usuario,
+  empresas,
+  empresaAtivaId,
+  children,
+}: {
+  usuario: UsuarioCasca;
+  empresas: EmpresaResumo[];
+  empresaAtivaId: string | null;
+  children: React.ReactNode;
+}) {
   const pathname = usePathname();
   const ativo = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
 
@@ -49,6 +67,16 @@ export function Casca({ usuario, children }: { usuario: UsuarioCasca; children: 
               {rotulo}
             </Link>
           ))}
+          <Link
+            href="/empresas"
+            aria-current={ativo("/empresas") ? "page" : undefined}
+            className={`mt-4 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
+              ativo("/empresas") ? "bg-primaria/10 text-primaria" : "text-texto-2 hover:bg-superficie-2 hover:text-texto"
+            }`}
+          >
+            <Building2 className="h-5 w-5" aria-hidden />
+            Empresas
+          </Link>
         </nav>
         <div className="space-y-3 border-t border-borda p-4">
           <SeletorTema />
@@ -67,11 +95,14 @@ export function Casca({ usuario, children }: { usuario: UsuarioCasca; children: 
       </aside>
 
       <div className="flex min-h-dvh flex-col">
-        {/* Topo: seletor de empresa entra aqui na Etapa 2 */}
-        <header className="sticky top-0 z-20 flex h-14 items-center justify-between gap-3 border-b border-borda bg-superficie/90 px-4 backdrop-blur md:px-6">
+        {/* Topo com o seletor de empresa */}
+        <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-borda bg-superficie/90 px-4 backdrop-blur md:px-6">
           <Link href="/" className="font-titulo text-xl font-semibold text-primaria md:hidden">Estúdio</Link>
-          <div className="flex-1" />
-          <div className="flex items-center gap-2 md:hidden">
+          <div className="min-w-0 flex-1 md:flex-none">
+            <SeletorEmpresa empresas={empresas} ativaId={empresaAtivaId} />
+          </div>
+          <div className="hidden flex-1 md:block" />
+          <div className="flex items-center gap-1 md:hidden">
             <SeletorTema compacto />
             <form action="/auth/sair" method="post">
               <button type="submit" className="rounded-lg p-2 text-texto-2 hover:bg-superficie-2" aria-label="Sair">

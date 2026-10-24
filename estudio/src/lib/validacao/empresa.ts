@@ -1,0 +1,70 @@
+import { z } from "zod";
+
+const hex = z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Use uma cor no formato #RRGGBB");
+const textoOpcional = z.string().trim().max(4000).optional().transform((v) => (v ? v : null));
+const numeroOuNulo = z
+  .union([z.number(), z.string(), z.null(), z.undefined()])
+  .transform((v) => {
+    if (v === null || v === undefined || v === "") return null;
+    const n = typeof v === "number" ? v : Number(String(v).replace(",", "."));
+    return Number.isFinite(n) ? n : null;
+  });
+
+export const OBJETIVOS_RITMO = [
+  { valor: "salvamentos", rotulo: "Salvamentos" },
+  { valor: "alcance", rotulo: "Alcance" },
+  { valor: "direct", rotulo: "Mensagens no direct" },
+  { valor: "engajamento", rotulo: "Engajamento" },
+  { valor: "comentarios", rotulo: "Comentários" },
+  { valor: "compartilhamentos", rotulo: "Compartilhamentos" },
+  { valor: "seguidores", rotulo: "Seguidores" },
+  { valor: "cliques", rotulo: "Cliques no link" },
+] as const;
+
+export const esquemaRitmoDia = z.object({
+  dia: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5), z.literal(6), z.literal(7)]),
+  hora: z.string().regex(/^\d{2}:\d{2}$/, "Hora no formato HH:MM"),
+  formato: z.enum(["Reels", "Carrossel", "Estático"]),
+  tipo: z.string().trim().max(120),
+  pilar: z.string().trim().max(80),
+  objetivo: z.string().trim().max(40),
+});
+
+export const esquemaMetas = z.object({
+  visualizacoes_dia: numeroOuNulo,
+  seguidores_liquidos_mes: numeroOuNulo,
+  mensagens_mes: numeroOuNulo,
+  salvamentos_carrossel: numeroOuNulo,
+  alcance_reels: numeroOuNulo,
+  engajamento_pct: numeroOuNulo,
+});
+
+export const esquemaEmpresa = z.object({
+  nome: z.string().trim().min(1, "Informe o nome da empresa").max(120, "Nome muito longo"),
+  perfil_instagram: z
+    .string()
+    .trim()
+    .max(60)
+    .optional()
+    .transform((v) => (v ? v.replace(/^@/, "").replace(/^https?:\/\/(www\.)?instagram\.com\//, "").replace(/\/$/, "") : null)),
+  sobre: textoOpcional,
+  publico: textoOpcional,
+  objetivos: textoOpcional,
+  tom_de_voz: textoOpcional,
+  regras_de_linguagem: textoOpcional,
+  regras_de_imagem: textoOpcional,
+  melhores_horarios: textoOpcional,
+  pilares: z.array(z.string().trim().min(1).max(60)).max(12).default([]),
+  cor_primaria: hex,
+  cor_secundaria: hex,
+  metas: esquemaMetas,
+  ritmo_semanal: z.array(esquemaRitmoDia).length(7, "O ritmo semanal precisa dos 7 dias"),
+});
+
+export type DadosEmpresa = z.infer<typeof esquemaEmpresa>;
+export type EntradaEmpresa = z.input<typeof esquemaEmpresa>;
+
+export const esquemaConvite = z.object({
+  email: z.string().trim().toLowerCase().email("Informe um e-mail válido"),
+  papel: z.enum(["dono", "editor", "colaborador", "leitor"]),
+});

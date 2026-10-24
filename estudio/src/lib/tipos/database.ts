@@ -72,7 +72,7 @@ export interface Database {
         empresa_id: string; metricool_brand_id: string | null; metricool_token_cifrado: string | null;
         ultima_importacao_em: string | null; atualizado_em: string;
       }>;
-      membros: Linha<{ empresa_id: string; user_id: string; papel: Papel; nome_exibicao: string | null; convidado_em: string }>;
+      membros: Linha<{ empresa_id: string; user_id: string; papel: Papel; nome_exibicao: string | null; email: string | null; convidado_em: string }>;
       convites: Linha<{
         id: string; empresa_id: string; email: string; papel: Papel; token: string; criado_por: string | null;
         criado_em: string; expira_em: string; aceito_em: string | null;
@@ -121,6 +121,7 @@ export interface Database {
       pode_colaborar: { Args: { p_empresa: string }; Returns: boolean };
       ver_convite: { Args: { p_token: string }; Returns: { empresa_nome: string; papel: Papel; email: string; expirado: boolean; aceito: boolean }[] };
       aceitar_convite: { Args: { p_token: string }; Returns: string };
+      criar_empresa: { Args: { p_dados: Json }; Returns: string };
       ritmo_semanal_padrao: { Args: Record<string, never>; Returns: RitmoDia[] };
       metas_padrao: { Args: Record<string, never>; Returns: Metas };
     };

@@ -1,38 +1,23 @@
-import { redirect } from "next/navigation";
-import { criarClienteServidor } from "@/lib/supabase/server";
+import { obterContexto } from "@/lib/contexto";
+import { estiloEmpresa } from "@/lib/cores";
 import { Casca } from "@/components/casca/Casca";
 
 /**
  * Layout das telas autenticadas. O middleware já redireciona quem não está
- * logado; aqui buscamos o usuário e o perfil para a casca (barra lateral /
- * barra inferior e seletor de empresa).
+ * logado; aqui montamos a casca com o seletor de empresa e aplicamos as
+ * cores da empresa ativa como destaque.
  */
 export default async function LayoutApp({ children }: { children: React.ReactNode }) {
-  const supabase = await criarClienteServidor();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/entrar");
-
-  // Garante o perfil (usuários anteriores ao Estúdio não passaram pelo trigger de auth.users).
-  let { data: perfil } = await supabase.from("perfis").select("*").eq("id", user.id).maybeSingle();
-  if (!perfil) {
-    const nome =
-      (user.user_metadata?.full_name as string | undefined) ??
-      (user.user_metadata?.name as string | undefined) ??
-      user.email?.split("@")[0] ??
-      null;
-    const { data: criado } = await supabase
-      .from("perfis")
-      .upsert({ id: user.id, nome, email: user.email ?? null }, { onConflict: "id", ignoreDuplicates: true })
-      .select("*")
-      .maybeSingle();
-    perfil = criado;
-  }
-
+  const ctx = await obterContexto();
   return (
-    <Casca usuario={{ id: user.id, email: user.email ?? "", nome: perfil?.nome ?? null }}>
-      {children}
-    </Casca>
+    <div style={estiloEmpresa(ctx.empresaAtiva?.cor_primaria, ctx.empresaAtiva?.cor_secundaria)}>
+      <Casca
+        usuario={ctx.usuario}
+        empresas={ctx.empresas.map((e) => ({ id: e.id, nome: e.nome, cor_primaria: e.cor_primaria, arquivada: e.arquivada }))}
+        empresaAtivaId={ctx.empresaAtiva?.id ?? null}
+      >
+        {children}
+      </Casca>
+    </div>
   );
 }

@@ -39,6 +39,7 @@ As três migrations já foram aplicadas no GAME e o teste de RLS passou lá. Par
    - `supabase/migrations/0001_esquema.sql` — schema, enums, tabelas, índices e triggers
    - `supabase/migrations/0002_padroes.sql` — ritmo semanal e metas padrão
    - `supabase/migrations/0003_rls.sql` — funções de papel, políticas RLS e RPCs (`criar_empresa`, `ver_convite`, `aceitar_convite`)
+   - `supabase/migrations/0004_membros_email.sql` — e-mail/nome do membro na lista de equipe; membro edita o próprio nome
 2. Em **Project Settings → Data API → Exposed schemas**, inclua `estudio` (sem isso a API não enxerga o schema). No GAME isso já foi feito.
 3. Rode o teste de RLS: `supabase/tests/rls.sql`. Ele cria usuários de teste, exercita os quatro papéis em duas empresas e **desfaz tudo no fim** (`rollback`). Deve terminar com `NOTICE: RLS OK`. Se algum critério falhar, para com `FALHOU: ...`.
 4. Em **Authentication → URL Configuration**:
@@ -57,6 +58,13 @@ As três migrations já foram aplicadas no GAME e o teste de RLS passou lá. Par
 | `NEXT_PUBLIC_SITE_URL` | servidor | base dos links de e-mail |
 | `ANTHROPIC_API_KEY` | só servidor | sugestões e geração de calendário (Etapa 8) |
 | `ESTUDIO_CRYPTO_KEY` | só servidor | cifra o token do Metricool no banco (`openssl rand -base64 32`) |
+
+## Empresas, equipe e convites (Etapa 2)
+
+- **Empresas** (`/empresas`): lista as empresas do usuário com papel e cores; "Nova empresa" abre o assistente de 3 passos (dados da marca → público e objetivos → metas e ritmo semanal). Dono arquiva, reativa e exclui (confirmação dentro da tela). Dono e Editor editam.
+- **Seletor no topo**: trocar de empresa grava `perfis.empresa_ativa_id` e recarrega tudo; a última empresa usada fica lembrada. As cores primária/secundária da empresa ativa viram os tokens `--cor-primaria`/`--cor-secundaria` da interface.
+- **Equipe** (`/empresas/<id>/membros`): membros com papel; Dono altera papéis, remove, convida por e-mail; qualquer membro sai (menos o último Dono) e edita o próprio nome.
+- **Convites**: criam um registro em `convites` (token, 7 dias) e disparam um e-mail de acesso pelo próprio Supabase (template "Magic Link") que leva a `/convite/<token>`. O link também pode ser copiado e enviado por WhatsApp. Para aceitar, a pessoa precisa entrar com o mesmo e-mail do convite. Atenção: o SMTP padrão do Supabase tem limite baixo de envios por hora; configure um SMTP próprio em Authentication → SMTP Settings para uso real.
 
 ## Papéis e permissões
 
@@ -98,7 +106,7 @@ estudio/
 ## Ordem de construção
 
 1. ✅ Projeto, autenticação, tabelas, RLS e políticas por papel
-2. Empresas: cadastro, seletor, convites e membros
+2. ✅ Empresas: cadastro, seletor, convites e membros
 3. Marca e ritmo semanal
 4. Calendário com editor de conteúdo e de stories
 5. Tarefas
