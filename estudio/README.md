@@ -29,19 +29,23 @@ npm test            # testes unitários (vitest)
 npm run build       # build de produção
 ```
 
-## Configurar o Supabase (Etapa 1)
+## Supabase: projeto GAME, schema `estudio`
 
-1. Crie (ou escolha) um projeto no Supabase.
-2. No **SQL Editor**, rode as migrations **nesta ordem**:
-   - `supabase/migrations/0001_esquema.sql` — enums, tabelas, índices e triggers
+O Estúdio usa o projeto Supabase **GAME** (`oxenvlnvyrfjfvbbdgbm`) e vive inteiro dentro do schema **`estudio`** (a "pasta" do Postgres). Nada do Estúdio toca o schema `public` do GAME; a autenticação (`auth.users`) é compartilhada, então quem já tem conta no GAME consegue entrar no Estúdio, mas só vê as empresas em que for membro.
+
+As três migrations já foram aplicadas no GAME e o teste de RLS passou lá. Para reproduzir em outro projeto:
+
+1. No **SQL Editor**, rode as migrations **nesta ordem**:
+   - `supabase/migrations/0001_esquema.sql` — schema, enums, tabelas, índices e triggers
    - `supabase/migrations/0002_padroes.sql` — ritmo semanal e metas padrão
    - `supabase/migrations/0003_rls.sql` — funções de papel, políticas RLS e RPCs (`criar_empresa`, `ver_convite`, `aceitar_convite`)
+2. Em **Project Settings → Data API → Exposed schemas**, inclua `estudio` (sem isso a API não enxerga o schema). No GAME isso já foi feito.
 3. Rode o teste de RLS: `supabase/tests/rls.sql`. Ele cria usuários de teste, exercita os quatro papéis em duas empresas e **desfaz tudo no fim** (`rollback`). Deve terminar com `NOTICE: RLS OK`. Se algum critério falhar, para com `FALHOU: ...`.
 4. Em **Authentication → URL Configuration**:
    - Site URL: `https://SEU-DOMINIO` (ou `http://localhost:3000` em desenvolvimento)
    - Redirect URLs: `http://localhost:3000/auth/callback` e `https://SEU-DOMINIO/auth/callback`
-5. Em **Authentication → Providers**: deixe **Email** ligado (link mágico já funciona com o template padrão) e configure **Google** com o Client ID/Secret do Google Cloud (URI de redirecionamento autorizado: `https://SEU-PROJETO.supabase.co/auth/v1/callback`).
-6. Copie a URL do projeto e a chave publicável (anon) para `.env.local`.
+5. Em **Authentication → Providers**: deixe **Email** ligado (link mágico já funciona com o template padrão) e configure **Google** com o Client ID/Secret do Google Cloud (URI de redirecionamento autorizado: `https://oxenvlnvyrfjfvbbdgbm.supabase.co/auth/v1/callback`).
+6. Copie a URL do projeto e a chave publicável para `.env.local`.
 
 ### Variáveis de ambiente
 
@@ -70,7 +74,7 @@ Tudo isso é garantido **no banco** (políticas RLS + triggers que restringem co
 ### Decisões de modelagem
 
 - `empresas_integracoes` guarda o ID da marca e o token do Metricool em tabela separada (só o Dono lê/escreve), para o token nunca sair num `select *` de `empresas`. O token é cifrado com AES-256-GCM no servidor (`src/lib/cripto.ts`).
-- `perfis` (1:1 com `auth.users`) lembra a última empresa usada (`empresa_ativa_id`) e o tema.
+- `perfis` (1:1 com `auth.users`) lembra a última empresa usada (`empresa_ativa_id`) e o tema. Usuários criados antes do Estúdio não passaram pelo trigger de `auth.users`; o app cria o perfil no primeiro acesso.
 - `comentarios` existe porque o papel Colaborador "comenta".
 - `empresa_id` é imutável em todas as tabelas (trigger), para nunca "mover" dados entre empresas.
 - A empresa precisa sempre ter pelo menos um Dono (trigger).
@@ -80,7 +84,7 @@ Tudo isso é garantido **no banco** (políticas RLS + triggers que restringem co
 
 ```
 estudio/
-  supabase/migrations/   SQL em ordem
+  supabase/migrations/   SQL em ordem (tudo no schema estudio)
   supabase/tests/rls.sql Teste de isolamento e papéis
   src/app/entrar         Login (link mágico + Google)
   src/app/auth/callback  Troca o código pela sessão

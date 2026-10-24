@@ -3,7 +3,7 @@
 -- =====================================================================
 
 -- Ritmo semanal padrão (seção 6 da especificação). dia: 1 = segunda … 7 = domingo.
-create or replace function public.ritmo_semanal_padrao()
+create or replace function estudio.ritmo_semanal_padrao()
 returns jsonb language sql immutable as $$
   select '[
     {"dia":1,"hora":"12:00","formato":"Carrossel","tipo":"Carrossel salvável","pilar":"","objetivo":"salvamentos"},
@@ -16,7 +16,7 @@ returns jsonb language sql immutable as $$
   ]'::jsonb
 $$;
 
-create or replace function public.metas_padrao()
+create or replace function estudio.metas_padrao()
 returns jsonb language sql immutable as $$
   select '{
     "visualizacoes_dia": null,
@@ -28,6 +28,6 @@ returns jsonb language sql immutable as $$
   }'::jsonb
 $$;
 
-alter table public.empresas
-  alter column ritmo_semanal set default public.ritmo_semanal_padrao(),
-  alter column metas set default public.metas_padrao();
+alter table estudio.empresas
+  alter column ritmo_semanal set default estudio.ritmo_semanal_padrao(),
+  alter column metas set default estudio.metas_padrao();

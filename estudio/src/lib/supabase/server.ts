@@ -9,10 +9,11 @@ import type { Database } from "@/lib/tipos/database";
  */
 export async function criarClienteServidor() {
   const cookieStore = await cookies();
-  return createServerClient<Database>(
+  return createServerClient<Database, "estudio">(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      db: { schema: "estudio" },
       cookies: {
         getAll() {
           return cookieStore.getAll();
@@ -37,7 +38,8 @@ export async function criarClienteServidor() {
 export function criarClienteAdmin() {
   const chave = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!chave) throw new Error("SUPABASE_SERVICE_ROLE_KEY não configurada");
-  return createClient<Database>(process.env.NEXT_PUBLIC_SUPABASE_URL!, chave, {
+  return createClient<Database, "estudio">(process.env.NEXT_PUBLIC_SUPABASE_URL!, chave, {
+    db: { schema: "estudio" },
     auth: { persistSession: false, autoRefreshToken: false },
   });
 }

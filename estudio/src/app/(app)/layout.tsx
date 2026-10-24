@@ -14,7 +14,21 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
   } = await supabase.auth.getUser();
   if (!user) redirect("/entrar");
 
-  const { data: perfil } = await supabase.from("perfis").select("*").eq("id", user.id).maybeSingle();
+  // Garante o perfil (usuários anteriores ao Estúdio não passaram pelo trigger de auth.users).
+  let { data: perfil } = await supabase.from("perfis").select("*").eq("id", user.id).maybeSingle();
+  if (!perfil) {
+    const nome =
+      (user.user_metadata?.full_name as string | undefined) ??
+      (user.user_metadata?.name as string | undefined) ??
+      user.email?.split("@")[0] ??
+      null;
+    const { data: criado } = await supabase
+      .from("perfis")
+      .upsert({ id: user.id, nome, email: user.email ?? null }, { onConflict: "id", ignoreDuplicates: true })
+      .select("*")
+      .maybeSingle();
+    perfil = criado;
+  }
 
   return (
     <Casca usuario={{ id: user.id, email: user.email ?? "", nome: perfil?.nome ?? null }}>

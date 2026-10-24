@@ -1,7 +1,7 @@
 /**
- * Tipos do banco (escritos à mão a partir das migrations).
+ * Tipos do banco (escritos à mão a partir das migrations). Tudo vive no schema "estudio".
  * Depois de aplicar as migrations, podem ser regenerados com:
- *   npx supabase gen types typescript --project-id <id> > src/lib/tipos/database.ts
+ *   npx supabase gen types typescript --project-id <id> --schema estudio > src/lib/tipos/database.ts
  */
 export type Papel = "dono" | "editor" | "colaborador" | "leitor";
 export type FormatoConteudo = "Reels" | "Carrossel" | "Estático";
@@ -61,7 +61,7 @@ export type EmpresaRow = {
 }
 
 export interface Database {
-  public: {
+  estudio: {
     Tables: {
       perfis: Linha<{
         id: string; nome: string | null; email: string | null; empresa_ativa_id: string | null;
@@ -133,7 +133,7 @@ export interface Database {
   };
 }
 
-export type Tabelas = Database["public"]["Tables"];
+export type Tabelas = Database["estudio"]["Tables"];
 export type Empresa = Tabelas["empresas"]["Row"];
 export type Perfil = Tabelas["perfis"]["Row"];
 export type Membro = Tabelas["membros"]["Row"];
