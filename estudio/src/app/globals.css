@@ -1,0 +1,64 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ---------- Tokens de cor (RGB sem vírgulas, para usar com alpha no Tailwind) ---------- */
+:root {
+  --fundo: 250 249 246;
+  --superficie: 255 255 255;
+  --superficie-2: 244 242 238;
+  --borda: 226 222 214;
+  --texto: 28 25 23;
+  --texto-2: 87 83 78;
+  --texto-3: 140 134 127;
+
+  /* Destaque: sobrescrito pela empresa ativa via style="--cor-primaria: r g b" */
+  --cor-primaria: 124 58 237;
+  --cor-secundaria: 245 158 11;
+  --sobre-primaria: 255 255 255;
+
+  /* Semânticas (sempre com texto, nunca só cor) */
+  --ia: 37 99 235;        /* azul  → sugestão da IA */
+  --real: 22 163 74;      /* verde → dado real */
+  --manual: 217 119 6;    /* âmbar → registro manual */
+  --atrasado: 220 38 38;  /* vermelho → atrasado */
+}
+
+:root[data-tema="escuro"] {
+  --fundo: 20 18 17;
+  --superficie: 30 27 25;
+  --superficie-2: 41 37 34;
+  --borda: 64 58 54;
+  --texto: 245 242 238;
+  --texto-2: 190 184 176;
+  --texto-3: 140 134 127;
+  --ia: 96 165 250;
+  --real: 74 222 128;
+  --manual: 251 191 36;
+  --atrasado: 248 113 113;
+}
+
+@layer base {
+  html { color-scheme: light; }
+  html[data-tema="escuro"] { color-scheme: dark; }
+  body {
+    @apply bg-fundo text-texto font-texto antialiased;
+    font-feature-settings: "tnum" 1, "cv11" 1;
+    min-width: 360px;
+    overflow-x: hidden;
+  }
+  h1, h2, h3 { @apply font-titulo; }
+  :focus-visible { @apply outline-none ring-2 ring-primaria ring-offset-2 ring-offset-fundo; }
+  input, textarea, select { @apply bg-superficie text-texto; }
+  ::placeholder { @apply text-texto-3; }
+}
+
+@layer components {
+  .campo {
+    @apply w-full rounded-xl border border-borda bg-superficie px-3 py-2.5 text-base text-texto shadow-sm
+           placeholder:text-texto-3 focus:border-primaria disabled:opacity-60;
+  }
+  .rotulo { @apply mb-1 block text-sm font-medium text-texto-2; }
+  .cartao { @apply rounded-2xl border border-borda bg-superficie p-4 shadow-sm sm:p-5; }
+  .tabular { font-variant-numeric: tabular-nums; }
+}
