@@ -36,11 +36,13 @@ export function Casca({
   usuario,
   empresas,
   empresaAtivaId,
+  atrasadas = 0,
   children,
 }: {
   usuario: UsuarioCasca;
   empresas: EmpresaResumo[];
   empresaAtivaId: string | null;
+  atrasadas?: number;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -65,6 +67,7 @@ export function Casca({
             >
               <Icone className="h-5 w-5" aria-hidden />
               {rotulo}
+              {href === "/tarefas" && atrasadas > 0 && <ContadorAtrasadas n={atrasadas} />}
             </Link>
           ))}
           <Link
@@ -121,14 +124,28 @@ export function Casca({
               key={href}
               href={href}
               aria-current={ativo(href) ? "page" : undefined}
-              className={`flex flex-col items-center gap-0.5 py-2 text-[11px] font-medium ${ativo(href) ? "text-primaria" : "text-texto-3"}`}
+              className={`relative flex flex-col items-center gap-0.5 py-2 text-[11px] font-medium ${ativo(href) ? "text-primaria" : "text-texto-3"}`}
             >
-              <Icone className="h-5 w-5" aria-hidden />
+              <span className="relative">
+                <Icone className="h-5 w-5" aria-hidden />
+                {href === "/tarefas" && atrasadas > 0 && <ContadorAtrasadas n={atrasadas} flutuante />}
+              </span>
               {rotulo}
             </Link>
           ))}
         </nav>
       </div>
     </div>
+  );
+}
+
+function ContadorAtrasadas({ n, flutuante = false }: { n: number; flutuante?: boolean }) {
+  return (
+    <span
+      aria-label={`${n} ${n === 1 ? "tarefa atrasada" : "tarefas atrasadas"}`}
+      className={`inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-atrasado px-1.5 text-[11px] font-semibold text-white tabular ${flutuante ? "absolute -right-2.5 -top-2 h-4 min-w-4 px-1 text-[10px]" : "ml-auto"}`}
+    >
+      {n > 99 ? "99+" : n}
+    </span>
   );
 }

@@ -84,6 +84,14 @@ Proteção contra perda do que está sendo digitado:
 - "Aprovar as N sugestões da semana" aprova conteúdos e stories com status `sugestao` na semana exibida.
 - Colaborador muda só o status (conteúdo, stories e as próprias tarefas); Leitor só vê. Tudo garantido pelo RLS.
 
+## Tarefas (Etapa 5)
+
+- `/tarefas?filtro=hoje|atrasadas|semana|abertas|entregues&responsavel=<user_id|sem>`. "Hoje" inclui as atrasadas; "Entregues" mostra as concluídas nos últimos 60 dias. `abrir=nova` abre o formulário.
+- Quadro com 4 colunas por status (Pendente, Em produção, Aguardando, Concluída), empilhadas no celular. Cada tarefa: caixa de concluir, título, prioridade com cor e texto, tipo, responsável, prazo (vermelho e selo "Atrasada" se vencido), link para o conteúdo no calendário, seletor de status e editar.
+- Formulário: título, tipo, prioridade, responsável (membros da empresa), prazo, status, conteúdo ligado (30 dias atrás a 90 à frente).
+- Contador de atrasadas no ícone de Tarefas (barra lateral e barra inferior), calculado no layout para a empresa ativa.
+- Colaborador só muda o status das próprias tarefas (caixa e seletor desabilitados nas outras); Dono e Editor fazem tudo. O RLS garante no banco.
+
 ## Papéis e permissões
 
 | Ação | Dono | Editor | Colaborador | Leitor |
@@ -127,7 +135,7 @@ estudio/
 2. ✅ Empresas: cadastro, seletor, convites e membros
 3. ✅ Marca e ritmo semanal
 4. ✅ Calendário com editor de conteúdo e de stories
-5. Tarefas
+5. ✅ Tarefas
 6. Painel com registro manual
 7. Integração com o Metricool
 8. IA: sugestões e geração de calendário
