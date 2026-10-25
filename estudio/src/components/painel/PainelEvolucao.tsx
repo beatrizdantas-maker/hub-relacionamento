@@ -1,9 +1,12 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { ArrowDownRight, ArrowUpRight, Minus, PenLine, RefreshCw } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { Botao } from "@/components/ui/Botao";
+import { Aviso } from "@/components/ui/Aviso";
+import { atualizarDoMetricool } from "@/app/(app)/painel/acoes";
 import { Selo } from "@/components/ui/Selo";
 import { permissoes } from "@/lib/papeis";
 import { inicioDaSemana, somarDias } from "@/lib/datas";
@@ -24,13 +27,17 @@ export interface PainelProps {
   abrir: string | null;
   semanas: MetricaSemanal[];
   posts: ResultadoPost[];
-  metricoolConfigurado: boolean;
+  /** null quando o usuário não é dono (não enxerga a integração) */
+  metricool: { configurado: boolean; ultimaImportacao: string | null } | null;
 }
 
 type Selecao = { tipo: "semana"; semana: string } | { tipo: "post"; id: string | null } | null;
 
 export function PainelEvolucao(p: PainelProps) {
+  const router = useRouter();
   const podeEditar = permissoes.podeEditar(p.papel);
+  const [importando, iniciarImportacao] = useTransition();
+  const [resultadoImportacao, setResultadoImportacao] = useState<{ tipo: "sucesso" | "erro" | "info"; texto: string; avisos?: string[] } | null>(null);
   const [selecao, setSelecao] = useState<Selecao>(() => (p.abrir === "registrar" && podeEditar ? { tipo: "semana", semana: inicioDaSemana(somarDias(p.hoje, -7)) } : null));
   const fechar = useCallback(() => setSelecao(null), []);
 
@@ -53,6 +60,23 @@ export function PainelEvolucao(p: PainelProps) {
   const postSelecionado = selecao?.tipo === "post" && selecao.id ? p.posts.find((r) => r.id === selecao.id) ?? null : null;
   const unidade = p.visao === "meses" ? "mês" : "semana";
 
+  function importar() {
+    setResultadoImportacao(null);
+    iniciarImportacao(async () => {
+      const r = await atualizarDoMetricool(p.empresa.id);
+      if (!r.ok) return setResultadoImportacao({ tipo: "erro", texto: r.erro });
+      const { resumo } = r;
+      const partes = [`${resumo.semanasGravadas} ${resumo.semanasGravadas === 1 ? "semana gravada" : "semanas gravadas"}`, `${resumo.posts} posts`, `${resumo.reels} Reels`, `${resumo.stories} stories`];
+      if (resumo.semanasPuladas) partes.push(`${resumo.semanasPuladas} ${resumo.semanasPuladas === 1 ? "semana ajustada à mão preservada" : "semanas ajustadas à mão preservadas"}`);
+      setResultadoImportacao({
+        tipo: resumo.semanasGravadas || resumo.posts || resumo.reels ? "sucesso" : "info",
+        texto: `Importação de ${new Date(resumo.periodo.de + "T12:00:00").toLocaleDateString("pt-BR")} a ${new Date(resumo.periodo.ate + "T12:00:00").toLocaleDateString("pt-BR")}: ${partes.join(" · ")}.`,
+        avisos: resumo.avisos,
+      });
+      router.refresh();
+    });
+  }
+
   return (
     <div className="space-y-5">
       <header className="flex flex-wrap items-end justify-between gap-3">
@@ -67,12 +91,27 @@ export function PainelEvolucao(p: PainelProps) {
             <Botao variante="secundaria" onClick={() => setSelecao({ tipo: "semana", semana: inicioDaSemana(somarDias(p.hoje, -7)) })}>
               <PenLine className="h-4 w-4" aria-hidden /> Registrar manualmente
             </Botao>
-            <Botao variante="secundaria" disabled title={p.metricoolConfigurado ? "A importação chega na Etapa 7" : "Configure o Metricool em Marca → Metricool"}>
-              <RefreshCw className="h-4 w-4" aria-hidden /> Atualizar do Metricool
-            </Botao>
+            {p.metricool && (
+              <Botao variante="secundaria" carregando={importando} disabled={!p.metricool.configurado} onClick={importar}
+                title={p.metricool.configurado ? (p.metricool.ultimaImportacao ? `Última importação: ${new Date(p.metricool.ultimaImportacao).toLocaleString("pt-BR")}` : "Importar do Metricool") : "Configure User ID, ID da marca e token em Marca → Metricool"}>
+                <RefreshCw className={`h-4 w-4 ${importando ? "animate-spin" : ""}`} aria-hidden /> {importando ? "Importando…" : "Atualizar do Metricool"}
+              </Botao>
+            )}
           </div>
         )}
       </header>
+
+      {p.metricool && !p.metricool.configurado && podeEditar && (
+        <p className="text-xs text-texto-3">Para importar automaticamente, configure o Metricool em Marca → Metricool. O registro manual funciona sem integração.</p>
+      )}
+      {resultadoImportacao && (
+        <Aviso tipo={resultadoImportacao.tipo}>
+          <p>{resultadoImportacao.texto}</p>
+          {resultadoImportacao.avisos && resultadoImportacao.avisos.length > 0 && (
+            <ul className="mt-1 list-disc space-y-0.5 pl-4 text-xs">{resultadoImportacao.avisos.map((a, i) => <li key={i}>{a}</li>)}</ul>
+          )}
+        </Aviso>
+      )}
 
       <div className="flex flex-wrap items-center gap-2">
         <div className="flex items-center gap-1 rounded-xl border border-borda bg-superficie p-1" role="group" aria-label="Período">

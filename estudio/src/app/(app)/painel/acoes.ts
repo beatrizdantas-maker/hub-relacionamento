@@ -5,6 +5,7 @@ import { criarClienteServidor } from "@/lib/supabase/server";
 import { esquemaMetricaSemanal, esquemaResultadoPost, type EntradaMetricaSemanal, type EntradaResultadoPost } from "@/lib/validacao/metricas";
 import { diasEntre, hojeNaEmpresa, inicioDaSemana } from "@/lib/datas";
 import type { MetricaSemanal, ResultadoPost } from "@/lib/tipos/database";
+import { importarDoMetricool, type ResumoImportacao } from "@/lib/metricool/importar";
 
 type Erro = { ok: false; erro: string };
 
@@ -92,4 +93,16 @@ export async function excluirResultadoPost(empresaId: string, id: string): Promi
   if (!data?.length) return { ok: false, erro: "Você não tem permissão para excluir resultados." };
   revalidar();
   return { ok: true };
+}
+
+/** Importa do Metricool e agrega por semana. Só o dono acessa o token (RLS). */
+export async function atualizarDoMetricool(empresaId: string): Promise<{ ok: true; resumo: ResumoImportacao } | Erro> {
+  const supabase = await criarClienteServidor();
+  try {
+    const resumo = await importarDoMetricool(supabase, empresaId);
+    revalidar();
+    return { ok: true, resumo };
+  } catch (e) {
+    return { ok: false, erro: (e as Error).message };
+  }
 }

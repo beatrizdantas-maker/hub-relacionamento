@@ -10,12 +10,13 @@ import { Confirmacao } from "@/components/ui/Confirmacao";
 import { CampoArea, CampoSelecao, CampoTexto } from "@/components/ui/Campo";
 import { CampoCor, CamposMetas, CamposRitmo, DIAS, EditorPilares, FUSOS, PreviaCores, metasParaTexto, ritmoOuPadrao, type MetasTexto } from "@/components/empresas/campos";
 import { permissoes } from "@/lib/papeis";
-import { excluirCampanha, removerTokenMetricool, salvarCampanha, salvarIntegracao } from "@/app/(app)/marca/acoes";
+import { excluirCampanha, removerTokenMetricool, salvarCampanha, salvarIntegracao, testarConexaoMetricool } from "@/app/(app)/marca/acoes";
 import type { Campanha, Empresa, Papel, RitmoDia } from "@/lib/tipos/database";
 import type { SecaoMarca } from "@/lib/validacao/empresa";
 import { useSecaoMarca, type Conflito } from "./useSecaoMarca";
 
 export interface IntegracaoResumo {
+  metricool_user_id: string;
   metricool_brand_id: string;
   tokenMascarado: string | null;
   tokenIlegivel: boolean;
@@ -373,21 +374,32 @@ function SecaoCampanhas({ empresaId, campanhas, podeEditar }: { empresaId: strin
 
 function SecaoIntegracao({ empresaId, integracao }: { empresaId: string; integracao: IntegracaoResumo }) {
   const router = useRouter();
+  const [userId, setUserId] = useState(integracao.metricool_user_id);
   const [brandId, setBrandId] = useState(integracao.metricool_brand_id);
   const [token, setToken] = useState("");
   const [erro, setErro] = useState<string | null>(null);
   const [ok, setOk] = useState<string | null>(null);
   const [removendo, setRemovendo] = useState(false);
   const [pendente, iniciar] = useTransition();
+  const [testando, iniciarTeste] = useTransition();
 
   function salvar() {
     setErro(null); setOk(null);
     iniciar(async () => {
-      const r = await salvarIntegracao(empresaId, { metricool_brand_id: brandId, metricool_token: token });
+      const r = await salvarIntegracao(empresaId, { metricool_user_id: userId, metricool_brand_id: brandId, metricool_token: token });
       if (!r.ok) return setErro(r.erro);
       setToken("");
-      setOk(r.tokenFinal ? "Integração salva. O token foi guardado cifrado." : "ID da marca salvo.");
+      setOk(r.tokenFinal ? "Integração salva. O token foi guardado cifrado. Clique em “Testar conexão” para conferir." : "IDs salvos.");
       router.refresh();
+    });
+  }
+
+  function testar() {
+    setErro(null); setOk(null);
+    iniciarTeste(async () => {
+      const r = await testarConexaoMetricool(empresaId);
+      if (!r.ok) return setErro(r.erro);
+      setOk(`Conexão OK: marca “${r.marca.label}” (ID ${r.marca.id})${r.marca.instagram ? ` · Instagram @${r.marca.instagram}` : " · sem Instagram conectado"}${r.marca.timezone ? ` · fuso ${r.marca.timezone}` : ""}.`);
     });
   }
 
@@ -407,7 +419,7 @@ function SecaoIntegracao({ empresaId, integracao }: { empresaId: string; integra
       <div>
         <h2 className="text-lg font-semibold">Integração com o Metricool</h2>
         <p className="mt-1 text-sm text-texto-2">
-          O ID da marca (Blog ID) e o token de acesso ficam em Metricool → Configurações → API. O token é guardado cifrado e só o servidor lê. A importação de métricas chega na Etapa 7.
+          No Metricool, em Configurações → API, ficam o <strong>User ID</strong> e o <strong>token</strong> (disponíveis nos planos Advanced ou superior). O <strong>ID da marca</strong> (blogId) aparece na URL ao abrir a marca e na lista de marcas. O token é guardado cifrado e só o servidor lê.
         </p>
       </div>
       {erro && <Aviso tipo="erro">{erro}</Aviso>}
@@ -415,7 +427,10 @@ function SecaoIntegracao({ empresaId, integracao }: { empresaId: string; integra
       {integracao.tokenIlegivel && <Aviso tipo="erro">Há um token salvo, mas o servidor não conseguiu lê-lo (a chave ESTUDIO_CRYPTO_KEY mudou?). Salve o token de novo.</Aviso>}
 
       <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); salvar(); }}>
-        <CampoTexto rotulo="ID da marca no Metricool (Blog ID)" value={brandId} onChange={(e) => setBrandId(e.target.value)} inputMode="numeric" placeholder="Ex.: 1234567" className="tabular" />
+        <div className="grid grid-cols-2 gap-3">
+          <CampoTexto rotulo="User ID" value={userId} onChange={(e) => setUserId(e.target.value)} inputMode="numeric" placeholder="Ex.: 5391741" className="tabular" />
+          <CampoTexto rotulo="ID da marca (blogId)" value={brandId} onChange={(e) => setBrandId(e.target.value)} inputMode="numeric" placeholder="Ex.: 6987210" className="tabular" />
+        </div>
         <CampoTexto
           rotulo={integracao.tokenMascarado ? "Novo token (deixe em branco para manter o atual)" : "Token de acesso"}
           type="password"
@@ -427,11 +442,14 @@ function SecaoIntegracao({ empresaId, integracao }: { empresaId: string; integra
         />
         <div className="flex flex-wrap items-center gap-2">
           <Botao type="submit" carregando={pendente}><Check className="h-4 w-4" aria-hidden /> Salvar integração</Botao>
+          <Botao type="button" variante="secundaria" carregando={testando} disabled={!integracao.tokenMascarado || pendente} onClick={testar}>Testar conexão</Botao>
           {integracao.tokenMascarado && !removendo && <Botao type="button" variante="fantasma" className="text-atrasado" disabled={pendente} onClick={() => setRemovendo(true)}>Remover token</Botao>}
-          {integracao.ultimaImportacao && <span className="text-xs text-texto-3">Última importação: {new Date(integracao.ultimaImportacao).toLocaleString("pt-BR")}</span>}
         </div>
+        <p className="text-xs text-texto-3">
+          {integracao.ultimaImportacao ? `Última importação: ${new Date(integracao.ultimaImportacao).toLocaleString("pt-BR")}.` : "Nenhuma importação ainda."} A importação fica no Painel, botão “Atualizar do Metricool”.
+        </p>
       </form>
-      {removendo && <Confirmacao titulo="Remover o token do Metricool?" descricao="A importação automática para de funcionar até salvar um token novo. As métricas já importadas continuam." rotuloConfirmar="Remover" carregando={pendente} onConfirmar={remover} onCancelar={() => setRemovendo(false)} />}
+      {removendo && <Confirmacao titulo="Remover o token do Metricool?" descricao="A importação para de funcionar até salvar um token novo. As métricas já importadas continuam." rotuloConfirmar="Remover" carregando={pendente} onConfirmar={remover} onCancelar={() => setRemovendo(false)} />}
     </section>
   );
 }

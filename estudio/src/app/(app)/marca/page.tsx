@@ -31,6 +31,7 @@ export default async function PaginaMarca() {
       }
     }
     resumoIntegracao = {
+      metricool_user_id: integracao?.metricool_user_id ?? "",
       metricool_brand_id: integracao?.metricool_brand_id ?? "",
       tokenMascarado,
       tokenIlegivel,

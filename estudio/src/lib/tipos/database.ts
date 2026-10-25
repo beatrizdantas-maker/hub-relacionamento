@@ -69,8 +69,8 @@ export interface Database {
       }>;
       empresas: Linha<EmpresaRow, { nome: string } & Partial<Omit<EmpresaRow, "id" | "criado_em" | "atualizado_em">>>;
       empresas_integracoes: Linha<{
-        empresa_id: string; metricool_brand_id: string | null; metricool_token_cifrado: string | null;
-        ultima_importacao_em: string | null; atualizado_em: string;
+        empresa_id: string; metricool_brand_id: string | null; metricool_user_id: string | null; metricool_token_cifrado: string | null;
+        ultima_importacao_em: string | null; ultima_semana_importada: string | null; atualizado_em: string;
       }>;
       membros: Linha<{ empresa_id: string; user_id: string; papel: Papel; nome_exibicao: string | null; email: string | null; convidado_em: string }>;
       convites: Linha<{

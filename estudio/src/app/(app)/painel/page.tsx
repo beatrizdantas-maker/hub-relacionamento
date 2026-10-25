@@ -15,7 +15,7 @@ export default async function PaginaPainel({ searchParams }: { searchParams: Pro
   const [{ data: semanas }, { data: posts }, { data: integracao }] = await Promise.all([
     supabase.from("metricas_semanais").select("*").eq("empresa_id", empresa.id).order("semana"),
     supabase.from("resultados_posts").select("*").eq("empresa_id", empresa.id).gte("publicado_em", `${somarDias(hoje, -180)}T00:00:00`).order("publicado_em", { ascending: false }).limit(300),
-    ctx.papel === "dono" ? supabase.from("empresas_integracoes").select("metricool_brand_id, metricool_token_cifrado, ultima_importacao_em").eq("empresa_id", empresa.id).maybeSingle() : Promise.resolve({ data: null }),
+    ctx.papel === "dono" ? supabase.from("empresas_integracoes").select("metricool_brand_id, metricool_user_id, metricool_token_cifrado, ultima_importacao_em").eq("empresa_id", empresa.id).maybeSingle() : Promise.resolve({ data: null }),
   ]);
 
   return (
@@ -27,7 +27,7 @@ export default async function PaginaPainel({ searchParams }: { searchParams: Pro
       abrir={sp.abrir ?? null}
       semanas={semanas ?? []}
       posts={posts ?? []}
-      metricoolConfigurado={Boolean(integracao?.metricool_brand_id && integracao?.metricool_token_cifrado)}
+      metricool={ctx.papel === "dono" ? { configurado: Boolean(integracao?.metricool_brand_id && integracao?.metricool_user_id && integracao?.metricool_token_cifrado), ultimaImportacao: integracao?.ultima_importacao_em ?? null } : null}
     />
   );
 }

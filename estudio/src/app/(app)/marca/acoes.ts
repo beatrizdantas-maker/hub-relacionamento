@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import { cifrar } from "@/lib/cripto";
+import { testarConexao } from "@/lib/metricool/importar";
 import { ESQUEMAS_SECOES, esquemaCampanha, esquemaIntegracao, type EntradaCampanha, type SecaoMarca } from "@/lib/validacao/empresa";
 import type { Empresa } from "@/lib/tipos/database";
 
@@ -81,13 +82,16 @@ export async function excluirCampanha(empresaId: string, id: string): Promise<{ 
 
 export async function salvarIntegracao(
   empresaId: string,
-  entrada: { metricool_brand_id?: string; metricool_token?: string },
+  entrada: { metricool_user_id?: string; metricool_brand_id?: string; metricool_token?: string },
 ): Promise<{ ok: true; tokenFinal: string | null } | Erro> {
   const parse = esquemaIntegracao.safeParse(entrada);
   if (!parse.success) return { ok: false, erro: parse.error.issues[0]?.message ?? "Dados inválidos" };
   const supabase = await criarClienteServidor();
 
-  const campos: { metricool_brand_id: string | null; metricool_token_cifrado?: string } = { metricool_brand_id: parse.data.metricool_brand_id };
+  const campos: { metricool_user_id: string | null; metricool_brand_id: string | null; metricool_token_cifrado?: string } = {
+    metricool_user_id: parse.data.metricool_user_id,
+    metricool_brand_id: parse.data.metricool_brand_id,
+  };
   if (parse.data.metricool_token) {
     try {
       campos.metricool_token_cifrado = cifrar(parse.data.metricool_token);
@@ -101,6 +105,16 @@ export async function salvarIntegracao(
   if (!data?.length) return { ok: false, erro: "Somente o dono configura a integração." };
   revalidatePath("/marca");
   return { ok: true, tokenFinal: parse.data.metricool_token ? parse.data.metricool_token.slice(-4) : null };
+}
+
+export async function testarConexaoMetricool(empresaId: string): Promise<{ ok: true; marca: { label: string; id: number; instagram: string | null; timezone?: string } } | Erro> {
+  const supabase = await criarClienteServidor();
+  try {
+    const marca = await testarConexao(supabase, empresaId);
+    return { ok: true, marca: { label: marca.label, id: marca.id, instagram: marca.instagram ?? null, timezone: marca.timezone } };
+  } catch (e) {
+    return { ok: false, erro: (e as Error).message };
+  }
 }
 
 export async function removerTokenMetricool(empresaId: string): Promise<{ ok: true } | Erro> {

@@ -40,6 +40,7 @@ As três migrations já foram aplicadas no GAME e o teste de RLS passou lá. Par
    - `supabase/migrations/0002_padroes.sql` — ritmo semanal e metas padrão
    - `supabase/migrations/0003_rls.sql` — funções de papel, políticas RLS e RPCs (`criar_empresa`, `ver_convite`, `aceitar_convite`)
    - `supabase/migrations/0004_membros_email.sql` — e-mail/nome do membro na lista de equipe; membro edita o próprio nome
+   - `supabase/migrations/0005_metricool_user.sql` — User ID do Metricool e última semana importada
 2. Em **Project Settings → Data API → Exposed schemas**, inclua `estudio` (sem isso a API não enxerga o schema). No GAME isso já foi feito.
 3. Rode o teste de RLS: `supabase/tests/rls.sql`. Ele cria usuários de teste, exercita os quatro papéis em duas empresas e **desfaz tudo no fim** (`rollback`). Deve terminar com `NOTICE: RLS OK`. Se algum critério falhar, para com `FALHOU: ...`.
 4. Em **Authentication → URL Configuration**:
@@ -104,6 +105,17 @@ Proteção contra perda do que está sendo digitado:
 - **Registro manual**: semana (qualquer dia vira a segunda-feira), todos os campos opcionais, notas. Se a semana veio do Metricool, mantém a fonte e marca `editado_manual`. Resultado de post manual com interações calculadas ao salvar.
 - "Atualizar do Metricool" fica desabilitado até a Etapa 7.
 
+## Integração com o Metricool (Etapa 7)
+
+Endpoints confirmados no servidor MCP oficial da Metricool (pacote `mcp-metricool`) e no guia "Basic Guide for API Integration": base `https://app.metricool.com/api`, cabeçalho `X-Mc-Auth: <token>`, `userId` e `blogId` na query; marcas em `GET /v2/settings/brands`; séries diárias em `GET /v2/analytics/timelines?metric=&subject=account&network=instagram&from=&to=&timezone=` (resposta `data[].values[]{dateTime,value}`); publicações em `GET /v2/analytics/posts|reels|stories/instagram?from=&to=`.
+
+- **Configuração** (Marca → Metricool, só Dono): User ID, ID da marca e token (cifrado). "Testar conexão" lista a marca encontrada e o Instagram conectado.
+- **Importação** (Painel → "Atualizar do Metricool"): desde a última semana completa já importada (ou 12 semanas) até hoje. Por dia: seguidores, ganhos, perdidos, visualizações, alcance e stories. Por post e Reels: data, legenda, tipo, alcance, visualizações, curtidas, comentários, salvamentos, compartilhamentos, interações, URL e, nos Reels, tempo médio e taxa de visualização. Por story: data e respostas.
+- **Agregação** (`src/lib/metricool/agregar.ts`, testada): somas; seguidores = último valor da semana; alcance só quando os 7 dias têm dado; interações, salvamentos, compartilhamentos e alcance dos posts a partir das publicações da semana.
+- Nunca sobrescreve `cliques_link` e `mensagens_direct` (manuais) nem semanas marcadas como ajustadas à mão. Cada métrica diária é pedida separadamente: uma faltar não derruba a importação, e os avisos aparecem na tela.
+- Os nomes dos campos das publicações são lidos de forma tolerante (`likes`/`comments`/`saved`/`shares`/`reach`/`views`/`averageWatchTime`/`reelsViewRate`/`replies`, data em `timestamp`/`publishedAt`/`{dateTime}`); se nada for reconhecido, o aviso mostra os campos recebidos para ajuste.
+- Requer `ESTUDIO_CRYPTO_KEY` no servidor (o token é cifrado antes de ir ao banco).
+
 ## Papéis e permissões
 
 | Ação | Dono | Editor | Colaborador | Leitor |
@@ -149,7 +161,7 @@ estudio/
 4. ✅ Calendário com editor de conteúdo e de stories
 5. ✅ Tarefas
 6. ✅ Painel com registro manual
-7. Integração com o Metricool
+7. ✅ Integração com o Metricool
 8. IA: sugestões e geração de calendário
 9. Início
 10. Testes e deploy na Vercel

@@ -105,6 +105,7 @@ export const esquemaCampanha = z
 export type EntradaCampanha = z.input<typeof esquemaCampanha>;
 
 export const esquemaIntegracao = z.object({
+  metricool_user_id: z.string().trim().max(60).optional().transform((v) => (v ? v : null)),
   metricool_brand_id: z.string().trim().max(60).optional().transform((v) => (v ? v : null)),
   metricool_token: z.string().trim().max(500).optional().transform((v) => (v ? v : null)),
 });
