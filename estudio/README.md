@@ -126,6 +126,18 @@ Toda chamada ao Claude acontece no servidor (`src/app/api/ia/*`), com a chave em
 - Cancelar no navegador aborta a requisição; o servidor repassa o sinal à chamada da IA, então nada é gravado de uma geração cancelada.
 - Erros vêm traduzidos (chave recusada, limite de uso, resposta cortada, JSON inválido) com os detalhes da validação quando houver.
 
+## Início (Etapa 9)
+
+Resumo do dia da empresa ativa, montado só com o que já está no banco:
+
+- **Precisa de atenção** (`src/lib/inicio.ts`, testado): tarefas atrasadas, sugestões da IA aguardando aprovação, semana passada sem métricas (leva a "Registrar" ou "Atualizar do Metricool"), ritmo semanal não definido, Metricool não conectado (só Dono) e próximos 7 dias vazios (leva a "Gerar mês com IA"). Leitor e Colaborador só veem o alerta de tarefas.
+- **Hoje**: conteúdos e stories do dia com status, e tarefas com prazo hoje.
+- **Próximos 7 dias**: um item por dia com link para a visão do dia no calendário.
+- **Tarefas**: atrasadas e dos próximos 7 dias, com "Concluir" direto (Dono/Editor em qualquer tarefa; Colaborador só nas suas, como no banco).
+- **Última semana completa**: seguidores, seguidores líquidos, visualizações e engajamento comparados com a semana anterior, mais o progresso das metas do mês. Sem registro, "sem dado".
+- **Sugestões**: resumo da última sugestão gerada.
+- Atalhos: "Novo conteúdo" (`/calendario?abrir=novo`) e "Gerar mês com IA" (`/calendario?abrir=gerar-mes`).
+
 ## Papéis e permissões
 
 | Ação | Dono | Editor | Colaborador | Leitor |
@@ -175,5 +187,5 @@ estudio/
 6. ✅ Painel com registro manual
 7. ✅ Integração com o Metricool
 8. ✅ IA: sugestões e geração do mês
-9. Início
+9. ✅ Início
 10. Testes e deploy na Vercel
