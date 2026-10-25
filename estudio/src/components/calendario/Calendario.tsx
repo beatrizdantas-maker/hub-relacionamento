@@ -14,9 +14,10 @@ import type { Conteudo, Papel, RitmoDia, Story, Tarefa } from "@/lib/tipos/datab
 import { CartaoConteudo, CartaoStories } from "./Cartoes";
 import { EditorConteudo } from "./EditorConteudo";
 import { EditorStories } from "./EditorStories";
+import { GerarMes } from "./GerarMes";
 import { FILTROS, ICONE_FORMATO, ORIGEM, STATUS, rotuloFiltro, type Filtro } from "./rotulos";
 
-type Selecao = { tipo: "conteudo"; id: string } | { tipo: "novo"; data: string } | { tipo: "story"; id: string } | { tipo: "novoStory"; data: string } | null;
+type Selecao = { tipo: "conteudo"; id: string } | { tipo: "novo"; data: string } | { tipo: "story"; id: string } | { tipo: "novoStory"; data: string } | { tipo: "gerarMes" } | null;
 
 export interface CalendarioProps {
   empresa: { id: string; nome: string; fuso: string; pilares: string[]; ritmo: RitmoDia[] };
@@ -27,6 +28,7 @@ export interface CalendarioProps {
   dia: string | null;
   filtro: string;
   abrir: string | null;
+  iaConfigurada: boolean;
   conteudos: Conteudo[];
   stories: Story[];
   tarefas: Tarefa[];
@@ -39,6 +41,7 @@ export function Calendario(p: CalendarioProps) {
   const filtro: Filtro = (FILTROS as readonly string[]).includes(p.filtro) ? (p.filtro as Filtro) : "todos";
   const [selecao, setSelecao] = useState<Selecao>(() => {
     if (p.abrir === "novo") return { tipo: "novo", data: p.dia ?? p.hoje };
+    if (p.abrir === "gerar-mes") return { tipo: "gerarMes" };
     if (p.abrir && p.conteudos.some((c) => c.id === p.abrir)) return { tipo: "conteudo", id: p.abrir };
     return null;
   });
@@ -82,9 +85,14 @@ export function Calendario(p: CalendarioProps) {
           <p className="mt-1 text-sm text-texto-2">{p.dia ? capitalizar(formatarLonga(p.dia)) : rotuloSemana(p.segunda)}</p>
         </div>
         {podeEditar && (
-          <Botao onClick={() => setSelecao({ tipo: "novo", data: p.dia ?? (p.hoje >= p.segunda && p.hoje <= somarDias(p.segunda, 6) ? p.hoje : p.segunda) })}>
-            <Plus className="h-5 w-5" aria-hidden /> Novo conteúdo
-          </Botao>
+          <div className="flex flex-wrap gap-2">
+            <Botao variante="secundaria" onClick={() => setSelecao({ tipo: "gerarMes" })}>
+              <Sparkles className="h-5 w-5 text-ia" aria-hidden /> Gerar mês com IA
+            </Botao>
+            <Botao onClick={() => setSelecao({ tipo: "novo", data: p.dia ?? (p.hoje >= p.segunda && p.hoje <= somarDias(p.segunda, 6) ? p.hoje : p.segunda) })}>
+              <Plus className="h-5 w-5" aria-hidden /> Novo conteúdo
+            </Botao>
+          </div>
         )}
       </header>
 
@@ -145,6 +153,9 @@ export function Calendario(p: CalendarioProps) {
           onFechar={fechar}
         />
       )}
+      {selecao?.tipo === "gerarMes" && (
+        <GerarMes empresaId={p.empresa.id} hoje={p.hoje} ritmo={p.empresa.ritmo} iaConfigurada={p.iaConfigurada} onFechar={fechar} />
+      )}
       {(selecao?.tipo === "story" || selecao?.tipo === "novoStory") && (
         <EditorStories
           key={selecao.tipo === "story" ? selecao.id : `novo-${selecao.data}`}
@@ -171,7 +182,7 @@ function VisaoSemana({
       {vazio && (
         <div className="cartao border-dashed text-center text-sm text-texto-2">
           {filtro === "todos" ? "Nada programado nesta semana." : `Nenhum item de ${rotuloFiltro(filtro)} nesta semana.`}{" "}
-          {podeEditar && "Clique em “Adicionar conteúdo” num dia ou gere o calendário do mês com a IA (Etapa 8)."}
+          {podeEditar && "Clique em “Adicionar conteúdo” num dia ou gere o mês com a IA pelo botão “Gerar mês com IA”."}
         </div>
       )}
       <div className="grid gap-3 md:grid-cols-7 md:gap-2">

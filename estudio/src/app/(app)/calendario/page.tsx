@@ -2,6 +2,7 @@ import { exigirEmpresaAtiva } from "@/lib/contexto";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import { ehDataISO, hojeNaEmpresa, inicioDaSemana, somarDias } from "@/lib/datas";
 import { Calendario } from "@/components/calendario/Calendario";
+import { chaveIAConfigurada } from "@/lib/ia/cliente";
 
 export const metadata = { title: "Calendário" };
 
@@ -37,6 +38,7 @@ export default async function PaginaCalendario({ searchParams }: { searchParams:
       dia={dia}
       filtro={sp.formato ?? "todos"}
       abrir={sp.abrir ?? null}
+      iaConfigurada={chaveIAConfigurada()}
       conteudos={conteudos ?? []}
       stories={stories ?? []}
       tarefas={tarefas ?? []}

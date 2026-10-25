@@ -57,7 +57,7 @@ As três migrations já foram aplicadas no GAME e o teste de RLS passou lá. Par
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | navegador + servidor | chave publicável; todo acesso passa pelo RLS |
 | `SUPABASE_SERVICE_ROLE_KEY` | só servidor | tarefas administrativas (ex.: enviar e-mail de convite) |
 | `NEXT_PUBLIC_SITE_URL` | servidor | base dos links de e-mail |
-| `ANTHROPIC_API_KEY` | só servidor | sugestões e geração de calendário (Etapa 8) |
+| `ANTHROPIC_API_KEY` | só servidor | sugestões semanais e geração do mês com a IA (Claude, modelo `claude-opus-5-5`) |
 | `ESTUDIO_CRYPTO_KEY` | só servidor | cifra o token do Metricool no banco (`openssl rand -base64 32`) |
 
 ## Empresas, equipe e convites (Etapa 2)
@@ -116,6 +116,16 @@ Endpoints confirmados no servidor MCP oficial da Metricool (pacote `mcp-metricoo
 - Os nomes dos campos das publicações são lidos de forma tolerante (`likes`/`comments`/`saved`/`shares`/`reach`/`views`/`averageWatchTime`/`reelsViewRate`/`replies`, data em `timestamp`/`publishedAt`/`{dateTime}`); se nada for reconhecido, o aviso mostra os campos recebidos para ajuste.
 - Requer `ESTUDIO_CRYPTO_KEY` no servidor (o token é cifrado antes de ir ao banco).
 
+## IA: sugestões e geração do mês (Etapa 8)
+
+Toda chamada ao Claude acontece no servidor (`src/app/api/ia/*`), com a chave em `ANTHROPIC_API_KEY`. Antes de chamar a IA a rota confere sessão, vínculo com a empresa e papel (só Dono e Editor); a RLS repete a checagem ao gravar. Sem a chave, a tela mostra um aviso claro em vez de falhar em silêncio.
+
+- **Dados reais de agora** (`src/lib/ia/dadosReais.ts`, testado): calculados pelo sistema com as últimas 8 semanas completas e os 15 posts mais recentes com resultado — período, visualizações (média e última semana com variação), seguidores, engajamento, salvamentos, compartilhamentos, melhor conteúdo, média por formato e metas × real. O que não tem registro aparece como "sem dado"; nada vira zero. A IA nunca escreve essas linhas: elas vão para a caixa verde e para `sugestoes.dados_reais_usados`.
+- **Sugestões da semana** (`POST /api/ia/sugestoes`): recebe perfil da marca, regras de linguagem, metas, campanhas, ritmo, as 8 semanas e os 15 posts em JSON, o que já está no calendário e as datas comemorativas; devolve JSON estruturado (`resumo`, `manter`, `melhorar`, `testar`, `ideias[]`) validado por schema (saída estruturada da API) e por regras de negócio (datas dentro da semana, CTA em toda ideia). Cada item cita entre parênteses o dado usado ou "(sem dado: hipótese)". "Adicionar ao calendário" cria o conteúdo como sugestão da IA com as tarefas padrão e marca a ideia como adicionada.
+- **Gerar mês com IA** (Calendário → botão; `POST /api/ia/calendario`): uma chamada por semana (dá para cancelar no meio; o que já foi gerado fica). Para cada dia do ritmo semanal de hoje em diante e ainda vazio: tema, objetivo, roteiro/slides, legenda pronta com CTA, orientação de arte, 3 ganchos nos Reels (curiosidade, identificação, provocação) e stories de 4 telas (abertura, compartilhar post, interação com opções, fechamento). Tudo entra com status `sugestao`, origem `ia`, e as tarefas padrão são criadas. Dias que já têm conteúdo são pulados; dias inválidos na resposta são descartados com aviso.
+- Cancelar no navegador aborta a requisição; o servidor repassa o sinal à chamada da IA, então nada é gravado de uma geração cancelada.
+- Erros vêm traduzidos (chave recusada, limite de uso, resposta cortada, JSON inválido) com os detalhes da validação quando houver.
+
 ## Papéis e permissões
 
 | Ação | Dono | Editor | Colaborador | Leitor |
@@ -150,6 +160,8 @@ estudio/
   src/lib/supabase/      Clientes (navegador, servidor, middleware)
   src/lib/tipos/         Tipos do banco
   src/lib/cripto.ts      Cifra do token do Metricool
+  src/lib/ia/            Prompts, schemas de saída, dados reais e plano do mês
+  src/app/api/ia/        Rotas de servidor que chamam o Claude
   src/components/        UI (Botao, Selo, Aviso) e casca
 ```
 
@@ -162,6 +174,6 @@ estudio/
 5. ✅ Tarefas
 6. ✅ Painel com registro manual
 7. ✅ Integração com o Metricool
-8. IA: sugestões e geração de calendário
+8. ✅ IA: sugestões e geração do mês
 9. Início
 10. Testes e deploy na Vercel

@@ -48,6 +48,7 @@ export type IdeiaSugestao = {
   motivo: string;
   legenda: string;
   cta: string;
+  conteudo_id?: string | null; // preenchido quando a ideia vira item do calendário
 }
 
 type Linha<Row, Insert = Partial<Row>, Update = Partial<Row>> = { Row: Row; Insert: Insert; Update: Update; Relationships: [] };
