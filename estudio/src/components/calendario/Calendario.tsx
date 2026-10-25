@@ -192,7 +192,7 @@ function VisaoSemana({
           const ehHoje = d === hoje;
           const passado = d < hoje;
           return (
-            <section key={d} aria-label={formatarLonga(d)} className={`flex flex-col gap-2 rounded-2xl border p-2 ${ehHoje ? "border-primaria/60 bg-primaria/5" : "border-borda bg-superficie/50"} ${passado ? "opacity-80" : ""}`}>
+            <section key={d} aria-label={formatarLonga(d)} className={`flex flex-col gap-2 rounded-2xl border p-2 ${ehHoje ? "border-primaria/60 bg-primaria/5" : "border-borda bg-superficie/50"} ${passado ? "border-dashed" : ""}`}>
               <Link href={urlDia(d)} className="flex items-baseline justify-between gap-1 rounded-lg px-1 py-0.5 hover:bg-superficie-2">
                 <span className={`text-xs font-semibold uppercase ${ehHoje ? "text-primaria" : "text-texto-2"}`}>{formatarDiaSemanaCurto(d)}</span>
                 <span className={`text-sm font-semibold tabular ${ehHoje ? "text-primaria" : ""}`}>{formatarCurta(d)}</span>

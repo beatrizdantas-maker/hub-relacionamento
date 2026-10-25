@@ -14,7 +14,6 @@ export function CartaoConteudo({ conteudo, onAbrir, compacto = true }: { conteud
       type="button"
       onClick={onAbrir}
       className={`w-full rounded-xl border border-borda bg-superficie p-2.5 text-left shadow-sm transition hover:border-primaria/60 hover:shadow ${conteudo.status === "sugestao" ? "border-dashed border-ia/50" : ""}`}
-      aria-label={`${conteudo.formato} ${horaCurta(conteudo.hora)} ${conteudo.tema || "sem tema"} · ${st.rotulo}`}
     >
       <div className="flex items-center gap-1.5 text-xs text-texto-2">
         <Icone className="h-3.5 w-3.5 shrink-0" aria-hidden />
@@ -40,7 +39,6 @@ export function CartaoStories({ story, onAbrir }: { story: Story; onAbrir: () =>
       type="button"
       onClick={onAbrir}
       className={`w-full rounded-xl border border-borda bg-superficie-2 p-2.5 text-left transition hover:border-primaria/60 ${story.status === "sugestao" ? "border-dashed border-ia/50" : ""}`}
-      aria-label={`Stories ${n} telas · ${st.rotulo}`}
     >
       <div className="flex items-center gap-1.5 text-xs text-texto-2">
         <Icone className="h-3.5 w-3.5 shrink-0" aria-hidden />

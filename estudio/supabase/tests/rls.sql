@@ -10,6 +10,9 @@
 --     para qualquer cliente que use a chave anon + JWT do usuário).
 --  3. Colaborador só muda status, e só das próprias tarefas.
 --  4. Editor edita conteúdo mas não lê/escreve a integração do Metricool.
+--  5. Sugestões da IA e stories: só Dono/Editor gravam; Leitor e
+--     Colaborador só leem (Colaborador muda status de stories).
+--  6. Métricas: Leitor e Colaborador não registram; Editor registra.
 -- =====================================================================
 begin;
 
@@ -129,6 +132,36 @@ begin
   perform pg_temp.espera_erro(format('update estudio.empresas set arquivada = true where id = %L', emp_a), 'editor arquivou empresa');
   delete from estudio.empresas where id = emp_a; get diagnostics n = row_count;
   if n <> 0 then raise exception 'FALHOU: editor excluiu a empresa'; end if;
+  perform pg_temp.sair();
+
+  -- 5) Sugestões e stories por papel
+  perform pg_temp.entrar(davi, 'davi@teste.local');
+  insert into estudio.sugestoes (empresa_id, semana, resumo, dados_reais_usados) values (emp_a, date_trunc('week', current_date)::date, 'Resumo', array['dado 1']) returning id into v_id;
+  insert into estudio.stories (empresa_id, data, telas, status, origem) values (emp_a, current_date, '[{"tipo":"Texto","texto":"oi"}]', 'sugestao', 'ia');
+  -- 6) Editor registra métrica da semana
+  insert into estudio.metricas_semanais (empresa_id, semana, fonte, visualizacoes) values (emp_a, date_trunc('week', current_date)::date, 'manual', 100);
+  perform pg_temp.sair();
+
+  perform pg_temp.entrar(caio, 'caio@teste.local');
+  select count(*) into n from estudio.sugestoes where empresa_id = emp_a; if n <> 1 then raise exception 'FALHOU: colaborador não leu a sugestão'; end if;
+  perform pg_temp.espera_erro(format('insert into estudio.sugestoes (empresa_id, semana, resumo) values (%L, date_trunc(''week'', current_date)::date, ''hack'')', emp_a), 'colaborador gravou sugestão');
+  update estudio.sugestoes set resumo = 'hack' where id = v_id; get diagnostics n = row_count;
+  if n <> 0 then raise exception 'FALHOU: colaborador editou sugestão'; end if;
+  perform pg_temp.espera_erro(format('insert into estudio.stories (empresa_id, data, telas) values (%L, current_date, ''[]'')', emp_a), 'colaborador criou stories');
+  update estudio.stories set status = 'aprovado' where empresa_id = emp_a; get diagnostics n = row_count;
+  if n <> 1 then raise exception 'FALHOU: colaborador não conseguiu aprovar stories'; end if;
+  perform pg_temp.espera_erro(format('update estudio.stories set objetivo = ''x'' where empresa_id = %L', emp_a), 'colaborador editou stories');
+  perform pg_temp.espera_erro(format('insert into estudio.metricas_semanais (empresa_id, semana) values (%L, date_trunc(''week'', current_date - 7)::date)', emp_a), 'colaborador registrou métrica');
+  perform pg_temp.sair();
+
+  -- Leitora na B não grava sugestão nem stories; Bia não vê a sugestão da A
+  perform pg_temp.entrar(ana, 'ana@teste.local');
+  perform pg_temp.espera_erro(format('insert into estudio.sugestoes (empresa_id, semana, resumo) values (%L, date_trunc(''week'', current_date)::date, ''hack'')', emp_b), 'leitor gravou sugestão');
+  perform pg_temp.espera_erro(format('insert into estudio.stories (empresa_id, data, telas) values (%L, current_date, ''[]'')', emp_b), 'leitor criou stories');
+  perform pg_temp.sair();
+  perform pg_temp.entrar(bia, 'bia@teste.local');
+  select count(*) into n from estudio.sugestoes; if n <> 0 then raise exception 'FALHOU: Bia viu sugestão da A'; end if;
+  select count(*) into n from estudio.metricas_semanais; if n <> 0 then raise exception 'FALHOU: Bia viu métricas da A'; end if;
   perform pg_temp.sair();
 
   -- Dona lê a integração e não pode ser removida sendo a única dona

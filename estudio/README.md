@@ -138,6 +138,43 @@ Resumo do dia da empresa ativa, montado só com o que já está no banco:
 - **Sugestões**: resumo da última sugestão gerada.
 - Atalhos: "Novo conteúdo" (`/calendario?abrir=novo`) e "Gerar mês com IA" (`/calendario?abrir=gerar-mes`).
 
+## Testes e deploy (Etapa 10)
+
+### O que roda em cada verificação
+
+| Comando | O que garante |
+| --- | --- |
+| `npm run lint` · `npm run typecheck` | Código sem avisos e tipos fechados (inclusive os tipos do banco) |
+| `npm test` | 52 testes de unidade: cifra do token, mesclagem de 3 vias da Marca, tarefas padrão, datas e semanas, agregação de métricas, importação do Metricool, dados reais e validação da IA, plano do mês, reagendamento, alertas do Início, cores da empresa (contraste no tema escuro) |
+| `npm run test:a11y` | Em todas as telas, como Dono e como Leitor, em 360px e 1280px, nos temas claro e escuro: zero violações WCAG 2.1 A/AA (axe), zero erros de console e zero rolagem horizontal. Precisa do app rodando com `ESTUDIO_PREVIEW=1` (a rota `/dev-preview` monta cada tela com dados de exemplo; sem a variável ela não existe) |
+| `supabase/tests/rls.sql` | Isolamento entre empresas e permissões por papel direto no banco (ver abaixo) |
+
+`.github/workflows/estudio.yml` roda tudo isso a cada push em `estudio/**`: lint, tipos, testes, build, acessibilidade e o teste de RLS num Postgres 16 limpo (com `supabase/tests/auth_shim.sql` simulando o `auth` do Supabase, as 5 migrations aplicadas em ordem e o script de RLS precisando imprimir "RLS OK").
+
+### Critérios de aceite
+
+| Critério | Como é garantido | Onde está testado |
+| --- | --- | --- |
+| Quem está em duas empresas nunca vê dados de uma na outra | RLS em todas as tabelas por `empresa_id` + vínculo em `membros`; `empresa_id` imutável por trigger | `rls.sql` (Ana é dona da A e leitora da B; Bia não vê nada da A) |
+| Leitor não edita nada, nem pela API | Políticas de escrita exigem `pode_editar`/`pode_colaborar`; valem para qualquer cliente com a chave anon + JWT | `rls.sql` (inserts, updates e deletes bloqueados em empresas, conteúdos, stories, tarefas, métricas e sugestões) |
+| Colaborador só muda status, e só das próprias tarefas | Triggers `tg_somente_status` e `tg_tarefas_restricoes` | `rls.sql` |
+| Reagendar um conteúdo mantém as tarefas ligadas | As tarefas continuam com o mesmo `conteudo_id`; os prazos abertos deslocam junto, nunca para antes de hoje | `reagendar.test.ts` |
+| O Painel nunca mostra número que não veio do Metricool ou do registro manual | Nulo vira "sem dado" em toda a cadeia (agregação, períodos, metas, dados reais da IA); alcance semanal só com 7 dias de dado | `metricas.test.ts`, `metricool.test.ts`, `ia.test.ts` |
+| A IA usa só os números enviados | Dados reais calculados pelo sistema; resposta em JSON estruturado validada por schema e regras de negócio antes de gravar; `dados_reais_usados` nunca vem da IA | `ia.test.ts` + rotas em `src/app/api/ia` |
+| Tudo funciona no celular (a partir de 360px) | Layout mobile-first; o teste de acessibilidade falha se houver rolagem horizontal | `npm run test:a11y` |
+| Acessível | Cores de status com contraste AA e sempre com texto; foco visível; painéis com `role="dialog"`; gráficos com nome acessível; tabelas roláveis focáveis | `npm run test:a11y` |
+
+Observação: a cor primária de cada empresa é escolhida por quem cadastra. O sistema escolhe texto branco ou escuro sobre ela pelo contraste e, no tema escuro, clareia a cor automaticamente até 5,5:1 sobre o fundo (`src/lib/cores.ts`), então qualquer cor da marca passa no AA nos dois temas.
+
+### Checklist de produção (Vercel + Supabase)
+
+1. **Supabase (projeto GAME)**: aplicar as migrations `supabase/migrations/0001` a `0005` em ordem no SQL Editor (a 0004 ainda está pendente no GAME) e rodar `supabase/tests/rls.sql` lá para ver "RLS OK". Em Authentication → URL Configuration, adicionar `https://<seu-domínio>/auth/callback` nas Redirect URLs e definir a Site URL. Em Providers, configurar o Google (Client ID e Secret do Google Cloud) se quiser login com Google.
+2. **Vercel**: variáveis de ambiente `ESTUDIO_CRYPTO_KEY` (gerar com `openssl rand -base64 32`), `ANTHROPIC_API_KEY`, `NEXT_PUBLIC_SITE_URL` (o domínio público) e, se quiser sobrescrever os padrões do código, `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY`. Depois de salvar, fazer um novo deploy (as variáveis só entram no próximo build).
+3. **Vercel → Deployment Protection**: desligar a "Vercel Authentication" para que a equipe e as pessoas convidadas abram o app sem conta na Vercel.
+4. **Vercel → Settings → General**: renomear o projeto (hoje `hub-rel-github`) e apontar um domínio próprio, se houver. Root Directory deve ser `estudio`.
+5. **Rotas de IA** usam `maxDuration = 300` (5 min). No plano Hobby isso exige Fluid Compute ligado (padrão nos projetos novos). Se o build reclamar do limite, reduza para 60 em `src/app/api/ia/*/route.ts` e gere o mês com menos dias por vez.
+6. **Depois do primeiro acesso**: criar a empresa, preencher Marca (ritmo, metas, regras de linguagem), conectar o Metricool e importar, convidar a equipe com os papéis certos.
+
 ## Papéis e permissões
 
 | Ação | Dono | Editor | Colaborador | Leitor |
@@ -165,7 +202,9 @@ Tudo isso é garantido **no banco** (políticas RLS + triggers que restringem co
 ```
 estudio/
   supabase/migrations/   SQL em ordem (tudo no schema estudio)
-  supabase/tests/rls.sql Teste de isolamento e papéis
+  supabase/tests/rls.sql Teste de isolamento e papéis (auth_shim.sql simula o Supabase fora da nuvem)
+  scripts/a11y.mjs       Auditoria de acessibilidade, 360px e console em todas as telas
+  src/app/dev-preview/   Telas com dados de exemplo (só com ESTUDIO_PREVIEW=1)
   src/app/entrar         Login (link mágico + Google)
   src/app/auth/callback  Troca o código pela sessão
   src/app/(app)/         Telas autenticadas (casca com barra lateral / barra inferior)
@@ -188,4 +227,4 @@ estudio/
 7. ✅ Integração com o Metricool
 8. ✅ IA: sugestões e geração do mês
 9. ✅ Início
-10. Testes e deploy na Vercel
+10. ✅ Testes e deploy na Vercel

@@ -150,7 +150,7 @@ export function QuadroTarefas(p: QuadroProps) {
           {colunasVisiveis.map((status) => {
             const doStatus = filtradas.filter((t) => t.status === status);
             return (
-              <section key={status} aria-label={STATUS_TAREFA_ROTULO[status]} className="rounded-2xl border border-borda bg-superficie/50 p-2">
+              <section key={status} aria-label={STATUS_TAREFA_ROTULO[status]} className="min-w-0 rounded-2xl border border-borda bg-superficie/50 p-2">
                 <h2 className="flex items-center justify-between px-1 py-1 text-sm font-semibold">
                   {STATUS_TAREFA_ROTULO[status]} <span className="text-xs font-normal text-texto-3 tabular">{doStatus.length}</span>
                 </h2>
@@ -183,7 +183,7 @@ export function QuadroTarefas(p: QuadroProps) {
                                 {atrasada && <Selo tom="atrasado">Atrasada</Selo>}
                                 {t.status === "concluido" && t.concluido_em && <span className="text-texto-3">entregue {formatarCurta(t.concluido_em.slice(0, 10))}</span>}
                                 {conteudo && (
-                                  <Link href={`/calendario?dia=${conteudo.data}&abrir=${conteudo.id}`} className="truncate text-primaria underline-offset-2 hover:underline">
+                                  <Link href={`/calendario?dia=${conteudo.data}&abrir=${conteudo.id}`} className="min-w-0 max-w-full truncate text-primaria underline-offset-2 hover:underline">
                                     {conteudo.formato} · {conteudo.tema || "sem tema"}
                                   </Link>
                                 )}

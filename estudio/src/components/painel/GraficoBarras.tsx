@@ -63,8 +63,9 @@ export function GraficoBarras({ titulo, pontos }: { titulo: string; pontos: Pont
           ))}
           {pontos.map((p, i) => (
             <rect key={`h${p.chave}`} x={mE + largura * i} y={0} width={largura} height={A} fill="transparent" tabIndex={0}
-              onMouseEnter={() => setAtivo(i)} onTouchStart={() => setAtivo(i)} onFocus={() => setAtivo(i)}
-              aria-label={`${p.rotuloLongo}: ${p.valor == null ? "sem dado" : `${p.valor > 0 ? "+" : ""}${formatarNumero(p.valor)}`}${p.parcial ? " (parcial)" : ""}`} />
+              onMouseEnter={() => setAtivo(i)} onTouchStart={() => setAtivo(i)} onFocus={() => setAtivo(i)}>
+              <title>{`${p.rotuloLongo}: ${p.valor == null ? "sem dado" : `${p.valor > 0 ? "+" : ""}${formatarNumero(p.valor)}`}${p.parcial ? " (parcial)" : ""}`}</title>
+            </rect>
           ))}
         </svg>
         {ativo != null && (

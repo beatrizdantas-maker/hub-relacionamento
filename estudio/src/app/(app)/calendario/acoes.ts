@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import { esquemaConteudo, esquemaStory, type EntradaConteudo, type EntradaStory } from "@/lib/validacao/conteudo";
 import { gerarTarefasPadrao } from "@/lib/tarefasPadrao";
-import { diasEntre, hojeNaEmpresa, somarDias } from "@/lib/datas";
+import { hojeNaEmpresa, somarDias } from "@/lib/datas";
+import { deslocarPrazos } from "@/lib/reagendar";
 import type { Conteudo, Story, Tarefa, TelaStory } from "@/lib/tipos/database";
 
 type Erro = { ok: false; erro: string };
@@ -58,13 +59,10 @@ export async function salvarConteudo(
     conteudo = data[0];
     if (anterior.data !== conteudo.data) {
       reagendadoDe = anterior.data;
-      const delta = diasEntre(anterior.data, conteudo.data);
       const hoje = hojeNaEmpresa(await fusoDaEmpresa(empresaId));
-      const { data: tarefas } = await supabase.from("tarefas").select("id, prazo").eq("conteudo_id", id).neq("status", "concluido");
-      for (const t of tarefas ?? []) {
-        if (!t.prazo) continue;
-        const novo = somarDias(t.prazo, delta);
-        await supabase.from("tarefas").update({ prazo: novo < hoje ? hoje : novo }).eq("id", t.id);
+      const { data: tarefas } = await supabase.from("tarefas").select("id, prazo, status").eq("conteudo_id", id);
+      for (const t of deslocarPrazos(tarefas ?? [], anterior.data, conteudo.data, hoje)) {
+        await supabase.from("tarefas").update({ prazo: t.prazo }).eq("id", t.id);
       }
     }
   } else {

@@ -50,7 +50,7 @@ export function TabelaConteudos({ posts, onEditar }: { posts: ResultadoPost[]; o
       {lista.length === 0 ? (
         <p className="rounded-xl border border-dashed border-borda p-4 text-center text-sm text-texto-2">Nenhum post com resultado registrado. Importe do Metricool ou registre manualmente.</p>
       ) : (
-        <div className="relative -mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+        <div className="relative -mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0" tabIndex={0} role="region" aria-label="Tabela de conteúdos (rola na horizontal)">
           <table className="w-full min-w-[560px] text-sm">
             <thead>
               <tr className="border-b border-borda text-left text-xs text-texto-3">

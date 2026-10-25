@@ -10,7 +10,7 @@
   --borda: 226 222 214;
   --texto: 28 25 23;
   --texto-2: 87 83 78;
-  --texto-3: 140 134 127;
+  --texto-3: 110 104 97;
 
   /* Destaque: sobrescrito pela empresa ativa via style="--cor-primaria: r g b" */
   --cor-primaria: 124 58 237;
@@ -18,10 +18,11 @@
   --sobre-primaria: 255 255 255;
 
   /* Semânticas (sempre com texto, nunca só cor) */
-  --ia: 37 99 235;        /* azul  → sugestão da IA */
-  --real: 22 163 74;      /* verde → dado real */
-  --manual: 217 119 6;    /* âmbar → registro manual */
-  --atrasado: 220 38 38;  /* vermelho → atrasado */
+  /* Tons escolhidos para contraste AA (≥ 4,5:1) sobre fundo claro e sobre o próprio fundo a 10% */
+  --ia: 29 78 216;        /* azul  → sugestão da IA */
+  --real: 22 101 52;      /* verde → dado real */
+  --manual: 146 64 14;    /* âmbar → registro manual */
+  --atrasado: 185 28 28;  /* vermelho → atrasado */
 }
 
 :root[data-tema="escuro"] {
@@ -31,11 +32,19 @@
   --borda: 64 58 54;
   --texto: 245 242 238;
   --texto-2: 190 184 176;
-  --texto-3: 140 134 127;
+  --texto-3: 163 156 148;
   --ia: 96 165 250;
   --real: 74 222 128;
   --manual: 251 191 36;
   --atrasado: 248 113 113;
+}
+
+/* No tema escuro, a cor da empresa (definida inline em .marca-empresa) é
+   substituída pela variante clareada, que garante contraste AA sobre o fundo. */
+:root[data-tema="escuro"] .marca-empresa {
+  --cor-primaria: var(--cor-primaria-escuro, var(--cor-primaria)) !important;
+  --cor-secundaria: var(--cor-secundaria-escuro, var(--cor-secundaria)) !important;
+  --sobre-primaria: var(--sobre-primaria-escuro, var(--sobre-primaria)) !important;
 }
 
 @layer base {

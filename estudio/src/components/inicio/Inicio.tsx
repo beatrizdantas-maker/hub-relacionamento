@@ -107,7 +107,8 @@ export function Inicio(p: InicioProps) {
                 const ss = p.stories.filter((s) => s.data === d);
                 return (
                   <li key={d} className="flex gap-3 py-2">
-                    <Link href={`/calendario?dia=${d}`} className="w-12 shrink-0 text-center" aria-label={capitalizar(formatarLonga(d))}>
+                    <Link href={`/calendario?dia=${d}`} className="w-12 shrink-0 text-center">
+                      <span className="sr-only">{capitalizar(formatarLonga(d))}: </span>
                       <span className={`block text-[11px] uppercase ${d === p.hoje ? "text-primaria" : "text-texto-3"}`}>{formatarDiaSemanaCurto(d)}</span>
                       <span className={`block text-lg font-semibold tabular ${d === p.hoje ? "text-primaria" : ""}`}>{d.slice(8)}</span>
                     </Link>

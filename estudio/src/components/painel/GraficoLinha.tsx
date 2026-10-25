@@ -70,7 +70,9 @@ export function GraficoLinha({ titulo, pontos, tipo = "numero" }: { titulo: stri
           {/* Alvos de toque maiores que o marcador */}
           {pontos.map((p, i) => (
             <rect key={`h${p.chave}`} x={x(i) - (L - mE - mD) / (2 * Math.max(n - 1, 1))} y={0} width={(L - mE - mD) / Math.max(n - 1, 1)} height={A} fill="transparent"
-              onMouseEnter={() => setAtivo(i)} onTouchStart={() => setAtivo(i)} onFocus={() => setAtivo(i)} tabIndex={0} aria-label={`${p.rotuloLongo}: ${formatarNumero(p.valor, tipo)}${p.parcial ? " (parcial)" : ""}`} />
+              onMouseEnter={() => setAtivo(i)} onTouchStart={() => setAtivo(i)} onFocus={() => setAtivo(i)} tabIndex={0}>
+              <title>{`${p.rotuloLongo}: ${formatarNumero(p.valor, tipo)}${p.parcial ? " (parcial)" : ""}`}</title>
+            </rect>
           ))}
         </svg>
         {ativo != null && (

@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { SUPABASE_CHAVE_PUBLICA, SUPABASE_URL } from "./config";
 
-const ROTAS_PUBLICAS = ["/entrar", "/auth", "/convite"];
+const ROTAS_PUBLICAS = ["/entrar", "/auth", "/convite", ...(process.env.ESTUDIO_PREVIEW === "1" ? ["/dev-preview"] : [])];
 
 /** Renova a sessão a cada requisição e protege as rotas do app. */
 export async function atualizarSessao(request: NextRequest) {
