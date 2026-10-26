@@ -29,6 +29,9 @@ export function traduzirErroIA(e: unknown): ErroIA {
   if (e instanceof Anthropic.RateLimitError) return new ErroIA("A IA está com muitas solicitações agora. Espere um minuto e tente de novo.", 429);
   if (e instanceof Anthropic.APIConnectionTimeoutError) return new ErroIA("A IA demorou demais para responder. Tente de novo.", 504);
   if (e instanceof Anthropic.APIConnectionError) return new ErroIA("Não foi possível conectar à IA. Confira a conexão do servidor.", 502);
+  if (e instanceof Anthropic.APIError && /credit balance|billing/i.test(e.message)) {
+    return new ErroIA("A conta da Anthropic está sem créditos. Compre créditos em console.anthropic.com → Billing e tente de novo em alguns minutos.", 402);
+  }
   if (e instanceof Anthropic.BadRequestError) return new ErroIA("A IA recusou o pedido (dados demais ou formato inválido).", 500, [e.message]);
   if (e instanceof Anthropic.APIError) return new ErroIA(`A IA respondeu com erro ${e.status ?? ""}.`.trim(), 502, [e.message]);
   return new ErroIA(e instanceof Error && e.message ? e.message : "Algo deu errado ao falar com a IA.", 500);
