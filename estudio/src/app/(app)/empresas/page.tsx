@@ -3,6 +3,7 @@ import { Plus } from "lucide-react";
 import { obterContexto } from "@/lib/contexto";
 import { Aviso } from "@/components/ui/Aviso";
 import { CartaoEmpresa } from "@/components/empresas/CartaoEmpresa";
+import { MinhaConta } from "@/components/empresas/MinhaConta";
 
 export const metadata = { title: "Empresas" };
 
@@ -47,6 +48,8 @@ export default async function PaginaEmpresas({ searchParams }: { searchParams: P
           </ul>
         </section>
       )}
+
+      <MinhaConta email={ctx.usuario.email} />
     </div>
   );
 }

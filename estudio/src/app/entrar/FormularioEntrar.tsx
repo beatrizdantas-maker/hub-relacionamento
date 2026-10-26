@@ -1,19 +1,24 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { Mail } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { KeyRound, Mail } from "lucide-react";
 import { criarClienteNavegador } from "@/lib/supabase/client";
 import { Botao } from "@/components/ui/Botao";
 import { Aviso } from "@/components/ui/Aviso";
 
 const MENSAGENS_ERRO: Record<string, string> = {
-  link_invalido: "O link de acesso é inválido ou já expirou. Peça um novo.",
+  link_invalido: "O link de acesso é inválido ou já expirou. Peça um novo ou entre com a senha.",
+  outro_navegador: "O link foi aberto num navegador diferente do que pediu o acesso. Entre com a senha, ou peça um novo link e abra no mesmo navegador.",
   oauth: "Não foi possível entrar com o Google. Tente de novo.",
   sessao: "Não foi possível confirmar sua sessão. Tente entrar novamente.",
 };
 
 export function FormularioEntrar({ proximo, erroInicial }: { proximo?: string; erroInicial?: string }) {
+  const router = useRouter();
+  const [modo, setModo] = useState<"senha" | "link">("senha");
   const [email, setEmail] = useState("");
+  const [senha, setSenha] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [enviado, setEnviado] = useState(false);
   const [erro, setErro] = useState<string | null>(erroInicial ? MENSAGENS_ERRO[erroInicial] ?? "Algo deu errado. Tente de novo." : null);
@@ -36,6 +41,29 @@ export function FormularioEntrar({ proximo, erroInicial }: { proximo?: string; e
       return;
     }
     setEnviado(true);
+  }
+
+  async function entrarComSenha(e: FormEvent) {
+    e.preventDefault();
+    setErro(null);
+    setEnviando(true);
+    const supabase = criarClienteNavegador();
+    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password: senha });
+    if (error) {
+      setEnviando(false);
+      setErro(
+        /invalid login credentials/i.test(error.message)
+          ? "E-mail ou senha incorretos."
+          : /email not confirmed/i.test(error.message)
+            ? "Este e-mail ainda não foi confirmado."
+            : /rate/i.test(error.message)
+              ? "Muitas tentativas. Aguarde um minuto e tente de novo."
+              : "Não foi possível entrar. Tente de novo.",
+      );
+      return;
+    }
+    router.replace(destino);
+    router.refresh();
   }
 
   async function entrarComGoogle() {
@@ -68,7 +96,22 @@ export function FormularioEntrar({ proximo, erroInicial }: { proximo?: string; e
       <h1 className="text-xl font-semibold">Entrar</h1>
       {erro && <Aviso tipo="erro">{erro}</Aviso>}
 
-      <form onSubmit={enviarLink} className="space-y-3" noValidate>
+      <div className="grid grid-cols-2 gap-1 rounded-xl bg-superficie-2 p-1" role="tablist" aria-label="Forma de entrar">
+        {([["senha", "Com senha", KeyRound], ["link", "Link por e-mail", Mail]] as const).map(([valor, rotulo, Icone]) => (
+          <button
+            key={valor}
+            type="button"
+            role="tab"
+            aria-selected={modo === valor}
+            onClick={() => { setModo(valor); setErro(null); }}
+            className={`flex items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-medium ${modo === valor ? "bg-superficie text-texto shadow-sm" : "text-texto-2"}`}
+          >
+            <Icone className="h-4 w-4" aria-hidden /> {rotulo}
+          </button>
+        ))}
+      </div>
+
+      <form onSubmit={modo === "senha" ? entrarComSenha : enviarLink} className="space-y-3" noValidate>
         <div>
           <label htmlFor="email" className="rotulo">E-mail</label>
           <input
@@ -83,9 +126,24 @@ export function FormularioEntrar({ proximo, erroInicial }: { proximo?: string; e
             onChange={(e) => setEmail(e.target.value)}
           />
         </div>
-        <Botao type="submit" className="w-full" carregando={enviando} disabled={!email.includes("@")}>
-          Receber link de acesso
+        {modo === "senha" && (
+          <div>
+            <label htmlFor="senha" className="rotulo">Senha</label>
+            <input
+              id="senha"
+              type="password"
+              autoComplete="current-password"
+              required
+              className="campo"
+              value={senha}
+              onChange={(e) => setSenha(e.target.value)}
+            />
+          </div>
+        )}
+        <Botao type="submit" className="w-full" carregando={enviando} disabled={!email.includes("@") || (modo === "senha" && !senha)}>
+          {modo === "senha" ? "Entrar" : "Receber link de acesso"}
         </Botao>
+        {modo === "link" && <p className="text-xs text-texto-3">Abra o link no mesmo navegador em que pediu o acesso.</p>}
       </form>
 
       <div className="flex items-center gap-3 text-xs text-texto-3">
@@ -102,7 +160,7 @@ export function FormularioEntrar({ proximo, erroInicial }: { proximo?: string; e
         Entrar com Google
       </Botao>
 
-      <p className="text-center text-xs text-texto-3">Sem senha: usamos um link por e-mail ou sua conta Google.</p>
+      <p className="text-center text-xs text-texto-3">Depois de entrar, você pode trocar a senha em Empresas → Minha conta.</p>
     </div>
   );
 }
