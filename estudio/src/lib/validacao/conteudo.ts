@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "./ptBR";
 
 const texto = (max = 8000) => z.string().trim().max(max).optional().nullable().transform((v) => (v ? v : null));
 const dataISO = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida");

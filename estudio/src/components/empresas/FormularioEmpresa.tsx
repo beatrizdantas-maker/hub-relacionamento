@@ -7,7 +7,7 @@ import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { Botao } from "@/components/ui/Botao";
 import { Aviso } from "@/components/ui/Aviso";
 import { CampoArea, CampoTexto } from "@/components/ui/Campo";
-import type { EntradaEmpresa } from "@/lib/validacao/empresa";
+import { LIMITE_TEXTO_MARCA, type EntradaEmpresa } from "@/lib/validacao/empresa";
 import { criarEmpresa, atualizarEmpresa, salvarLogo } from "@/app/(app)/empresas/acoes";
 import { enviarLogo } from "@/lib/logo";
 import { CampoLogo } from "./CampoLogo";
@@ -52,6 +52,13 @@ function estadoInicial(e?: Empresa | null): Estado {
 
 const PASSOS = ["Dados da marca", "Público e objetivos"];
 
+type CampoTextoLongo = "sobre" | "tom_de_voz" | "regras_de_linguagem" | "regras_de_imagem" | "publico" | "objetivos" | "melhores_horarios";
+/** Campos de texto livre de cada passo, para conferir o tamanho antes de enviar. */
+const CAMPOS_LONGOS: [CampoTextoLongo, string][][] = [
+  [["sobre", "Sobre a marca"], ["tom_de_voz", "Tom de voz"], ["regras_de_linguagem", "Regras de linguagem"], ["regras_de_imagem", "Regras de imagem"]],
+  [["publico", "Público"], ["objetivos", "Objetivos"], ["melhores_horarios", "Melhores horários"]],
+];
+
 /**
  * Assistente de 2 passos para criar uma empresa; também serve para editar
  * (mesmos passos, botão "Salvar"). Metas e ritmo não são pedidos aqui: a
@@ -70,10 +77,27 @@ export function FormularioEmpresa({ empresa }: { empresa?: Empresa | null }) {
 
   const alterar = <K extends keyof Estado>(k: K, v: Estado[K]) => setDados((d) => ({ ...d, [k]: v }));
 
-  function validarPasso(): string | null {
-    if (passo === 0) {
+  function validarPasso(alvo: number = passo): string | null {
+    const longo = CAMPOS_LONGOS[alvo]?.find(([k]) => dados[k].trim().length > LIMITE_TEXTO_MARCA);
+    if (longo) {
+      const tamanho = dados[longo[0]].trim().length.toLocaleString("pt-BR");
+      return `"${longo[1]}" tem ${tamanho} caracteres; o máximo é ${LIMITE_TEXTO_MARCA.toLocaleString("pt-BR")}. Resuma o texto.`;
+    }
+    if (alvo === 0) {
       if (!dados.nome.trim()) return "Informe o nome da empresa.";
       if (!/^#[0-9A-Fa-f]{6}$/.test(dados.cor_primaria) || !/^#[0-9A-Fa-f]{6}$/.test(dados.cor_secundaria)) return "Cores no formato #RRGGBB.";
+    }
+    return null;
+  }
+
+  /** Valida todos os passos; se algum falhar, volta para ele. */
+  function validarTudo(): string | null {
+    for (let i = 0; i < PASSOS.length; i++) {
+      const e = validarPasso(i);
+      if (e) {
+        setPasso(i);
+        return e;
+      }
     }
     return null;
   }
@@ -105,7 +129,7 @@ export function FormularioEmpresa({ empresa }: { empresa?: Empresa | null }) {
   }
 
   function enviar() {
-    const e = validarPasso();
+    const e = validarTudo();
     if (e) return setErro(e);
     setErro(null);
     iniciar(async () => {

@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "./ptBR";
 
 const inteiroOuNulo = z
   .union([z.number(), z.string(), z.null(), z.undefined()])

@@ -1,7 +1,15 @@
-import { z } from "zod";
+import { z } from "./ptBR";
 
 const hex = z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Use uma cor no formato #RRGGBB");
-const textoOpcional = z.string().trim().max(4000).optional().transform((v) => (v ? v : null));
+export const LIMITE_TEXTO_MARCA = 20000;
+/** Texto livre opcional da marca; a mensagem de erro diz qual campo passou do limite. */
+const textoOpcional = (rotulo: string) =>
+  z
+    .string()
+    .trim()
+    .max(LIMITE_TEXTO_MARCA, `"${rotulo}" está longo demais: no máximo ${LIMITE_TEXTO_MARCA.toLocaleString("pt-BR")} caracteres. Resuma o texto.`)
+    .optional()
+    .transform((v) => (v ? v : null));
 const numeroOuNulo = z
   .union([z.number(), z.string(), z.null(), z.undefined()])
   .transform((v) => {
@@ -47,13 +55,13 @@ export const esquemaEmpresa = z.object({
     .max(60)
     .optional()
     .transform((v) => (v ? v.replace(/^@/, "").replace(/^https?:\/\/(www\.)?instagram\.com\//, "").replace(/\/$/, "") : null)),
-  sobre: textoOpcional,
-  publico: textoOpcional,
-  objetivos: textoOpcional,
-  tom_de_voz: textoOpcional,
-  regras_de_linguagem: textoOpcional,
-  regras_de_imagem: textoOpcional,
-  melhores_horarios: textoOpcional,
+  sobre: textoOpcional("Sobre a marca"),
+  publico: textoOpcional("Público"),
+  objetivos: textoOpcional("Objetivos"),
+  tom_de_voz: textoOpcional("Tom de voz"),
+  regras_de_linguagem: textoOpcional("Regras de linguagem"),
+  regras_de_imagem: textoOpcional("Regras de imagem"),
+  melhores_horarios: textoOpcional("Melhores horários"),
   pilares: z.array(z.string().trim().min(1).max(60)).max(12).default([]),
   cor_primaria: hex,
   cor_secundaria: hex,
@@ -99,7 +107,7 @@ export const esquemaCampanha = z
     nome: z.string().trim().min(1, "Informe o nome da campanha").max(120),
     inicio: dataOuNula,
     fim: dataOuNula,
-    descricao: textoOpcional,
+    descricao: textoOpcional("Descrição da campanha"),
   })
   .refine((c) => !c.inicio || !c.fim || c.fim >= c.inicio, { message: "O fim precisa ser depois do início", path: ["fim"] });
 export type EntradaCampanha = z.input<typeof esquemaCampanha>;

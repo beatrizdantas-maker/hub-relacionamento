@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "./ptBR";
 
 export const TIPOS_TAREFA = ["Gravar", "Fotografar", "Criar arte", "Editar", "Revisar", "Publicar", "Planejamento", "Outro"] as const;
 export const PRIORIDADES = ["Alta", "Média", "Baixa"] as const;
