@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Copy, ListChecks, ScrollText, Trash2 } from "lucide-react";
+import { Check, CheckCheck, Copy, ListChecks, MessageSquareText, ScrollText, Trash2 } from "lucide-react";
 import { Botao } from "@/components/ui/Botao";
 import { Aviso } from "@/components/ui/Aviso";
 import { Selo } from "@/components/ui/Selo";
@@ -12,7 +12,8 @@ import { OBJETIVOS_RITMO } from "@/lib/validacao/empresa";
 import { FORMATOS, STATUS_CONTEUDO } from "@/lib/validacao/conteudo";
 import { diaDaSemana, formatarCurta, horaCurta } from "@/lib/datas";
 import { permissoes } from "@/lib/papeis";
-import { criarTarefasPadrao, excluirConteudo, mudarStatusTarefa, salvarConteudo } from "@/app/(app)/calendario/acoes";
+import { concluirTarefasDoConteudo, criarTarefasPadrao, excluirConteudo, mudarStatusTarefa, salvarConteudo } from "@/app/(app)/calendario/acoes";
+import { copiarTexto, falasDoRoteiro } from "@/lib/copiarArtes";
 import type { Conteudo, FormatoConteudo, Papel, RitmoDia, StatusConteudo, Tarefa } from "@/lib/tipos/database";
 import { Painel } from "./Painel";
 import { BriefingIA } from "./BriefingIA";
@@ -60,6 +61,7 @@ export function EditorConteudo({
   const [excluindo, setExcluindo] = useState(false);
   const [copiado, setCopiado] = useState(false);
   const [teleprompter, setTeleprompter] = useState(false);
+  const [falasCopiadas, setFalasCopiadas] = useState(false);
   const [pendente, iniciar] = useTransition();
   const novo = !atual;
 
@@ -119,6 +121,31 @@ export function EditorConteudo({
       setListaTarefas((l) => l.map((x) => (x.id === t.id ? { ...x, status: concluida ? "concluido" : "pendente" } : x)));
       router.refresh();
     });
+  }
+
+  function concluirTodas() {
+    if (!atual) return;
+    setErro(null); setAviso(null);
+    iniciar(async () => {
+      const r = await concluirTarefasDoConteudo(empresaId, atual.id);
+      if (!r.ok) return setErro(r.erro);
+      const feitas = new Set(r.concluidas);
+      setListaTarefas((l) => l.map((x) => (feitas.has(x.id) ? { ...x, status: "concluido" } : x)));
+      const sobraram = listaTarefas.filter((t) => t.status !== "concluido" && !feitas.has(t.id)).length;
+      setAviso(
+        r.concluidas.length === 0
+          ? "Nenhuma tarefa pôde ser marcada. Você só pode concluir as tarefas em que é responsável."
+          : `${r.concluidas.length} ${r.concluidas.length === 1 ? "tarefa marcada" : "tarefas marcadas"} como feita${r.concluidas.length === 1 ? "" : "s"}.${sobraram ? ` ${sobraram} de outras pessoas ficaram como estavam.` : ""}`,
+      );
+      router.refresh();
+    });
+  }
+
+  async function copiarFalas() {
+    if (await copiarTexto(falasDoRoteiro(form.roteiro))) {
+      setFalasCopiadas(true);
+      setTimeout(() => setFalasCopiadas(false), 2000);
+    }
   }
 
   async function copiarLegenda() {
@@ -250,7 +277,10 @@ export function EditorConteudo({
         {form.formato === "Reels" && extrairFalas(form.roteiro).length > 0 && (
           <div className="flex flex-wrap items-center gap-2">
             <Botao type="button" tamanho="sm" variante="secundaria" onClick={() => setTeleprompter(true)}><ScrollText className="h-4 w-4" aria-hidden /> Abrir teleprompter</Botao>
-            <span className="text-xs text-texto-2">Mostra só as falas do roteiro, em letra grande, para gravar lendo.</span>
+            <Botao type="button" tamanho="sm" variante="secundaria" onClick={copiarFalas}>
+              {falasCopiadas ? <Check className="h-4 w-4" aria-hidden /> : <MessageSquareText className="h-4 w-4" aria-hidden />} {falasCopiadas ? "Falas copiadas" : "Copiar falas"}
+            </Botao>
+            <span className="w-full text-xs text-texto-2">Só o que é para falar, sem imagem, texto na tela nem áudio.</span>
           </div>
         )}
         {teleprompter && <Teleprompter falas={extrairFalas(form.roteiro)} onFechar={() => setTeleprompter(false)} />}
@@ -259,7 +289,12 @@ export function EditorConteudo({
           <section className="space-y-2 border-t border-borda pt-3">
             <div className="flex items-center justify-between gap-2">
               <h3 className="flex items-center gap-1.5 text-sm font-semibold"><ListChecks className="h-4 w-4" aria-hidden /> Tarefas ligadas</h3>
-              {podeEditar && <Botao tamanho="sm" variante="secundaria" onClick={gerarTarefas} disabled={pendente}>Criar tarefas padrão</Botao>}
+              <div className="flex flex-wrap justify-end gap-2">
+                {podeColaborar && listaTarefas.some((t) => t.status !== "concluido" && podeMudarTarefa(t)) && (
+                  <Botao tamanho="sm" variante="secundaria" onClick={concluirTodas} disabled={pendente}><CheckCheck className="h-4 w-4" aria-hidden /> Marcar todas como feitas</Botao>
+                )}
+                {podeEditar && <Botao tamanho="sm" variante="secundaria" onClick={gerarTarefas} disabled={pendente}>Criar tarefas padrão</Botao>}
+              </div>
             </div>
             {listaTarefas.length === 0 ? (
               <p className="text-sm text-texto-3">Nenhuma tarefa ligada. {podeEditar ? "Use “Criar tarefas padrão” ou crie na tela Tarefas." : ""}</p>

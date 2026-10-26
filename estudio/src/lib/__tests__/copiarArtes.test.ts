@@ -53,3 +53,34 @@ describe("mês", () => {
     expect(g).toHaveLength(6);
   });
 });
+
+import { falasDoRoteiro, textoDasFalas, videosComFala } from "@/lib/copiarArtes";
+
+describe("copiar falas", () => {
+  const roteiro = 'DURAÇÃO: cerca de 30 segundos\n\nCENA 1 · 0s–3s\nIMAGEM: close\nFALA: "Seu filho esqueceu tudo?"\nTEXTO NA TELA: Esqueceu?\n\nCENA 2 · 3s–12s\nIMAGEM: caderno\nTEXTO NA TELA: Revisar\n\nCENA 3 · 12s–20s\nIMAGEM: médio\nFALA: "Comenta REVISÃO."\nÁUDIO: música';
+
+  it("só as falas, com o tempo da cena, sem imagem, texto na tela ou áudio", () => {
+    expect(falasDoRoteiro(roteiro)).toBe("[0s–3s] Seu filho esqueceu tudo?\n[12s–20s] Comenta REVISÃO.");
+  });
+
+  it("avisa quando não há o que falar", () => {
+    expect(falasDoRoteiro("CENA 1 · 0s–3s\nIMAGEM: x\nTEXTO NA TELA: y")).toBe("(sem falas: vídeo só com texto na tela)");
+    expect(falasDoRoteiro("")).toContain("ainda sem roteiro");
+    expect(falasDoRoteiro("gancho e depois o produto")).toContain("não tem falas marcadas");
+  });
+
+  it("junta só os Reels do período, sem publicados, em ordem", () => {
+    const lista = [
+      c({ data: "2026-11-04", formato: "Reels", tema: "B", roteiro }),
+      c({ data: "2026-11-02", formato: "Reels", tema: "A", hora: "20:00:00", status: "sugestao", roteiro }),
+      c({ data: "2026-11-03", formato: "Carrossel", tema: "arte" }),
+      c({ data: "2026-11-01", formato: "Reels", tema: "já foi", status: "publicado" }),
+    ];
+    expect(videosComFala(lista).map((x) => x.tema)).toEqual(["A", "B"]);
+    const { texto, total } = textoDasFalas(lista, { empresa: "NARAEDU", periodo: "Novembro de 2026" });
+    expect(total).toBe(2);
+    expect(texto.startsWith("FALAS PARA GRAVAR · NARAEDU\nNovembro de 2026 · 2 vídeos")).toBe(true);
+    expect(texto).toContain("SEGUNDA, 02/11 · 20:00 · A\n\n[0s–3s] Seu filho esqueceu tudo?\n[12s–20s] Comenta REVISÃO.");
+    expect(texto).not.toContain("IMAGEM");
+  });
+});

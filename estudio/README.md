@@ -197,6 +197,8 @@ A equipe produz as artes e grava os vídeos; a IA entrega o briefing completo (`
 - **Teleprompter**: nos Reels, lê as linhas "FALA:" do roteiro e mostra em tela cheia, com rolagem automática, velocidade, tamanho de letra e espelhamento.
 - Nenhuma alteração no banco: tudo fica nos campos que já existiam.
 - **Copiar artes da semana / do mês** (Calendário): copia de uma vez, para colar no WhatsApp ou num documento, só os carrosséis e posts estáticos do período (sem Reels, stories e publicados), com data, tema, status, slides (texto e imagem de cada um) e orientação de arte (`src/lib/copiarArtes.ts`, testado).
+- **Copiar falas da semana / do mês** (Calendário) e **Copiar falas** (no editor de cada Reels): só as falas do roteiro, cena a cena com o tempo ("[0s–3s] …"), sem imagem, texto na tela nem áudio; Reels sem fala aparecem com aviso.
+- **Marcar todas como feitas** (Tarefas ligadas, no editor do conteúdo): conclui de uma vez as tarefas abertas daquele conteúdo; o Colaborador só conclui as suas (regra do banco).
 - **Hashtags**: toda legenda escrita pela IA (Gerar mês, briefing e ideias das Sugestões) recebe de 5 a 10 hashtags, limpas e sem repetição, numa linha separada depois da chamada para ação (`src/lib/ia/hashtags.ts`, testado).
 
 ## Papéis e permissões

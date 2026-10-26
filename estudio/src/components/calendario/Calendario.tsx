@@ -3,12 +3,12 @@
 import { useCallback, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CalendarDays, ChevronLeft, ChevronRight, ClipboardCopy, Copy, Plus, Sparkles } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, ClipboardCopy, Copy, MessageSquareText, Plus, Sparkles } from "lucide-react";
 import { Botao } from "@/components/ui/Botao";
 import { Aviso } from "@/components/ui/Aviso";
 import { Selo } from "@/components/ui/Selo";
 import { capitalizar, diasDaSemana, formatarCurta, formatarDiaSemanaCurto, formatarLonga, formatarMesAno, gradeDoMes, horaCurta, inicioDaSemana, mesDaData, primeiroDiaDoMes, rotuloSemana, somarDias, somarMeses } from "@/lib/datas";
-import { copiarTexto, textoDasArtes } from "@/lib/copiarArtes";
+import { copiarTexto, textoDasArtes, textoDasFalas } from "@/lib/copiarArtes";
 import { permissoes } from "@/lib/papeis";
 import { aprovarSugestoesDaSemana } from "@/app/(app)/calendario/acoes";
 import type { Conteudo, Papel, RitmoDia, Story, Tarefa } from "@/lib/tipos/database";
@@ -82,21 +82,25 @@ export function Calendario(p: CalendarioProps) {
   const diaAlvo = p.dia ?? (p.mes ? (hojeNoMes ? p.hoje : primeiroDiaDoMes(p.mes)) : semanaAtual ? p.hoje : p.segunda);
   const semanaAlvo = inicioDaSemana(diaAlvo);
   const periodoTexto = p.mes ? capitalizar(formatarMesAno(primeiroDiaDoMes(p.mes))) : p.dia ? capitalizar(formatarLonga(p.dia)) : rotuloSemana(p.segunda);
-  const [copiando, setCopiando] = useState(false);
+  const [copiando, setCopiando] = useState<"artes" | "falas" | null>(null);
 
-  async function copiarArtes() {
+  async function copiar(tipo: "artes" | "falas") {
     setErro(null); setMensagem(null);
-    setCopiando(true);
+    setCopiando(tipo);
     const doPeriodo = p.mes ? p.conteudos.filter((c) => mesDaData(c.data) === p.mes) : p.conteudos;
-    const { texto, total } = textoDasArtes(doPeriodo, { empresa: p.empresa.nome, periodo: p.mes ? periodoTexto : `Semana de ${rotuloSemana(p.segunda)}` });
+    const opcoes = { empresa: p.empresa.nome, periodo: p.mes ? periodoTexto : `Semana de ${rotuloSemana(p.segunda)}` };
+    const { texto, total } = tipo === "artes" ? textoDasArtes(doPeriodo, opcoes) : textoDasFalas(doPeriodo, opcoes);
+    const noPeriodo = p.mes ? "neste mês" : "nesta semana";
     if (total === 0) {
-      setCopiando(false);
-      return setMensagem(`Nenhum carrossel ou post estático para produzir ${p.mes ? "neste mês" : "nesta semana"}.`);
+      setCopiando(null);
+      return setMensagem(tipo === "artes" ? `Nenhum carrossel ou post estático para produzir ${noPeriodo}.` : `Nenhum Reels para gravar ${noPeriodo}.`);
     }
     const ok = await copiarTexto(texto);
-    setCopiando(false);
+    setCopiando(null);
     if (!ok) return setErro("O navegador não deixou copiar. Tente de novo ou use outro navegador.");
-    setMensagem(`${total} ${total === 1 ? "postagem copiada" : "postagens copiadas"} com slides e orientação de arte. Cole no WhatsApp, e-mail ou documento.`);
+    setMensagem(tipo === "artes"
+      ? `${total} ${total === 1 ? "postagem copiada" : "postagens copiadas"} com slides e orientação de arte. Cole no WhatsApp, e-mail ou documento.`
+      : `Falas de ${total} ${total === 1 ? "vídeo copiadas" : "vídeos copiadas"}. Cole no celular para gravar.`);
   }
 
   const conteudoSelecionado = selecao?.tipo === "conteudo" ? p.conteudos.find((c) => c.id === selecao.id) ?? null : null;
@@ -147,8 +151,11 @@ export function Calendario(p: CalendarioProps) {
         </div>
         {!p.dia && (
           <div className="flex flex-wrap gap-2 md:ml-auto">
-            <Botao variante="secundaria" tamanho="sm" carregando={copiando} onClick={copiarArtes}>
+            <Botao variante="secundaria" tamanho="sm" carregando={copiando === "artes"} disabled={copiando !== null} onClick={() => copiar("artes")}>
               <ClipboardCopy className="h-4 w-4" aria-hidden /> Copiar artes {p.mes ? "do mês" : "da semana"}
+            </Botao>
+            <Botao variante="secundaria" tamanho="sm" carregando={copiando === "falas"} disabled={copiando !== null} onClick={() => copiar("falas")}>
+              <MessageSquareText className="h-4 w-4" aria-hidden /> Copiar falas {p.mes ? "do mês" : "da semana"}
             </Botao>
             {podeEditar && sugestoes > 0 && !p.mes && (
               <Botao variante="secundaria" tamanho="sm" carregando={pendente} onClick={aprovarTodas}>

@@ -179,3 +179,21 @@ export async function excluirStory(empresaId: string, id: string): Promise<{ ok:
   revalidar();
   return { ok: true };
 }
+
+/**
+ * Marca como concluídas todas as tarefas abertas de um conteúdo. O banco só
+ * deixa o Colaborador concluir as próprias; as outras ficam como estão.
+ */
+export async function concluirTarefasDoConteudo(empresaId: string, conteudoId: string): Promise<{ ok: true; concluidas: string[] } | Erro> {
+  const supabase = await criarClienteServidor();
+  const { data, error } = await supabase
+    .from("tarefas")
+    .update({ status: "concluido" })
+    .eq("empresa_id", empresaId)
+    .eq("conteudo_id", conteudoId)
+    .neq("status", "concluido")
+    .select("id");
+  if (error) return { ok: false, erro: mensagemErro(error) };
+  revalidar();
+  return { ok: true, concluidas: (data ?? []).map((t) => t.id) };
+}
