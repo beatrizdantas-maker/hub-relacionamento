@@ -55,3 +55,25 @@ export function rotuloSemana(segunda: DataISO): string {
 
 /** "20:00:00" → "20:00" */
 export const horaCurta = (h: string | null | undefined) => (h ? h.slice(0, 5) : "");
+
+// ---------- Mês ("AAAA-MM") ----------
+
+export const ehMes = (s: string | null | undefined): s is string => !!s && /^\d{4}-(0[1-9]|1[0-2])$/.test(s);
+export const mesDaData = (data: DataISO) => data.slice(0, 7);
+export const primeiroDiaDoMes = (mes: string): DataISO => `${mes}-01`;
+export function ultimoDiaDoMes(mes: string): DataISO {
+  const [ano, m] = mes.split("-").map(Number);
+  return `${mes}-${String(new Date(Date.UTC(ano, m, 0)).getUTCDate()).padStart(2, "0")}`;
+}
+export function somarMeses(mes: string, n: number): string {
+  const [ano, m] = mes.split("-").map(Number);
+  const d = new Date(Date.UTC(ano, m - 1 + n, 1));
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+/** Semanas (segunda a domingo) que cobrem o mês inteiro, para a grade do calendário. */
+export function gradeDoMes(mes: string): DataISO[][] {
+  const semanas: DataISO[][] = [];
+  const fim = ultimoDiaDoMes(mes);
+  for (let seg = inicioDaSemana(primeiroDiaDoMes(mes)); seg <= fim; seg = somarDias(seg, 7)) semanas.push(diasDaSemana(seg));
+  return semanas;
+}

@@ -1,12 +1,12 @@
 import { exigirEmpresaAtiva } from "@/lib/contexto";
 import { criarClienteServidor } from "@/lib/supabase/server";
-import { ehDataISO, hojeNaEmpresa, inicioDaSemana, somarDias } from "@/lib/datas";
+import { ehDataISO, ehMes, gradeDoMes, hojeNaEmpresa, inicioDaSemana, somarDias } from "@/lib/datas";
 import { Calendario } from "@/components/calendario/Calendario";
 import { chaveIAConfigurada } from "@/lib/ia/cliente";
 
 export const metadata = { title: "Calendário" };
 
-type Busca = { semana?: string; dia?: string; formato?: string; abrir?: string };
+type Busca = { semana?: string; dia?: string; mes?: string; formato?: string; abrir?: string };
 
 export default async function PaginaCalendario({ searchParams }: { searchParams: Promise<Busca> }) {
   const sp = await searchParams;
@@ -14,8 +14,11 @@ export default async function PaginaCalendario({ searchParams }: { searchParams:
   const empresa = ctx.empresaAtiva;
   const hoje = hojeNaEmpresa(empresa.fuso_horario);
   const dia = ehDataISO(sp.dia) ? sp.dia : null;
-  const segunda = dia ? inicioDaSemana(dia) : ehDataISO(sp.semana) ? inicioDaSemana(sp.semana) : inicioDaSemana(hoje);
-  const domingo = somarDias(segunda, 6);
+  const mes = !dia && ehMes(sp.mes) ? sp.mes : null;
+  const grade = mes ? gradeDoMes(mes) : null;
+  const segunda = grade ? grade[0][0] : dia ? inicioDaSemana(dia) : ehDataISO(sp.semana) ? inicioDaSemana(sp.semana) : inicioDaSemana(hoje);
+  // Período carregado: a semana, ou todas as semanas da grade do mês.
+  const domingo = grade ? grade[grade.length - 1][6] : somarDias(segunda, 6);
 
   const supabase = await criarClienteServidor();
   const [{ data: conteudos }, { data: stories }, { data: campanhas }] = await Promise.all([
@@ -36,6 +39,7 @@ export default async function PaginaCalendario({ searchParams }: { searchParams:
       hoje={hoje}
       segunda={segunda}
       dia={dia}
+      mes={mes}
       filtro={sp.formato ?? "todos"}
       abrir={sp.abrir ?? null}
       iaConfigurada={chaveIAConfigurada()}

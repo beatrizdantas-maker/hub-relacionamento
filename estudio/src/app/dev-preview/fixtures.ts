@@ -22,7 +22,11 @@ export const CONTEUDOS: Conteudo[] = [
     roteiro: 'DURAÇÃO: cerca de 30 segundos\nMÚSICA: Áudio em alta, batida leve\n\nCENA 1 · 0s–3s\nIMAGEM: Close no rosto, olhando para a câmera, fundo da sala de estudos\nFALA: "Seu filho estudou ontem e hoje não lembra de nada?"\nTEXTO NA TELA: Ele esqueceu tudo?\n\nCENA 2 · 3s–20s\nIMAGEM: Plano médio, gesticulando; corte para o caderno aberto\nFALA: "Não é preguiça. A memória precisa de revisão: dez minutos no dia seguinte valem mais que duas horas na véspera."\n\nCENA 3 · 20s–30s\nIMAGEM: Close, sorrindo\nFALA: "Comenta REVISÃO que eu te mando o roteiro de estudo."\nTEXTO NA TELA: Comenta REVISÃO',
     orientacao_arte: "ESTILO: Natural, luz do dia\nCORES: Roxo da marca nos textos\nTIPOGRAFIA: Legendas grandes em caixa alta\nFOTOGRAFIA E VÍDEO: Celular na vertical, altura dos olhos\nELEMENTOS: Logo no fim\n\nDICAS DE PRODUÇÃO:\n- Grave perto de uma janela" }),
   c({ id: "c2", data: "2026-10-29", formato: "Reels", tema: "3 frases que travam o estudo", status: "sugestao", origem: "ia", tipo: "Reels com texto na tela" }),
-  c({ id: "c3", data: "2026-10-30", formato: "Carrossel", tema: "5 sinais de que a rotina de estudos não funciona", hora: "12:00" }),
+  c({ id: "c3", data: "2026-10-30", formato: "Carrossel", tema: "5 sinais de que a rotina de estudos não funciona", hora: "12:00",
+    roteiro: "SLIDE 1 — CAPA\nTÍTULO NA ARTE: 5 sinais de que a rotina não funciona\nIMAGEM: Fundo roxo, título grande centralizado\n\nSLIDE 2\nTÍTULO NA ARTE: Ele estuda, mas esquece\nIMAGEM: Foto de caderno aberto",
+    orientacao_arte: "ESTILO: Editorial limpo\nCORES: Roxo e amarelo da marca" }),
+  c({ id: "c5", data: "2026-10-14", formato: "Estático", tema: "Frase da semana" }),
+  c({ id: "c6", data: "2026-10-20", formato: "Reels", tema: "Bastidores da aula" }),
   c({ id: "c4", data: "2026-11-01", formato: "Estático", tema: "Você também já se sentiu assim?", status: "sugestao", origem: "ia" }),
 ];
 export const STORIES: Story[] = [{ id: "s1", empresa_id: "e1", data: HOJE, objetivo: "Puxar o Reels", telas: [{ tipo: "Texto", texto: "Abertura" }, { tipo: "Compartilhar post", texto: "" }, { tipo: "Enquete", texto: "", interacao: { pergunta: "Qual?", opcoes: ["A", "B"] } }, { tipo: "Texto", texto: "Fecho" }], status: "sugestao", origem: "ia", conteudo_id: "c1", criado_por: null, criado_em: "", atualizado_em: "" }];

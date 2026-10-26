@@ -78,7 +78,7 @@ Proteção contra perda do que está sendo digitado:
 
 ## Calendário (Etapa 4)
 
-- `/calendario?semana=AAAA-MM-DD` (visão por semana: 7 colunas no computador, dias empilhados no celular) e `/calendario?dia=AAAA-MM-DD` (detalhe completo: roteiro, legenda com copiar, ganchos, arte, notas e as telas dos stories numeradas). Filtro `formato=Reels|Carrossel|Estático|Stories`. `abrir=novo` abre o editor de conteúdo novo (usado pelo Início).
+- `/calendario?mes=AAAA-MM` (visão por mês: grade de segunda a domingo no computador, lista dos dias com postagem no celular) e `/calendario?semana=AAAA-MM-DD` (visão por semana: 7 colunas no computador, dias empilhados no celular) e `/calendario?dia=AAAA-MM-DD` (detalhe completo: roteiro, legenda com copiar, ganchos, arte, notas e as telas dos stories numeradas). Filtro `formato=Reels|Carrossel|Estático|Stories`. `abrir=novo` abre o editor de conteúdo novo (usado pelo Início).
 - **Editor de conteúdo** (painel lateral / folha de baixo): data, hora, formato, status, tema, tipo, pilar, objetivo, campanha, CTA, roteiro, ganchos (Reels), legenda, arte, notas. Salvar, Aprovar, Copiar legenda, Excluir com confirmação na tela. Mudar a data reagenda: mostra "Reagendado para dd/mm", mantém as tarefas ligadas e desloca os prazos das tarefas abertas pelo mesmo número de dias (nunca para antes de hoje).
 - **Tarefas padrão** (`src/lib/tarefasPadrao.ts`, com testes): escolhidas pelo formato e pelo campo "tipo" (prova social, texto na tela, Reels comum, carrossel/estático). Criadas ao salvar um conteúdo novo (opção marcada por padrão) ou pelo botão no editor; não duplica.
 - **Editor de stories**: data, objetivo, status, post ligado e telas (tipo, texto e opções da interação: pergunta, opções, emoji, link, data), com adicionar, remover, subir e descer. Sequência padrão de 4 telas em stories novos.
@@ -196,6 +196,7 @@ A equipe produz as artes e grava os vídeos; a IA entrega o briefing completo (`
 - No editor do conteúdo, **Gerar briefing com IA** (`POST /api/ia/briefing`) refaz o briefing de um item a partir do que está no formulário; preenche roteiro, orientação de arte, legenda, CTA e ganchos, e nada é salvo até clicar em Salvar.
 - **Teleprompter**: nos Reels, lê as linhas "FALA:" do roteiro e mostra em tela cheia, com rolagem automática, velocidade, tamanho de letra e espelhamento.
 - Nenhuma alteração no banco: tudo fica nos campos que já existiam.
+- **Copiar artes da semana / do mês** (Calendário): copia de uma vez, para colar no WhatsApp ou num documento, só os carrosséis e posts estáticos do período (sem Reels, stories e publicados), com data, tema, status, slides (texto e imagem de cada um) e orientação de arte (`src/lib/copiarArtes.ts`, testado).
 - **Hashtags**: toda legenda escrita pela IA (Gerar mês, briefing e ideias das Sugestões) recebe de 5 a 10 hashtags, limpas e sem repetição, numa linha separada depois da chamada para ação (`src/lib/ia/hashtags.ts`, testado).
 
 ## Papéis e permissões

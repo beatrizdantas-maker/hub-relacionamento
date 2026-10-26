@@ -3,11 +3,12 @@
 import { useCallback, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CalendarDays, ChevronLeft, ChevronRight, Copy, Plus, Sparkles } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, ClipboardCopy, Copy, Plus, Sparkles } from "lucide-react";
 import { Botao } from "@/components/ui/Botao";
 import { Aviso } from "@/components/ui/Aviso";
 import { Selo } from "@/components/ui/Selo";
-import { capitalizar, diasDaSemana, formatarCurta, formatarDiaSemanaCurto, formatarLonga, horaCurta, rotuloSemana, somarDias } from "@/lib/datas";
+import { capitalizar, diasDaSemana, formatarCurta, formatarDiaSemanaCurto, formatarLonga, formatarMesAno, gradeDoMes, horaCurta, inicioDaSemana, mesDaData, primeiroDiaDoMes, rotuloSemana, somarDias, somarMeses } from "@/lib/datas";
+import { copiarTexto, textoDasArtes } from "@/lib/copiarArtes";
 import { permissoes } from "@/lib/papeis";
 import { aprovarSugestoesDaSemana } from "@/app/(app)/calendario/acoes";
 import type { Conteudo, Papel, RitmoDia, Story, Tarefa } from "@/lib/tipos/database";
@@ -26,6 +27,7 @@ export interface CalendarioProps {
   hoje: string;
   segunda: string;
   dia: string | null;
+  mes: string | null;   // "AAAA-MM" quando a visão é por mês
   filtro: string;
   abrir: string | null;
   iaConfigurada: boolean;
@@ -57,7 +59,7 @@ export function Calendario(p: CalendarioProps) {
 
   const url = (q: Record<string, string | null>) => {
     const sp = new URLSearchParams();
-    const base: Record<string, string | null> = { semana: p.segunda, dia: p.dia, formato: filtro === "todos" ? null : filtro, ...q };
+    const base: Record<string, string | null> = { semana: p.mes || p.dia ? null : p.segunda, dia: p.dia, mes: p.mes, formato: filtro === "todos" ? null : filtro, ...q };
     for (const [k, v] of Object.entries(base)) if (v) sp.set(k, v);
     const s = sp.toString();
     return `/calendario${s ? `?${s}` : ""}`;
@@ -73,6 +75,30 @@ export function Calendario(p: CalendarioProps) {
     });
   }
 
+  // Alvos de navegação entre as visões
+  const semanaAtual = p.hoje >= p.segunda && p.hoje <= somarDias(p.segunda, 6);
+  const mesAlvo = p.mes ?? mesDaData(p.dia ?? (semanaAtual ? p.hoje : p.segunda));
+  const hojeNoMes = p.mes ? mesDaData(p.hoje) === p.mes : false;
+  const diaAlvo = p.dia ?? (p.mes ? (hojeNoMes ? p.hoje : primeiroDiaDoMes(p.mes)) : semanaAtual ? p.hoje : p.segunda);
+  const semanaAlvo = inicioDaSemana(diaAlvo);
+  const periodoTexto = p.mes ? capitalizar(formatarMesAno(primeiroDiaDoMes(p.mes))) : p.dia ? capitalizar(formatarLonga(p.dia)) : rotuloSemana(p.segunda);
+  const [copiando, setCopiando] = useState(false);
+
+  async function copiarArtes() {
+    setErro(null); setMensagem(null);
+    setCopiando(true);
+    const doPeriodo = p.mes ? p.conteudos.filter((c) => mesDaData(c.data) === p.mes) : p.conteudos;
+    const { texto, total } = textoDasArtes(doPeriodo, { empresa: p.empresa.nome, periodo: p.mes ? periodoTexto : `Semana de ${rotuloSemana(p.segunda)}` });
+    if (total === 0) {
+      setCopiando(false);
+      return setMensagem(`Nenhum carrossel ou post estático para produzir ${p.mes ? "neste mês" : "nesta semana"}.`);
+    }
+    const ok = await copiarTexto(texto);
+    setCopiando(false);
+    if (!ok) return setErro("O navegador não deixou copiar. Tente de novo ou use outro navegador.");
+    setMensagem(`${total} ${total === 1 ? "postagem copiada" : "postagens copiadas"} com slides e orientação de arte. Cole no WhatsApp, e-mail ou documento.`);
+  }
+
   const conteudoSelecionado = selecao?.tipo === "conteudo" ? p.conteudos.find((c) => c.id === selecao.id) ?? null : null;
   const storySelecionado = selecao?.tipo === "story" ? p.stories.find((s) => s.id === selecao.id) ?? null : null;
   const dataEditor = selecao?.tipo === "novo" || selecao?.tipo === "novoStory" ? selecao.data : conteudoSelecionado?.data ?? storySelecionado?.data ?? p.hoje;
@@ -82,14 +108,14 @@ export function Calendario(p: CalendarioProps) {
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">Calendário</h1>
-          <p className="mt-1 text-sm text-texto-2">{p.dia ? capitalizar(formatarLonga(p.dia)) : rotuloSemana(p.segunda)}</p>
+          <p className="mt-1 text-sm text-texto-2">{periodoTexto}</p>
         </div>
         {podeEditar && (
           <div className="flex flex-wrap gap-2">
             <Botao variante="secundaria" onClick={() => setSelecao({ tipo: "gerarMes" })}>
               <Sparkles className="h-5 w-5 text-ia" aria-hidden /> Gerar mês com IA
             </Botao>
-            <Botao onClick={() => setSelecao({ tipo: "novo", data: p.dia ?? (p.hoje >= p.segunda && p.hoje <= somarDias(p.segunda, 6) ? p.hoje : p.segunda) })}>
+            <Botao onClick={() => setSelecao({ tipo: "novo", data: diaAlvo })}>
               <Plus className="h-5 w-5" aria-hidden /> Novo conteúdo
             </Botao>
           </div>
@@ -99,17 +125,18 @@ export function Calendario(p: CalendarioProps) {
       {/* Navegação */}
       <div className="flex flex-wrap items-center gap-2">
         <div className="flex items-center gap-1 rounded-xl border border-borda bg-superficie p-1">
-          <Link href={url(p.dia ? { dia: somarDias(p.dia, -1), semana: null } : { semana: somarDias(p.segunda, -7) })} className="rounded-lg p-2 hover:bg-superficie-2" aria-label={p.dia ? "Dia anterior" : "Semana anterior"}>
+          <Link href={url(p.mes ? { mes: somarMeses(p.mes, -1) } : p.dia ? { dia: somarDias(p.dia, -1), semana: null } : { semana: somarDias(p.segunda, -7) })} className="rounded-lg p-2 hover:bg-superficie-2" aria-label={p.mes ? "Mês anterior" : p.dia ? "Dia anterior" : "Semana anterior"}>
             <ChevronLeft className="h-4 w-4" aria-hidden />
           </Link>
-          <Link href={url({ semana: null, dia: p.dia ? p.hoje : null })} className="rounded-lg px-3 py-1.5 text-sm font-medium hover:bg-superficie-2">{p.dia ? "Hoje" : "Esta semana"}</Link>
-          <Link href={url(p.dia ? { dia: somarDias(p.dia, 1), semana: null } : { semana: somarDias(p.segunda, 7) })} className="rounded-lg p-2 hover:bg-superficie-2" aria-label={p.dia ? "Próximo dia" : "Próxima semana"}>
+          <Link href={url(p.mes ? { mes: mesDaData(p.hoje) } : { semana: null, dia: p.dia ? p.hoje : null })} className="rounded-lg px-3 py-1.5 text-sm font-medium hover:bg-superficie-2">{p.mes ? "Este mês" : p.dia ? "Hoje" : "Esta semana"}</Link>
+          <Link href={url(p.mes ? { mes: somarMeses(p.mes, 1) } : p.dia ? { dia: somarDias(p.dia, 1), semana: null } : { semana: somarDias(p.segunda, 7) })} className="rounded-lg p-2 hover:bg-superficie-2" aria-label={p.mes ? "Próximo mês" : p.dia ? "Próximo dia" : "Próxima semana"}>
             <ChevronRight className="h-4 w-4" aria-hidden />
           </Link>
         </div>
         <div className="flex items-center gap-1 rounded-xl border border-borda bg-superficie p-1" role="group" aria-label="Visão">
-          <Link href={url({ dia: null })} aria-current={!p.dia ? "page" : undefined} className={`rounded-lg px-3 py-1.5 text-sm font-medium ${!p.dia ? "bg-primaria/10 text-primaria" : "hover:bg-superficie-2"}`}>Semana</Link>
-          <Link href={url({ dia: p.dia ?? (p.hoje >= p.segunda && p.hoje <= somarDias(p.segunda, 6) ? p.hoje : p.segunda) })} aria-current={p.dia ? "page" : undefined} className={`rounded-lg px-3 py-1.5 text-sm font-medium ${p.dia ? "bg-primaria/10 text-primaria" : "hover:bg-superficie-2"}`}>Dia</Link>
+          <Link href={url({ dia: null, mes: null, semana: semanaAlvo })} aria-current={!p.dia && !p.mes ? "page" : undefined} className={`rounded-lg px-3 py-1.5 text-sm font-medium ${!p.dia && !p.mes ? "bg-primaria/10 text-primaria" : "hover:bg-superficie-2"}`}>Semana</Link>
+          <Link href={url({ mes: null, semana: null, dia: diaAlvo })} aria-current={p.dia ? "page" : undefined} className={`rounded-lg px-3 py-1.5 text-sm font-medium ${p.dia ? "bg-primaria/10 text-primaria" : "hover:bg-superficie-2"}`}>Dia</Link>
+          <Link href={url({ dia: null, semana: null, mes: mesAlvo })} aria-current={p.mes ? "page" : undefined} className={`rounded-lg px-3 py-1.5 text-sm font-medium ${p.mes ? "bg-primaria/10 text-primaria" : "hover:bg-superficie-2"}`}>Mês</Link>
         </div>
         <div className="flex flex-wrap gap-1" role="group" aria-label="Filtrar por formato">
           {FILTROS.map((f) => (
@@ -118,23 +145,32 @@ export function Calendario(p: CalendarioProps) {
             </Link>
           ))}
         </div>
-        {podeEditar && sugestoes > 0 && !p.dia && (
-          <Botao variante="secundaria" tamanho="sm" carregando={pendente} onClick={aprovarTodas} className="ml-auto">
-            <Sparkles className="h-4 w-4 text-ia" aria-hidden /> Aprovar as {sugestoes} sugestões da semana
-          </Botao>
+        {!p.dia && (
+          <div className="flex flex-wrap gap-2 md:ml-auto">
+            <Botao variante="secundaria" tamanho="sm" carregando={copiando} onClick={copiarArtes}>
+              <ClipboardCopy className="h-4 w-4" aria-hidden /> Copiar artes {p.mes ? "do mês" : "da semana"}
+            </Botao>
+            {podeEditar && sugestoes > 0 && !p.mes && (
+              <Botao variante="secundaria" tamanho="sm" carregando={pendente} onClick={aprovarTodas}>
+                <Sparkles className="h-4 w-4 text-ia" aria-hidden /> Aprovar as {sugestoes} sugestões da semana
+              </Botao>
+            )}
+          </div>
         )}
       </div>
 
       {erro && <Aviso tipo="erro">{erro}</Aviso>}
       {mensagem && <Aviso tipo="sucesso">{mensagem}</Aviso>}
 
-      {p.dia ? (
+      {p.mes ? (
+        <VisaoMes mes={p.mes} hoje={p.hoje} conteudos={conteudosVisiveis} stories={storiesVisiveis} filtro={filtro} onAbrir={setSelecao} urlDia={(d) => url({ mes: null, dia: d })} />
+      ) : p.dia ? (
         <VisaoDia
           dia={p.dia} hoje={p.hoje} conteudos={conteudosVisiveis.filter((c) => c.data === p.dia)} stories={storiesVisiveis.filter((s) => s.data === p.dia)}
           tarefas={p.tarefas} podeEditar={podeEditar} onAbrir={setSelecao}
         />
       ) : (
-        <VisaoSemana dias={dias} hoje={p.hoje} conteudos={conteudosVisiveis} stories={storiesVisiveis} podeEditar={podeEditar} filtro={filtro} onAbrir={setSelecao} urlDia={(d) => url({ dia: d })} />
+        <VisaoSemana dias={dias} hoje={p.hoje} conteudos={conteudosVisiveis} stories={storiesVisiveis} podeEditar={podeEditar} filtro={filtro} onAbrir={setSelecao} urlDia={(d) => url({ dia: d, semana: null })} />
       )}
 
       {(selecao?.tipo === "conteudo" || selecao?.tipo === "novo") && (
@@ -216,6 +252,95 @@ function VisaoSemana({
             </section>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+// ---------- Mês ----------
+
+const DIAS_CABECALHO = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
+
+function ItemMes({ conteudo: c, onAbrir }: { conteudo: Conteudo; onAbrir: () => void }) {
+  const Icone = ICONE_FORMATO[c.formato];
+  return (
+    <button
+      type="button"
+      onClick={onAbrir}
+      className={`flex w-full items-center gap-1 rounded-md border bg-superficie px-1.5 py-1 text-left text-xs hover:border-primaria/60 ${c.status === "sugestao" ? "border-dashed border-ia/60" : "border-borda"}`}
+    >
+      <Icone className="h-3.5 w-3.5 shrink-0 text-texto-2" aria-hidden />
+      <span className="min-w-0 flex-1 truncate">{c.tema || c.formato}</span>
+      <span className="sr-only"> · {c.formato} · {STATUS[c.status].rotulo}</span>
+    </button>
+  );
+}
+
+function VisaoMes({
+  mes, hoje, conteudos, stories, filtro, onAbrir, urlDia,
+}: { mes: string; hoje: string; conteudos: Conteudo[]; stories: Story[]; filtro: Filtro; onAbrir: (s: Selecao) => void; urlDia: (d: string) => string }) {
+  const grade = useMemo(() => gradeDoMes(mes), [mes]);
+  const doMes = conteudos.filter((c) => mesDaData(c.data) === mes);
+  const storiesDoMes = stories.filter((s) => mesDaData(s.data) === mes);
+  const diasComItens = grade.flat().filter((d) => mesDaData(d) === mes && (doMes.some((c) => c.data === d) || storiesDoMes.some((s) => s.data === d)));
+
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-texto-2 tabular">
+        {doMes.length} {doMes.length === 1 ? "postagem" : "postagens"} no mês
+        {doMes.length > 0 && ` · ${(["Reels", "Carrossel", "Estático"] as const).map((f) => `${doMes.filter((c) => c.formato === f).length} ${f}`).join(" · ")}`}
+      </p>
+
+      {/* Computador: grade do mês */}
+      <div className="hidden md:block">
+        <div className="grid grid-cols-7 gap-1 pb-1" aria-hidden>
+          {DIAS_CABECALHO.map((d) => <span key={d} className="px-1 text-xs font-semibold uppercase text-texto-2">{d}</span>)}
+        </div>
+        <div className="grid grid-cols-7 gap-1">
+          {grade.flat().map((d) => {
+            const fora = mesDaData(d) !== mes;
+            const doDia = fora ? [] : doMes.filter((c) => c.data === d);
+            const stDoDia = fora ? [] : storiesDoMes.filter((s) => s.data === d);
+            const ehHoje = d === hoje;
+            const mostrar = doDia.slice(0, 3);
+            const resto = doDia.length - mostrar.length;
+            return (
+              <section key={d} aria-label={formatarLonga(d)} className={`flex min-h-[112px] flex-col gap-1 rounded-xl border p-1.5 ${ehHoje ? "border-primaria/60 bg-primaria/5" : fora ? "border-transparent bg-superficie-2/40" : "border-borda bg-superficie/50"}`}>
+                <Link href={urlDia(d)} className={`self-start rounded-md px-1 text-sm font-semibold tabular hover:bg-superficie-2 ${ehHoje ? "text-primaria" : fora ? "text-texto-3" : ""}`}>
+                  {Number(d.slice(8))}
+                </Link>
+                {mostrar.map((c) => <ItemMes key={c.id} conteudo={c} onAbrir={() => onAbrir({ tipo: "conteudo", id: c.id })} />)}
+                {resto > 0 && <Link href={urlDia(d)} className="px-1 text-xs text-primaria hover:underline">+{resto} {resto === 1 ? "outro" : "outros"}</Link>}
+                {stDoDia.map((st) => (
+                  <button key={st.id} type="button" onClick={() => onAbrir({ tipo: "story", id: st.id })} className={`flex items-center gap-1 rounded-md px-1.5 py-0.5 text-left text-xs text-texto-2 hover:bg-superficie-2 ${st.status === "sugestao" ? "border border-dashed border-ia/60" : ""}`}>
+                    <ICONE_FORMATO.Stories className="h-3.5 w-3.5 shrink-0" aria-hidden /> Stories
+                    <span className="sr-only"> · {STATUS[st.status].rotulo}</span>
+                  </button>
+                ))}
+              </section>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Celular: lista dos dias com postagem */}
+      <div className="space-y-3 md:hidden">
+        {diasComItens.length === 0 ? (
+          <div className="cartao border-dashed text-center text-sm text-texto-2">
+            {filtro === "todos" ? "Nada programado neste mês." : `Nenhum item de ${rotuloFiltro(filtro)} neste mês.`}
+          </div>
+        ) : (
+          diasComItens.map((d) => (
+            <section key={d} aria-label={formatarLonga(d)} className={`space-y-2 rounded-2xl border p-2 ${d === hoje ? "border-primaria/60 bg-primaria/5" : "border-borda bg-superficie/50"}`}>
+              <Link href={urlDia(d)} className="flex items-baseline justify-between gap-1 rounded-lg px-1 py-0.5 hover:bg-superficie-2">
+                <span className={`text-xs font-semibold uppercase ${d === hoje ? "text-primaria" : "text-texto-2"}`}>{formatarDiaSemanaCurto(d)}</span>
+                <span className={`text-sm font-semibold tabular ${d === hoje ? "text-primaria" : ""}`}>{formatarCurta(d)}</span>
+              </Link>
+              {doMes.filter((c) => c.data === d).map((c) => <CartaoConteudo key={c.id} conteudo={c} onAbrir={() => onAbrir({ tipo: "conteudo", id: c.id })} />)}
+              {storiesDoMes.filter((s) => s.data === d).map((s) => <CartaoStories key={s.id} story={s} onAbrir={() => onAbrir({ tipo: "story", id: s.id })} />)}
+            </section>
+          ))
+        )}
       </div>
     </div>
   );

@@ -11,7 +11,7 @@ import { chromium } from "playwright";
 import { AxeBuilder } from "@axe-core/playwright";
 
 const BASE = process.env.ESTUDIO_URL ?? "http://localhost:3000";
-const TELAS = ["inicio", "sugestoes", "calendario", "calendario-dia", "calendario&abrir=c1", "calendario&abrir=gerar-mes", "tarefas", "tarefas&abrir=t1", "painel", "painel&abrir=registrar", "marca", "empresa-nova"];
+const TELAS = ["inicio", "sugestoes", "calendario", "calendario-dia", "calendario-mes", "calendario&abrir=c1", "calendario&abrir=gerar-mes", "tarefas", "tarefas&abrir=t1", "painel", "painel&abrir=registrar", "marca", "empresa-nova"];
 const LARGURAS = [360, 1280];
 
 const browser = await chromium.launch();
