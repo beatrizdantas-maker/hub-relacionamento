@@ -196,6 +196,7 @@ A equipe produz as artes e grava os vídeos; a IA entrega o briefing completo (`
 - No editor do conteúdo, **Gerar briefing com IA** (`POST /api/ia/briefing`) refaz o briefing de um item a partir do que está no formulário; preenche roteiro, orientação de arte, legenda, CTA e ganchos, e nada é salvo até clicar em Salvar.
 - **Teleprompter**: nos Reels, lê as linhas "FALA:" do roteiro e mostra em tela cheia, com rolagem automática, velocidade, tamanho de letra e espelhamento.
 - Nenhuma alteração no banco: tudo fica nos campos que já existiam.
+- **Hashtags**: toda legenda escrita pela IA (Gerar mês, briefing e ideias das Sugestões) recebe de 5 a 10 hashtags, limpas e sem repetição, numa linha separada depois da chamada para ação (`src/lib/ia/hashtags.ts`, testado).
 
 ## Papéis e permissões
 

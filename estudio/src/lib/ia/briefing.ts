@@ -57,8 +57,9 @@ export const camposBriefing = {
 
 export const SaidaBriefing = z.object({
   ...camposBriefing,
-  legenda: z.string().describe("Legenda pronta, terminando com a chamada para ação"),
+  legenda: z.string().describe("Legenda pronta, terminando com a chamada para ação, sem hashtags"),
   cta: z.string(),
+  hashtags: z.array(z.string()).describe("De 5 a 10 hashtags em português para esta legenda"),
   ganchos: z.array(z.string()).describe("Reels: exatamente 3 ganchos alternativos (curiosidade, identificação, provocação). Outros: lista vazia"),
 });
 

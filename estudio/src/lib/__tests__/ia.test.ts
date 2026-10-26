@@ -118,10 +118,10 @@ describe("validação do que a IA devolve", () => {
       {
         resumo: "ok", manter: ["a"], melhorar: [], testar: [],
         ideias: [
-          { titulo: "Boa", formato: "Reels", dia: "2026-11-03", motivo: "(sem dado: hipótese)", legenda: "Legenda. Comenta EU QUERO", cta: "Comenta EU QUERO" },
-          { titulo: "Fora", formato: "Reels", dia: "2026-11-10", motivo: "", legenda: "x", cta: "y" },
-          { titulo: "Sem CTA", formato: "Carrossel", dia: "2026-11-04", motivo: "", legenda: "x", cta: " " },
-          { titulo: "Data ruim", formato: "Carrossel", dia: "03/11", motivo: "", legenda: "x", cta: "y" },
+          { titulo: "Boa", formato: "Reels", dia: "2026-11-03", motivo: "(sem dado: hipótese)", legenda: "Legenda. Comenta EU QUERO", cta: "Comenta EU QUERO", hashtags: [] },
+          { titulo: "Fora", formato: "Reels", dia: "2026-11-10", motivo: "", legenda: "x", cta: "y", hashtags: [] },
+          { titulo: "Sem CTA", formato: "Carrossel", dia: "2026-11-04", motivo: "", legenda: "x", cta: " ", hashtags: [] },
+          { titulo: "Data ruim", formato: "Carrossel", dia: "03/11", motivo: "", legenda: "x", cta: "y", hashtags: [] },
         ],
       },
       "2026-11-02", "2026-11-08",
@@ -131,7 +131,7 @@ describe("validação do que a IA devolve", () => {
 
   const dia = (data: string, extra: Partial<DiaGerado> = {}): DiaGerado => ({
     data, formato: "Reels", tipo: "Reels prova social", pilar: "Prova", tema: "Tema", objetivo: "Obj", legenda: "L. Me chama no direct", cta: "Me chama no direct",
-    ganchos: ["g1", "g2", "g3"],
+    ganchos: ["g1", "g2", "g3"], hashtags: ["#educacao"],
     conceito_visual: { estilo: "e", paleta: "p", tipografia: "t", fotografia: "f", elementos: "el" },
     slides: [], arte_estatico: null, musica: "lo-fi", dicas_producao: ["luz natural"],
     cenas: [

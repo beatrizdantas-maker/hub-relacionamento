@@ -22,8 +22,9 @@ export const SaidaSugestao = z.object({
       formato: z.enum(FORMATOS),
       dia: z.string().describe("Data no formato AAAA-MM-DD, dentro da semana sugerida"),
       motivo: z.string().describe("Por que esta ideia, citando entre parênteses o dado usado ou '(sem dado: hipótese)'"),
-      legenda: z.string().describe("Legenda pronta para publicar, terminando com a chamada para ação"),
+      legenda: z.string().describe("Legenda pronta para publicar, terminando com a chamada para ação, sem hashtags"),
       cta: z.string().describe("A chamada para ação concreta, igual à que fecha a legenda"),
+      hashtags: z.array(z.string()).describe("De 5 a 10 hashtags em português para esta legenda, sem o texto da legenda"),
     }),
   ),
 });
@@ -64,8 +65,9 @@ export const SaidaDiaCalendario = z.object({
   pilar: z.string(),
   tema: z.string().describe("Título curto do conteúdo"),
   objetivo: z.string(),
-  legenda: z.string().describe("Legenda pronta, terminando com a chamada para ação"),
+  legenda: z.string().describe("Legenda pronta, terminando com a chamada para ação, sem hashtags"),
   cta: z.string(),
+  hashtags: z.array(z.string()).describe("De 5 a 10 hashtags em português para esta legenda, sem o texto da legenda"),
   ...camposBriefing,
   ganchos: z.array(z.string()).describe("Reels: exatamente 3 ganchos alternativos na ordem curiosidade, identificação, provocação. Outros formatos: lista vazia"),
   stories: z.object({

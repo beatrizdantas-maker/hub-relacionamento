@@ -9,6 +9,7 @@ import { gerarTarefasPadrao } from "@/lib/tarefasPadrao";
 import { diaDaSemana, ehDataISO, inicioDaSemana, somarDias } from "@/lib/datas";
 import { TIPOS_TELA } from "@/lib/validacao/conteudo";
 import { formatarOrientacao, formatarRoteiro } from "@/lib/ia/briefing";
+import { juntarLegenda } from "@/lib/ia/hashtags";
 import type { RitmoDia, TelaStory } from "@/lib/tipos/database";
 
 export const runtime = "nodejs";
@@ -106,7 +107,7 @@ export async function POST(req: NextRequest) {
           tema: dia.tema.trim().slice(0, 200),
           objetivo: (dia.objetivo.trim() || slot.objetivo).slice(0, 120),
           roteiro: formatarRoteiro(slot.formato, dia),
-          legenda: dia.legenda.trim(),
+          legenda: juntarLegenda(dia.legenda, dia.hashtags),
           cta: dia.cta.trim().slice(0, 300),
           orientacao_arte: formatarOrientacao(dia),
           ganchos: slot.formato === "Reels" ? dia.ganchos.map((g) => g.trim().slice(0, 300)).slice(0, 3) : [],

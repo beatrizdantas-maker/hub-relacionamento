@@ -7,6 +7,7 @@ import { SaidaSugestao, validarSugestao } from "@/lib/ia/esquemas";
 import { montarPromptSugestoes } from "@/lib/ia/prompts";
 import { ehDataISO, inicioDaSemana, somarDias } from "@/lib/datas";
 import type { IdeiaSugestao } from "@/lib/tipos/database";
+import { juntarLegenda } from "@/lib/ia/hashtags";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -65,7 +66,7 @@ export async function POST(req: NextRequest) {
         manter: saida.manter.map((s) => s.trim()).filter(Boolean),
         melhorar: saida.melhorar.map((s) => s.trim()).filter(Boolean),
         testar: saida.testar.map((s) => s.trim()).filter(Boolean),
-        ideias: ideias.map((i) => ({ titulo: i.titulo.trim(), formato: i.formato, dia: i.dia, motivo: i.motivo.trim(), legenda: i.legenda.trim(), cta: i.cta.trim(), conteudo_id: null })) satisfies IdeiaSugestao[],
+        ideias: ideias.map((i) => ({ titulo: i.titulo.trim(), formato: i.formato, dia: i.dia, motivo: i.motivo.trim(), legenda: juntarLegenda(i.legenda, i.hashtags), cta: i.cta.trim(), conteudo_id: null })) satisfies IdeiaSugestao[],
       })
       .select("*")
       .maybeSingle();

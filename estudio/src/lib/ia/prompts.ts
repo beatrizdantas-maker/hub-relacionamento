@@ -83,6 +83,7 @@ export const REGRAS_GERAIS = `Regras obrigatórias:
 1. Use SOMENTE os números e fatos que estão neste pedido. Não invente dados, percentuais, nomes de posts ou resultados.
 2. Escreva em português do Brasil, no tom de voz da marca, e siga à risca as regras de linguagem da marca (palavras proibidas, modos de se referir a produtos etc.). Elas valem para tudo: temas, roteiros, legendas, stories e justificativas.
 3. Toda legenda termina com uma chamada para ação concreta (ex.: "Comenta EU QUERO", "Salva pra ver depois", "Me chama no direct", "Clica no link da bio"). Nunca termine uma legenda sem CTA.
+   Não escreva hashtags dentro da legenda: coloque de 5 a 10 em "hashtags" (sem espaços, em português, específicas do tema e do público da marca, misturando 2 ou 3 mais amplas com as de nicho, e respeitando as regras de linguagem). O sistema acrescenta as hashtags no fim da legenda.
 4. Nunca use emojis no lugar de palavras; emojis só como apoio, no máximo dois por legenda.`;
 
 // ---------- Sugestões da semana ----------

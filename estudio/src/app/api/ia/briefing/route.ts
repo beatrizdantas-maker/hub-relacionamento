@@ -5,6 +5,7 @@ import { ErroIA, MODELO_IA, obterClienteIA, traduzirErroIA } from "@/lib/ia/clie
 import { montarPromptBriefing } from "@/lib/ia/prompts";
 import { SaidaBriefing, formatarOrientacao, formatarRoteiro, problemasBriefing, type ModoReels } from "@/lib/ia/briefing";
 import { FORMATOS } from "@/lib/validacao/conteudo";
+import { juntarLegenda } from "@/lib/ia/hashtags";
 import type { FormatoConteudo } from "@/lib/tipos/database";
 
 export const runtime = "nodejs";
@@ -66,7 +67,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       roteiro: formatarRoteiro(formato, b),
       orientacao_arte: formatarOrientacao(b),
-      legenda: b.legenda.trim(),
+      legenda: juntarLegenda(b.legenda, b.hashtags),
       cta: b.cta.trim().slice(0, 300),
       ganchos: formato === "Reels" ? b.ganchos.map((g) => g.trim().slice(0, 300)).filter(Boolean).slice(0, 3) : [],
     });
