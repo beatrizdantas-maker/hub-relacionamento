@@ -170,3 +170,21 @@ export async function aceitarConvite(token: string): Promise<Resultado<{ empresa
   revalidarTudo();
   return { ok: true, empresaId: data };
 }
+
+// ---------------- Logo ----------------
+
+/**
+ * Grava (ou remove, com null) a URL da logo. Só aceita URLs do bucket de
+ * logos dentro da pasta da própria empresa.
+ */
+export async function salvarLogo(empresaId: string, url: string | null): Promise<Resultado> {
+  const { SUPABASE_URL } = await import("@/lib/supabase/config");
+  const prefixo = `${SUPABASE_URL}/storage/v1/object/public/estudio-logos/${empresaId}/`;
+  if (url !== null && !url.startsWith(prefixo)) return { ok: false, erro: "Endereço de logo inválido." };
+  const supabase = await criarClienteServidor();
+  const { data, error } = await supabase.from("empresas").update({ logo_url: url }).eq("id", empresaId).select("id");
+  if (error) return { ok: false, erro: mensagemErro(error) };
+  if (!data?.length) return { ok: false, erro: "Só Dono e Editor podem trocar a logo." };
+  revalidarTudo();
+  return { ok: true };
+}

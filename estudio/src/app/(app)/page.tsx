@@ -18,7 +18,7 @@ export default async function PaginaInicio() {
         <h1 className="text-3xl font-semibold tracking-tight">Bem-vinda ao Estúdio</h1>
         <div className="cartao space-y-3 border-dashed text-center">
           <p className="font-medium">Você ainda não participa de nenhuma empresa</p>
-          <p className="text-sm text-texto-2">Crie a primeira empresa em 3 passos ou aceite um convite que tenha recebido por e-mail.</p>
+          <p className="text-sm text-texto-2">Crie a primeira empresa em 2 passos ou aceite um convite que tenha recebido por e-mail.</p>
           <Link href="/empresas/nova" className="inline-flex h-11 items-center gap-2 rounded-xl bg-primaria px-4 font-medium text-sobre-primaria">
             <Plus className="h-5 w-5" aria-hidden /> Nova empresa
           </Link>

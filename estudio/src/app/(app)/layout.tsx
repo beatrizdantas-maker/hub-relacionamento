@@ -26,7 +26,7 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
     <div className="marca-empresa" style={estiloEmpresa(ctx.empresaAtiva?.cor_primaria, ctx.empresaAtiva?.cor_secundaria)}>
       <Casca
         usuario={ctx.usuario}
-        empresas={ctx.empresas.map((e) => ({ id: e.id, nome: e.nome, cor_primaria: e.cor_primaria, arquivada: e.arquivada }))}
+        empresas={ctx.empresas.map((e) => ({ id: e.id, nome: e.nome, cor_primaria: e.cor_primaria, arquivada: e.arquivada, logo_url: e.logo_url }))}
         empresaAtivaId={ctx.empresaAtiva?.id ?? null}
         atrasadas={atrasadas}
       >

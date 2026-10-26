@@ -26,6 +26,7 @@ export interface EmpresaResumo {
   nome: string;
   cor_primaria: string;
   arquivada: boolean;
+  logo_url?: string | null;
 }
 
 /**

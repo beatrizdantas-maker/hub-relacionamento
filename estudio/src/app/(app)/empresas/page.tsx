@@ -31,7 +31,7 @@ export default async function PaginaEmpresas({ searchParams }: { searchParams: P
         <div className="cartao border-dashed text-center">
           <p className="font-medium">Nenhuma empresa ainda</p>
           <p className="mt-1 text-sm text-texto-2">
-            Cada empresa tem o próprio calendário, equipe, métricas e sugestões. Clique em <strong>Nova empresa</strong> para começar: são 3 passos rápidos.
+            Cada empresa tem o próprio calendário, equipe, métricas e sugestões. Clique em <strong>Nova empresa</strong> para começar: são 2 passos rápidos.
           </p>
         </div>
       ) : (

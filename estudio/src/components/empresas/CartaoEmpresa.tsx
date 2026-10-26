@@ -11,6 +11,7 @@ import { Confirmacao } from "@/components/ui/Confirmacao";
 import { rotuloPapel } from "@/lib/papeis";
 import { arquivarEmpresa, definirEmpresaAtiva, excluirEmpresa } from "@/app/(app)/empresas/acoes";
 import type { EmpresaDoUsuario } from "@/lib/contexto";
+import { LogoEmpresa } from "./LogoEmpresa";
 
 export function CartaoEmpresa({ empresa, ativa }: { empresa: EmpresaDoUsuario; ativa: boolean }) {
   const router = useRouter();
@@ -32,9 +33,12 @@ export function CartaoEmpresa({ empresa, ativa }: { empresa: EmpresaDoUsuario; a
   return (
     <li className={`cartao space-y-3 ${empresa.arquivada ? "opacity-75" : ""}`} style={{ borderTopColor: empresa.cor_primaria, borderTopWidth: 4 }}>
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
+        <div className="flex min-w-0 items-center gap-3">
+          <LogoEmpresa nome={empresa.nome} logoUrl={empresa.logo_url} cor={empresa.cor_primaria} tamanho={44} />
+          <div className="min-w-0">
           <h2 className="truncate text-lg font-semibold">{empresa.nome}</h2>
           <p className="truncate text-sm text-texto-2">{empresa.perfil_instagram ? `@${empresa.perfil_instagram}` : "Sem perfil informado"}</p>
+          </div>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1">
           <Selo tom="neutro">{rotuloPapel(empresa.papel)}</Selo>

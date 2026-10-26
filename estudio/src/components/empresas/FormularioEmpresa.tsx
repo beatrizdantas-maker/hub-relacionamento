@@ -1,15 +1,18 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { Botao } from "@/components/ui/Botao";
 import { Aviso } from "@/components/ui/Aviso";
 import { CampoArea, CampoTexto } from "@/components/ui/Campo";
 import type { EntradaEmpresa } from "@/lib/validacao/empresa";
-import { criarEmpresa, atualizarEmpresa } from "@/app/(app)/empresas/acoes";
+import { criarEmpresa, atualizarEmpresa, salvarLogo } from "@/app/(app)/empresas/acoes";
+import { enviarLogo } from "@/lib/logo";
+import { CampoLogo } from "./CampoLogo";
 import type { Empresa, RitmoDia } from "@/lib/tipos/database";
-import { CampoCor, CamposMetas, CamposRitmo, EditorPilares, PreviaCores, metasParaTexto, ritmoOuPadrao, type MetasTexto } from "./campos";
+import { CampoCor, EditorPilares, PreviaCores, metasParaTexto, ritmoOuPadrao, type MetasTexto } from "./campos";
 
 type Estado = {
   nome: string;
@@ -47,17 +50,21 @@ function estadoInicial(e?: Empresa | null): Estado {
   };
 }
 
-const PASSOS = ["Dados da marca", "Público e objetivos", "Metas e ritmo semanal"];
+const PASSOS = ["Dados da marca", "Público e objetivos"];
 
 /**
- * Assistente de 3 passos para criar uma empresa; também serve para editar
- * (mesmos passos, botão "Salvar").
+ * Assistente de 2 passos para criar uma empresa; também serve para editar
+ * (mesmos passos, botão "Salvar"). Metas e ritmo não são pedidos aqui: a
+ * empresa nasce com o ritmo padrão e sem metas, e a tela Marca sugere os dois
+ * a partir dos dados reais (análise do sistema).
  */
 export function FormularioEmpresa({ empresa }: { empresa?: Empresa | null }) {
   const router = useRouter();
   const [passo, setPasso] = useState(0);
   const [dados, setDados] = useState<Estado>(() => estadoInicial(empresa));
   const [erro, setErro] = useState<string | null>(null);
+  const [aviso, setAviso] = useState<string | null>(null);
+  const [logo, setLogo] = useState<File | null>(null);
   const [pendente, iniciar] = useTransition();
   const editando = Boolean(empresa);
 
@@ -102,16 +109,35 @@ export function FormularioEmpresa({ empresa }: { empresa?: Empresa | null }) {
     if (e) return setErro(e);
     setErro(null);
     iniciar(async () => {
-      const r = editando ? await atualizarEmpresa(empresa!.id, montarEntrada()) : await criarEmpresa(montarEntrada());
+      if (editando) {
+        const r = await atualizarEmpresa(empresa!.id, montarEntrada());
+        if (!r.ok) return setErro(r.erro);
+        router.push("/empresas");
+        router.refresh();
+        return;
+      }
+      const r = await criarEmpresa(montarEntrada());
       if (!r.ok) return setErro(r.erro);
-      router.push(editando ? "/empresas" : "/");
+      if (logo) {
+        try {
+          const url = await enviarLogo(r.id, logo);
+          const g = await salvarLogo(r.id, url);
+          if (!g.ok) throw new Error(g.erro);
+        } catch (e) {
+          // A empresa já existe: avisa e segue; a logo pode ser enviada depois em Marca.
+          setAviso(`Empresa criada, mas a logo não foi enviada: ${(e as Error).message} Você pode enviar depois em Marca → Identidade.`);
+          router.refresh();
+          return;
+        }
+      }
+      router.push("/");
       router.refresh();
     });
   }
 
   return (
     <div className="space-y-5">
-      <ol className="grid grid-cols-3 gap-2" aria-label="Passos">
+      <ol className="grid grid-cols-2 gap-2" aria-label="Passos">
         {PASSOS.map((p, i) => (
           <li key={p} aria-current={i === passo ? "step" : undefined} className="min-w-0">
             <button
@@ -129,12 +155,14 @@ export function FormularioEmpresa({ empresa }: { empresa?: Empresa | null }) {
       </ol>
 
       {erro && <Aviso tipo="erro">{erro}</Aviso>}
+      {aviso && <Aviso tipo="info">{aviso} <Link href="/" className="underline">Ir para o Início</Link></Aviso>}
 
       <div className="cartao space-y-4">
         {passo === 0 && (
           <>
             <h2 className="text-lg font-semibold">Dados da marca</h2>
             <CampoTexto rotulo="Nome da empresa" required value={dados.nome} onChange={(e) => alterar("nome", e.target.value)} placeholder="Ex.: NARAEDU" maxLength={120} />
+            <CampoLogo empresaId={empresa?.id} logoAtual={empresa?.logo_url} nome={dados.nome} onArquivo={setLogo} />
             <CampoTexto rotulo="Perfil no Instagram" value={dados.perfil_instagram} onChange={(e) => alterar("perfil_instagram", e.target.value)} placeholder="@perfil" ajuda="Só o @, sem link." />
             <CampoArea rotulo="Sobre a marca" value={dados.sobre} onChange={(e) => alterar("sobre", e.target.value)} placeholder="O que a empresa faz, para quem e o que a diferencia." />
             <CampoArea rotulo="Tom de voz" value={dados.tom_de_voz} onChange={(e) => alterar("tom_de_voz", e.target.value)} placeholder="Ex.: próximo, direto, sem jargão; fala com a pessoa, não com a multidão." />
@@ -155,19 +183,14 @@ export function FormularioEmpresa({ empresa }: { empresa?: Empresa | null }) {
             <CampoArea rotulo="Objetivos" value={dados.objetivos} onChange={(e) => alterar("objetivos", e.target.value)} placeholder="Ex.: gerar conversas no direct; crescer em seguidores qualificados; vender X." />
             <EditorPilares pilares={dados.pilares} onChange={(p) => alterar("pilares", p)} onErro={setErro} />
             <CampoArea rotulo="Melhores horários" value={dados.melhores_horarios} onChange={(e) => alterar("melhores_horarios", e.target.value)} placeholder="Ex.: 12h e 20h nos dias de semana; 10h aos sábados." />
+            {!editando && (
+              <Aviso tipo="info">
+                Metas e ritmo semanal não precisam ser definidos agora. A empresa começa com o ritmo padrão e sem metas. Depois de importar os dados do Metricool, a tela Marca mostra a análise do sistema com metas e horários sugeridos a partir dos números reais.
+              </Aviso>
+            )}
           </>
         )}
 
-        {passo === 2 && (
-          <>
-            <h2 className="text-lg font-semibold">Metas do mês</h2>
-            <p className="text-sm text-texto-2">Deixe em branco o que ainda não tiver meta. Nada aqui é inventado: o painel só compara com dados reais.</p>
-            <CamposMetas metas={dados.metas} onChange={(m) => alterar("metas", m)} />
-            <h2 className="pt-2 text-lg font-semibold">Ritmo semanal</h2>
-            <p className="text-sm text-texto-2">Para cada dia: horário, formato, tipo e objetivo. O padrão sugerido já vem preenchido.</p>
-            <CamposRitmo ritmo={dados.ritmo_semanal} pilares={dados.pilares} onChange={(r) => alterar("ritmo_semanal", r)} />
-          </>
-        )}
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2">

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Megaphone, Palette, Plug, Repeat, Target, Trash2, Users } from "lucide-react";
+import { BarChart3, Check, Megaphone, Palette, Plug, Repeat, Target, Trash2, Users } from "lucide-react";
 import { Botao } from "@/components/ui/Botao";
 import { Aviso } from "@/components/ui/Aviso";
 import { Selo } from "@/components/ui/Selo";
@@ -14,6 +14,12 @@ import { excluirCampanha, removerTokenMetricool, salvarCampanha, salvarIntegraca
 import type { Campanha, Empresa, Papel, RitmoDia } from "@/lib/tipos/database";
 import type { SecaoMarca } from "@/lib/validacao/empresa";
 import { useSecaoMarca, type Conflito } from "./useSecaoMarca";
+import { CampoLogo } from "@/components/empresas/CampoLogo";
+import { aplicarHorarios, type AnaliseMetas, type AnaliseRitmo } from "@/lib/analiseSistema";
+import { formatarCurta } from "@/lib/datas";
+import { formatarNumero } from "@/lib/metricas";
+
+export type AnaliseMarca = { metas: AnaliseMetas; ritmo: AnaliseRitmo };
 
 export interface IntegracaoResumo {
   metricool_user_id: string;
@@ -33,7 +39,7 @@ const ABAS: { chave: Aba; rotulo: string; Icone: typeof Palette; soDono?: boolea
   { chave: "integracao", rotulo: "Metricool", Icone: Plug, soDono: true },
 ];
 
-export function EditorMarca({ empresa, papel, campanhas, integracao }: { empresa: Empresa; papel: Papel; campanhas: Campanha[]; integracao: IntegracaoResumo | null }) {
+export function EditorMarca({ empresa, papel, campanhas, integracao, analise }: { empresa: Empresa; papel: Papel; campanhas: Campanha[]; integracao: IntegracaoResumo | null; analise?: AnaliseMarca }) {
   const podeEditar = permissoes.podeEditar(papel);
   const [aba, setAba] = useState<Aba>("identidade");
 
@@ -71,8 +77,8 @@ export function EditorMarca({ empresa, papel, campanhas, integracao }: { empresa
 
       {aba === "identidade" && <SecaoIdentidade empresa={empresa} podeEditar={podeEditar} />}
       {aba === "publico" && <SecaoPublico empresa={empresa} podeEditar={podeEditar} />}
-      {aba === "metas" && <SecaoMetas empresa={empresa} podeEditar={podeEditar} />}
-      {aba === "ritmo" && <SecaoRitmo empresa={empresa} podeEditar={podeEditar} />}
+      {aba === "metas" && <SecaoMetas empresa={empresa} podeEditar={podeEditar} analise={analise?.metas} />}
+      {aba === "ritmo" && <SecaoRitmo empresa={empresa} podeEditar={podeEditar} analise={analise?.ritmo} />}
       {aba === "campanhas" && <SecaoCampanhas empresaId={empresa.id} campanhas={campanhas} podeEditar={podeEditar} />}
       {aba === "integracao" && papel === "dono" && integracao && <SecaoIntegracao empresaId={empresa.id} integracao={integracao} />}
     </div>
@@ -198,6 +204,7 @@ function SecaoIdentidade({ empresa, podeEditar }: { empresa: Empresa; podeEditar
   return (
     <MolduraSecao titulo="Identidade" descricao="Nome, perfil, tom de voz, regras e cores. As regras de linguagem valem para tudo que a IA escrever para esta empresa." estado={s} podeEditar={podeEditar} deEmpresa={deIdentidade}>
       <CampoTexto rotulo="Nome da empresa" required value={v.nome} onChange={(e) => s.alterar({ nome: e.target.value })} maxLength={120} />
+      <CampoLogo empresaId={empresa.id} logoAtual={empresa.logo_url} nome={empresa.nome} disabled={!podeEditar} />
       <CampoTexto rotulo="Perfil no Instagram" value={v.perfil_instagram} onChange={(e) => s.alterar({ perfil_instagram: e.target.value })} placeholder="@perfil" ajuda="Só o @, sem link." />
       <CampoArea rotulo="Sobre a marca" value={v.sobre} onChange={(e) => s.alterar({ sobre: e.target.value })} placeholder="O que a empresa faz, para quem e o que a diferencia." />
       <CampoArea rotulo="Tom de voz" value={v.tom_de_voz} onChange={(e) => s.alterar({ tom_de_voz: e.target.value })} placeholder="Ex.: próximo, direto, sem jargão." />
@@ -235,24 +242,129 @@ function SecaoPublico({ empresa, podeEditar }: { empresa: Empresa; podeEditar: b
 type MetasSecao = { metas: MetasTexto };
 const deMetas = (e: Empresa): MetasSecao => ({ metas: metasParaTexto(e.metas) });
 
-function SecaoMetas({ empresa, podeEditar }: { empresa: Empresa; podeEditar: boolean }) {
+function SecaoMetas({ empresa, podeEditar, analise }: { empresa: Empresa; podeEditar: boolean; analise?: AnaliseMetas }) {
   const s = useSecaoMarca<MetasSecao>({ empresa, secao: "metas", deEmpresa: deMetas, podeEditar });
+  function usarSugeridas() {
+    if (!analise) return;
+    const novas = { ...s.valores.metas };
+    for (const i of analise.itens) if (i.sugerida != null) novas[i.chave] = String(i.sugerida);
+    s.alterar({ metas: novas });
+  }
   return (
-    <MolduraSecao titulo="Metas do mês" descricao="Usadas nas barras de progresso do painel. Deixe em branco o que não tiver meta; nada é inventado." estado={s} podeEditar={podeEditar} deEmpresa={deMetas}>
+    <MolduraSecao titulo="Metas do mês" descricao="Usadas nas barras de progresso do painel. A análise do sistema sugere metas a partir dos seus números reais; você aplica e ajusta." estado={s} podeEditar={podeEditar} deEmpresa={deMetas}>
+      {analise && <AnaliseMetasCaixa analise={analise} podeEditar={podeEditar} onUsar={usarSugeridas} />}
       <CamposMetas metas={s.valores.metas} onChange={(m) => s.alterar({ metas: m })} disabled={!podeEditar} />
     </MolduraSecao>
+  );
+}
+
+function AnaliseMetasCaixa({ analise, podeEditar, onUsar }: { analise: AnaliseMetas; podeEditar: boolean; onUsar: () => void }) {
+  return (
+    <section aria-labelledby="analise-metas" className="space-y-3 rounded-xl border border-real/40 bg-real/10 p-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 id="analise-metas" className="flex items-center gap-2 text-base font-semibold text-real"><BarChart3 className="h-4 w-4" aria-hidden /> Análise do sistema</h3>
+        <Selo tom="real">Dado real · calculado pelo sistema</Selo>
+      </div>
+      {!analise.temSugestao ? (
+        <p className="text-sm text-texto-2">Ainda não há dados suficientes. Importe do Metricool (Painel → Atualizar do Metricool) ou registre semanas no Painel. Com pelo menos uma semana completa, o sistema sugere as metas aqui.</p>
+      ) : (
+        <>
+          <p className="text-sm text-texto-2">
+            Base: {analise.periodo ? `${analise.periodo.semanas} ${analise.periodo.semanas === 1 ? "semana completa" : "semanas completas"} (${formatarCurta(analise.periodo.de)} a ${formatarCurta(analise.periodo.ate)})` : "posts recentes"}. Meta sugerida = valor real + 10%, arredondado.
+          </p>
+          <div className="relative overflow-x-auto" tabIndex={0} role="region" aria-label="Metas sugeridas pelo sistema">
+            <table className="w-full min-w-[420px] text-sm">
+              <thead>
+                <tr className="text-left text-xs text-texto-2">
+                  <th className="py-1 pr-2 font-medium">Meta</th>
+                  <th className="py-1 pr-2 text-right font-medium">Real hoje</th>
+                  <th className="py-1 pr-2 text-right font-medium">Sugerida</th>
+                </tr>
+              </thead>
+              <tbody>
+                {analise.itens.map((i) => (
+                  <tr key={i.chave} className="border-t border-real/20 align-top">
+                    <td className="py-1.5 pr-2">
+                      <span className="block">{i.rotulo}</span>
+                      <span className="block text-xs text-texto-2">{i.base}</span>
+                    </td>
+                    <td className="py-1.5 pr-2 text-right tabular">{formatarNumero(i.real, i.tipo)}</td>
+                    <td className="py-1.5 pr-2 text-right font-semibold tabular">{i.sugerida == null ? <span className="font-normal text-texto-2">sem dado</span> : formatarNumero(i.sugerida, i.tipo)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {podeEditar && (
+            <div className="flex flex-wrap items-center gap-2">
+              <Botao type="button" tamanho="sm" variante="secundaria" onClick={onUsar}><Check className="h-4 w-4" aria-hidden /> Usar metas sugeridas</Botao>
+              <span className="text-xs text-texto-2">Preenche os campos abaixo; confira e clique em Salvar.</span>
+            </div>
+          )}
+        </>
+      )}
+    </section>
   );
 }
 
 type RitmoSecao = { ritmo_semanal: RitmoDia[] };
 const deRitmo = (e: Empresa): RitmoSecao => ({ ritmo_semanal: ritmoOuPadrao(e.ritmo_semanal) });
 
-function SecaoRitmo({ empresa, podeEditar }: { empresa: Empresa; podeEditar: boolean }) {
+function SecaoRitmo({ empresa, podeEditar, analise }: { empresa: Empresa; podeEditar: boolean; analise?: AnaliseRitmo }) {
   const s = useSecaoMarca<RitmoSecao>({ empresa, secao: "ritmo", deEmpresa: deRitmo, podeEditar });
   return (
     <MolduraSecao titulo="Ritmo semanal" descricao="Para cada dia: horário, formato, tipo, pilar e objetivo. A geração de calendário pela IA segue este ritmo." estado={s} podeEditar={podeEditar} deEmpresa={deRitmo}>
+      {analise && <AnaliseRitmoCaixa analise={analise} podeEditar={podeEditar} onAplicar={() => s.alterar({ ritmo_semanal: aplicarHorarios(s.valores.ritmo_semanal, analise.mudancas) })} />}
       <CamposRitmo ritmo={s.valores.ritmo_semanal} pilares={empresa.pilares ?? []} onChange={(r) => s.alterar({ ritmo_semanal: r })} disabled={!podeEditar} />
     </MolduraSecao>
+  );
+}
+
+function AnaliseRitmoCaixa({ analise, podeEditar, onAplicar }: { analise: AnaliseRitmo; podeEditar: boolean; onAplicar: () => void }) {
+  const comHora = analise.porFormato.filter((f) => f.melhorHora);
+  return (
+    <section aria-labelledby="analise-ritmo" className="space-y-3 rounded-xl border border-real/40 bg-real/10 p-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 id="analise-ritmo" className="flex items-center gap-2 text-base font-semibold text-real"><BarChart3 className="h-4 w-4" aria-hidden /> Análise do sistema</h3>
+        <Selo tom="real">Dado real · calculado pelo sistema</Selo>
+      </div>
+      {comHora.length === 0 ? (
+        <p className="text-sm text-texto-2">
+          Ainda não há posts suficientes para sugerir horários{analise.totalPosts ? ` (${analise.totalPosts} posts nas últimas 8 semanas; é preciso pelo menos 2 no mesmo horário e formato)` : ""}. Importe do Metricool para o sistema analisar.
+        </p>
+      ) : (
+        <>
+          <p className="text-sm text-texto-2">Melhor horário por formato nas últimas 8 semanas, pela média de interações:</p>
+          <ul className="space-y-1 text-sm">
+            {analise.porFormato.map((f) => (
+              <li key={f.formato} className="flex flex-wrap justify-between gap-2">
+                <span>{f.formato}</span>
+                <span className="tabular text-texto-2">
+                  {f.melhorHora ? <><strong className="text-texto">{f.melhorHora}</strong> · média {formatarNumero(f.mediaInteracoes)} interações ({f.posts} de {f.totalPosts} posts)</> : `sem dado suficiente (${f.totalPosts} posts)`}
+                </span>
+              </li>
+            ))}
+          </ul>
+          {analise.mudancas.length === 0 ? (
+            <p className="text-sm text-texto-2">O ritmo atual já usa os melhores horários.</p>
+          ) : (
+            <>
+              <ul className="space-y-1 text-sm">
+                {analise.mudancas.map((m) => (
+                  <li key={m.dia}><strong>{DIAS[m.dia - 1]}</strong>: {m.horaAtual} → <strong>{m.horaSugerida}</strong> <span className="text-texto-2">({m.motivo})</span></li>
+                ))}
+              </ul>
+              {podeEditar && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <Botao type="button" tamanho="sm" variante="secundaria" onClick={onAplicar}><Check className="h-4 w-4" aria-hidden /> Aplicar horários sugeridos</Botao>
+                  <span className="text-xs text-texto-2">Muda só as horas; confira e clique em Salvar.</span>
+                </div>
+              )}
+            </>
+          )}
+        </>
+      )}
+    </section>
   );
 }
 

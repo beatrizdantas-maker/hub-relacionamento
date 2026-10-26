@@ -9,6 +9,7 @@ import { EditorMarca } from "@/components/marca/EditorMarca";
 import { FormularioEmpresa } from "@/components/empresas/FormularioEmpresa";
 import { estiloEmpresa } from "@/lib/cores";
 import { agruparTarefasInicio } from "@/lib/inicio";
+import { analisarMetas, analisarRitmo } from "@/lib/analiseSistema";
 import { compararUltimos, progressoMetas, semanaParaPeriodo } from "@/lib/metricas";
 import { CAMPANHAS, CONTEUDOS, EMPRESA, HOJE, POSTS, SEMANAS, STORIES, SUGESTAO, TAREFAS } from "./fixtures";
 import type { Papel } from "@/lib/tipos/database";
@@ -41,7 +42,7 @@ export default async function Pagina({ searchParams }: { searchParams: Promise<{
       conteudo = <PainelEvolucao empresa={{ id: "e1", nome: "NARAEDU", metas: EMPRESA.metas }} papel={papel} hoje={HOJE} visao="semanas" abrir={sp.abrir ?? null} semanas={SEMANAS} posts={POSTS} metricool={papel === "dono" ? { configurado: true, ultimaImportacao: "2026-10-27T09:00:00Z" } : null} />;
       break;
     case "marca":
-      conteudo = <EditorMarca empresa={EMPRESA} papel={papel} campanhas={CAMPANHAS} integracao={papel === "dono" ? { metricool_user_id: "5391741", metricool_brand_id: "6987210", tokenMascarado: "abcd…wxyz", tokenIlegivel: false, ultimaImportacao: null } : null} />;
+      conteudo = <EditorMarca empresa={EMPRESA} papel={papel} campanhas={CAMPANHAS} integracao={papel === "dono" ? { metricool_user_id: "5391741", metricool_brand_id: "6987210", tokenMascarado: "abcd…wxyz", tokenIlegivel: false, ultimaImportacao: null } : null} analise={{ metas: analisarMetas({ hoje: HOJE, semanas: sp.abrir === "vazio" ? [] : SEMANAS, posts: sp.abrir === "vazio" ? [] : POSTS }), ritmo: analisarRitmo({ hoje: HOJE, posts: POSTS, ritmo: EMPRESA.ritmo_semanal, fuso: "America/Sao_Paulo" }) }} />;
       break;
     case "empresa-nova":
       conteudo = <FormularioEmpresa />;

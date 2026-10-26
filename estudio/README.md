@@ -175,6 +175,12 @@ Observação: a cor primária de cada empresa é escolhida por quem cadastra. O 
 5. **Rotas de IA** usam `maxDuration = 300` (5 min). No plano Hobby isso exige Fluid Compute ligado (padrão nos projetos novos). Se o build reclamar do limite, reduza para 60 em `src/app/api/ia/*/route.ts` e gere o mês com menos dias por vez.
 6. **Depois do primeiro acesso**: criar a empresa, preencher Marca (ritmo, metas, regras de linguagem), conectar o Metricool e importar, convidar a equipe com os papéis certos.
 
+## Logo e análise do sistema
+
+- **Logo da empresa**: no cadastro (passo 1) e em Marca → Identidade. A imagem é reduzida no navegador para no máximo 512 px (WebP ou PNG) e vai para o bucket público `estudio-logos` do Supabase Storage, na pasta da empresa (`<empresa_id>/`). Só Dono e Editor gravam (políticas de `storage.objects` em `0006_logo.sql`). A logo aparece no seletor de empresas e nos cartões; sem logo, aparece a inicial na cor da marca.
+- **Cadastro em 2 passos**: dados da marca e público. Metas e ritmo não são pedidos: a empresa nasce com o ritmo padrão e sem metas.
+- **Análise do sistema** (`src/lib/analiseSistema.ts`, testada, sem IA): em Marca → Metas, sugere cada meta como valor real das últimas 4 semanas completas + 10%, arredondado (salvamentos por carrossel e alcance por Reels usam os posts das últimas 8 semanas, com no mínimo 2 posts). Em Marca → Ritmo, mostra o melhor horário por formato pela média de interações e oferece aplicar só as horas. Sem dado suficiente, não sugere nada. Nada é salvo sem clicar em Salvar.
+
 ## Papéis e permissões
 
 | Ação | Dono | Editor | Colaborador | Leitor |

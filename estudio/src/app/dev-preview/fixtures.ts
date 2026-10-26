@@ -1,5 +1,5 @@
 import type { Campanha, Conteudo, Empresa, MetricaSemanal, ResultadoPost, Story, Sugestao, Tarefa } from "@/lib/tipos/database";
-import { RITMO_PADRAO } from "@/components/empresas/campos";
+import { RITMO_PADRAO } from "@/lib/padroes";
 import { somarDias } from "@/lib/datas";
 
 export const HOJE = "2026-10-28";
@@ -8,7 +8,7 @@ export const EMPRESA: Empresa = {
   objetivos: "Gerar conversas no direct", tom_de_voz: "Próximo e direto", regras_de_linguagem: "Nunca usar 'IA' ou 'inteligência artificial'.", regras_de_imagem: null,
   pilares: ["Educação", "Prova social", "Bastidores"], melhores_horarios: "20h", cor_primaria: "#7c3aed", cor_secundaria: "#f59e0b", fuso_horario: "America/Sao_Paulo",
   metas: { visualizacoes_dia: 3000, seguidores_liquidos_mes: 100, mensagens_mes: 40, salvamentos_carrossel: 40, alcance_reels: 5000, engajamento_pct: 6 },
-  ritmo_semanal: RITMO_PADRAO, arquivada: false, criado_por: null, criado_em: "", atualizado_em: "2026-10-01T00:00:00Z",
+  ritmo_semanal: RITMO_PADRAO, arquivada: false, logo_url: null, criado_por: null, criado_em: "", atualizado_em: "2026-10-01T00:00:00Z",
 };
 export const c = (p: Partial<Conteudo> & { id: string; data: string; formato: Conteudo["formato"]; tema: string }): Conteudo => ({
   empresa_id: "e1", hora: "20:00", tipo: null, pilar: null, objetivo: null, roteiro: "0–3 s: gancho…", legenda: "Legenda. Comenta EU QUERO", cta: "Comenta EU QUERO", orientacao_arte: null, ganchos: ["g1", "g2", "g3"], notas: null,

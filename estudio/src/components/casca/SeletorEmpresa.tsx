@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
+import { LogoEmpresa } from "@/components/empresas/LogoEmpresa";
 import { useRouter } from "next/navigation";
 import { Building2, Check, ChevronsUpDown, Plus } from "lucide-react";
 import { definirEmpresaAtiva } from "@/app/(app)/empresas/acoes";
@@ -59,7 +60,7 @@ export function SeletorEmpresa({ empresas, ativaId }: { empresas: EmpresaResumo[
         disabled={pendente}
         className="flex h-10 max-w-[70vw] items-center gap-2 rounded-xl border border-borda bg-superficie px-3 text-sm font-medium hover:bg-superficie-2 disabled:opacity-60 md:max-w-xs"
       >
-        <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: ativa?.cor_primaria ?? "#999" }} aria-hidden />
+        {ativa ? <LogoEmpresa nome={ativa.nome} logoUrl={ativa.logo_url} cor={ativa.cor_primaria} tamanho={22} /> : <span className="h-3 w-3 shrink-0 rounded-full bg-texto-3" aria-hidden />}
         <span className="truncate">{pendente ? "Trocando…" : ativa?.nome ?? "Escolher empresa"}</span>
         <ChevronsUpDown className="h-4 w-4 shrink-0 text-texto-3" aria-hidden />
       </button>
@@ -74,7 +75,7 @@ export function SeletorEmpresa({ empresas, ativaId }: { empresas: EmpresaResumo[
                   onClick={() => escolher(e.id)}
                   className={`flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm hover:bg-superficie-2 ${e.id === ativaId ? "font-semibold" : ""}`}
                 >
-                  <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: e.cor_primaria }} aria-hidden />
+                  <LogoEmpresa nome={e.nome} logoUrl={e.logo_url} cor={e.cor_primaria} tamanho={22} />
                   <span className="min-w-0 flex-1 truncate">{e.nome}</span>
                   {e.id === ativaId && <Check className="h-4 w-4 text-primaria" aria-hidden />}
                 </button>

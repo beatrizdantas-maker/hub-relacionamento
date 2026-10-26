@@ -57,7 +57,7 @@ export type EmpresaRow = {
   id: string; nome: string; perfil_instagram: string | null; sobre: string | null; publico: string | null;
   objetivos: string | null; tom_de_voz: string | null; regras_de_linguagem: string | null; regras_de_imagem: string | null;
   pilares: string[]; melhores_horarios: string | null; cor_primaria: string; cor_secundaria: string;
-  fuso_horario: string; metas: Metas; ritmo_semanal: RitmoDia[]; arquivada: boolean;
+  fuso_horario: string; metas: Metas; ritmo_semanal: RitmoDia[]; arquivada: boolean; logo_url: string | null;
   criado_por: string | null; criado_em: string; atualizado_em: string;
 }
 

@@ -6,28 +6,12 @@ import { Botao } from "@/components/ui/Botao";
 import { CampoSelecao, CampoTexto } from "@/components/ui/Campo";
 import { OBJETIVOS_RITMO } from "@/lib/validacao/empresa";
 import type { FormatoConteudo, Metas, RitmoDia } from "@/lib/tipos/database";
+import { METAS_PADRAO } from "@/lib/padroes";
 
 export const DIAS = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"];
 export const FORMATOS: FormatoConteudo[] = ["Reels", "Carrossel", "Estático"];
 
-export const RITMO_PADRAO: RitmoDia[] = [
-  { dia: 1, hora: "12:00", formato: "Carrossel", tipo: "Carrossel salvável", pilar: "", objetivo: "salvamentos" },
-  { dia: 2, hora: "20:00", formato: "Reels", tipo: "Reels com a pessoa da marca falando", pilar: "", objetivo: "alcance" },
-  { dia: 3, hora: "20:00", formato: "Reels", tipo: "Reels de prova social", pilar: "", objetivo: "direct" },
-  { dia: 4, hora: "12:00", formato: "Carrossel", tipo: "Campanha ativa", pilar: "", objetivo: "engajamento" },
-  { dia: 5, hora: "19:00", formato: "Carrossel", tipo: "Carrossel de dor do cliente", pilar: "", objetivo: "direct" },
-  { dia: 6, hora: "20:00", formato: "Estático", tipo: "Estático de identificação", pilar: "", objetivo: "comentarios" },
-  { dia: 7, hora: "20:00", formato: "Reels", tipo: "Reels com texto na tela", pilar: "", objetivo: "compartilhamentos" },
-];
-
-export const METAS_PADRAO: Metas = {
-  visualizacoes_dia: null,
-  seguidores_liquidos_mes: null,
-  mensagens_mes: null,
-  salvamentos_carrossel: null,
-  alcance_reels: null,
-  engajamento_pct: null,
-};
+export { METAS_PADRAO, RITMO_PADRAO } from "@/lib/padroes";
 
 export const CAMPOS_METAS: { chave: keyof Metas; rotulo: string; ajuda: string }[] = [
   { chave: "visualizacoes_dia", rotulo: "Visualizações por dia", ajuda: "Média diária" },
@@ -45,9 +29,7 @@ export function metasParaTexto(m?: Partial<Metas> | null): MetasTexto {
   return Object.fromEntries(Object.entries(base).map(([k, v]) => [k, v == null ? "" : String(v)])) as MetasTexto;
 }
 
-export function ritmoOuPadrao(r?: RitmoDia[] | null): RitmoDia[] {
-  return Array.isArray(r) && r.length === 7 ? r.map((x) => ({ ...x })) : RITMO_PADRAO.map((x) => ({ ...x }));
-}
+export { ritmoOuPadrao } from "@/lib/padroes";
 
 export const FUSOS = [
   { valor: "America/Sao_Paulo", rotulo: "Brasília (America/Sao_Paulo)" },
