@@ -15,6 +15,8 @@ import { permissoes } from "@/lib/papeis";
 import { criarTarefasPadrao, excluirConteudo, mudarStatusTarefa, salvarConteudo } from "@/app/(app)/calendario/acoes";
 import type { Conteudo, FormatoConteudo, Papel, RitmoDia, StatusConteudo, Tarefa } from "@/lib/tipos/database";
 import { Painel } from "./Painel";
+import { PecasProntas } from "./PecasProntas";
+import type { DadosMarca } from "@/lib/pecas/exportar";
 import { ORIGEM, STATUS } from "./rotulos";
 
 type Form = {
@@ -40,10 +42,10 @@ function formDe(c: Conteudo | null, data: string, ritmo: RitmoDia[]): Form {
 const STATUS_TAREFA: Record<Tarefa["status"], string> = { pendente: "Pendente", em_producao: "Em produção", aguardando: "Aguardando", concluido: "Concluída" };
 
 export function EditorConteudo({
-  empresaId, conteudo, dataInicial, ritmo, pilares, campanhas, tarefas, papel, usuarioId, hoje, onFechar,
+  empresaId, conteudo, dataInicial, ritmo, pilares, campanhas, tarefas, papel, usuarioId, hoje, onFechar, marca,
 }: {
   empresaId: string; conteudo: Conteudo | null; dataInicial: string; ritmo: RitmoDia[]; pilares: string[]; campanhas: { id: string; nome: string }[];
-  tarefas: Tarefa[]; papel: Papel; usuarioId: string; hoje: string; onFechar: () => void;
+  tarefas: Tarefa[]; papel: Papel; usuarioId: string; hoje: string; onFechar: () => void; marca: DadosMarca;
 }) {
   const router = useRouter();
   const podeEditar = permissoes.podeEditar(papel);
@@ -232,6 +234,8 @@ export function EditorConteudo({
             </label>
           )}
         </fieldset>
+
+        {atual && <PecasProntas key={`${atual.id}-${atual.atualizado_em}`} empresaId={empresaId} conteudo={atual} marca={marca} podeEditar={podeEditar} />}
 
         {atual && (
           <section className="space-y-2 border-t border-borda pt-3">

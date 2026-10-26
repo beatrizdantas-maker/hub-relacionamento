@@ -51,6 +51,15 @@ export type IdeiaSugestao = {
   conteudo_id?: string | null; // preenchido quando a ideia vira item do calendário
 }
 
+export type SlidePeca = { papel: "capa" | "conteudo" | "fechamento"; titulo: string; texto: string; destaque: string | null };
+export type CenaVideo = { texto: string; destaque: string | null; segundos: number };
+export type CenaFalada = { inicio_s: number; fim_s: number; fala: string; enquadramento: string; texto_na_tela: string | null };
+export type Pecas =
+  | { tipo: "carrossel"; gerado_em: string; slides: SlidePeca[] }
+  | { tipo: "estatico"; gerado_em: string; titulo: string; texto: string; destaque: string | null; rodape: string | null }
+  | { tipo: "video"; gerado_em: string; cenas: CenaVideo[] }
+  | { tipo: "roteiro_falado"; gerado_em: string; duracao_s: number; cenas: CenaFalada[]; dicas: string[] };
+
 type Linha<Row, Insert = Partial<Row>, Update = Partial<Row>> = { Row: Row; Insert: Insert; Update: Update; Relationships: [] };
 
 export type EmpresaRow = {
@@ -82,7 +91,7 @@ export interface Database {
       conteudos: Linha<{
         id: string; empresa_id: string; data: string; hora: string | null; formato: FormatoConteudo; tipo: string | null;
         pilar: string | null; tema: string; objetivo: string | null; roteiro: string | null; legenda: string | null; cta: string | null;
-        orientacao_arte: string | null; ganchos: string[]; notas: string | null; status: StatusConteudo; origem: Origem;
+        orientacao_arte: string | null; ganchos: string[]; notas: string | null; status: StatusConteudo; origem: Origem; pecas?: Pecas | null;
         campanha_id: string | null; criado_por: string | null; criado_em: string; atualizado_em: string;
       }>;
       stories: Linha<{

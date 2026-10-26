@@ -181,6 +181,20 @@ Observação: a cor primária de cada empresa é escolhida por quem cadastra. O 
 - **Cadastro em 2 passos**: dados da marca e público. Metas e ritmo não são pedidos: a empresa nasce com o ritmo padrão e sem metas.
 - **Análise do sistema** (`src/lib/analiseSistema.ts`, testada, sem IA): em Marca → Metas, sugere cada meta como valor real das últimas 4 semanas completas + 10%, arredondado (salvamentos por carrossel e alcance por Reels usam os posts das últimas 8 semanas, com no mínimo 2 posts). Em Marca → Ritmo, mostra o melhor horário por formato pela média de interações e oferece aplicar só as horas. Sem dado suficiente, não sugere nada. Nada é salvo sem clicar em Salvar.
 
+## Peças prontas (carrossel, post, Reels e stories)
+
+No editor de cada conteúdo, a seção **Peças prontas** transforma o planejamento em material para publicar. A IA escreve (`POST /api/ia/peca`, saída estruturada e normalizada em `src/lib/pecas/esquemas.ts`, salva em `conteudos.pecas`) e o sistema desenha no navegador, sem servidor e sem custo extra (`src/lib/pecas/desenho.ts` e `exportar.ts`):
+
+| Formato | O que sai |
+| --- | --- |
+| Carrossel | 5 a 8 imagens PNG 1080×1350 (capa, conteúdo, fechamento) com cores, fontes, logo e @perfil da marca; baixa em ZIP |
+| Estático | 1 imagem PNG 1080×1350 |
+| Reels de texto | Vídeo MP4 H.264 1080×1920, 30 fps, gerado com o codificador do navegador (WebCodecs, via `mediabunny`); sem áudio (a música entra no Instagram) |
+| Reels com pessoa | Roteiro cena a cena com a fala palavra por palavra, enquadramento e texto na tela; teleprompter em tela cheia com rolagem, velocidade, tamanho de letra e espelhamento |
+| Stories | As telas viram PNG 1080×1920; enquete, pergunta e quiz aparecem como guia para a figurinha interativa ser posta no Instagram |
+
+Os textos podem ser editados à mão antes de baixar ("Editar textos"); isso não chama a IA de novo. A migração `0007_pecas.sql` cria a coluna `conteudos.pecas`.
+
 ## Papéis e permissões
 
 | Ação | Dono | Editor | Colaborador | Leitor |

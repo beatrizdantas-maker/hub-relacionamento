@@ -18,9 +18,23 @@ export const t = (p: Partial<Tarefa> & { id: string; titulo: string; prazo: stri
   empresa_id: "e1", conteudo_id: "c1", tipo: "Outro", responsavel_id: "u1", prioridade: "Média", status: "pendente", concluido_em: null, origem: "equipe", criado_por: null, criado_em: "", atualizado_em: "", ...p,
 });
 export const CONTEUDOS: Conteudo[] = [
-  c({ id: "c1", data: HOJE, formato: "Reels", tema: "Por que seu filho esquece o que estudou", status: "producao", tipo: "Reels pessoa falando" }),
-  c({ id: "c2", data: "2026-10-29", formato: "Reels", tema: "Depoimento: de 4 para 9 em matemática", status: "sugestao", origem: "ia" }),
-  c({ id: "c3", data: "2026-10-30", formato: "Carrossel", tema: "5 sinais de que a rotina de estudos não funciona", hora: "12:00" }),
+  c({ id: "c1", data: HOJE, formato: "Reels", tema: "Por que seu filho esquece o que estudou", status: "producao", tipo: "Reels pessoa falando", pecas: { tipo: "roteiro_falado", gerado_em: "", duracao_s: 30, dicas: ["Grave perto de uma janela.", "Use o microfone do fone."], cenas: [
+    { inicio_s: 0, fim_s: 3, fala: "Seu filho estudou ontem e hoje não lembra de nada?", enquadramento: "Plano fechado, olhando para a câmera", texto_na_tela: "Ele esqueceu tudo?" },
+    { inicio_s: 3, fim_s: 20, fala: "Não é preguiça. A memória precisa de revisão em intervalos: dez minutos no dia seguinte valem mais que duas horas na véspera.", enquadramento: "Plano médio, gesticulando", texto_na_tela: null },
+    { inicio_s: 20, fim_s: 30, fala: "Comenta REVISÃO que eu te mando o roteiro de estudo que a gente usa.", enquadramento: "Plano fechado, sorrindo", texto_na_tela: "Comenta REVISÃO" },
+  ] } }),
+  c({ id: "c2", data: "2026-10-29", formato: "Reels", tema: "3 frases que travam o estudo", status: "sugestao", origem: "ia", tipo: "Reels com texto na tela", pecas: { tipo: "video", gerado_em: "", cenas: [
+    { texto: "3 frases que travam o estudo do seu filho", destaque: "travam", segundos: 3 },
+    { texto: "“Você só estuda na véspera”", destaque: null, segundos: 3 },
+    { texto: "Troque por: vamos revisar 10 minutos hoje?", destaque: "10 minutos", segundos: 4 },
+    { texto: "Salva e manda para quem precisa ver", destaque: "Salva", segundos: 3 },
+  ] } }),
+  c({ id: "c3", data: "2026-10-30", formato: "Carrossel", tema: "5 sinais de que a rotina de estudos não funciona", hora: "12:00", pecas: { tipo: "carrossel", gerado_em: "", slides: [
+    { papel: "capa", titulo: "5 sinais de que a rotina de estudos não está funcionando", texto: "", destaque: "O 3º é o mais comum" },
+    { papel: "conteudo", titulo: "Ele estuda, mas esquece", texto: "Sem revisão espaçada, o cérebro descarta o que não usa. Dez minutos no dia seguinte fazem diferença.", destaque: "Revisar > reler" },
+    { papel: "conteudo", titulo: "Tudo vira véspera", texto: "Se a semana só aperta antes da prova, falta um plano com blocos curtos e fixos.", destaque: null },
+    { papel: "fechamento", titulo: "Marcou 3 ou mais?", texto: "Salva este post e me chama no direct: a gente monta a rotina junto.", destaque: "Comenta ROTINA" },
+  ] } }),
   c({ id: "c4", data: "2026-11-01", formato: "Estático", tema: "Você também já se sentiu assim?", status: "sugestao", origem: "ia" }),
 ];
 export const STORIES: Story[] = [{ id: "s1", empresa_id: "e1", data: HOJE, objetivo: "Puxar o Reels", telas: [{ tipo: "Texto", texto: "Abertura" }, { tipo: "Compartilhar post", texto: "" }, { tipo: "Enquete", texto: "", interacao: { pergunta: "Qual?", opcoes: ["A", "B"] } }, { tipo: "Texto", texto: "Fecho" }], status: "sugestao", origem: "ia", conteudo_id: "c1", criado_por: null, criado_em: "", atualizado_em: "" }];

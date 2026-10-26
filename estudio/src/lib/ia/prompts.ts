@@ -17,7 +17,7 @@ export interface ContextoIA {
 
 const DIAS = ["", "segunda", "terça", "quarta", "quinta", "sexta", "sábado", "domingo"];
 
-function perfilDaMarca(e: Empresa): string {
+export function perfilDaMarca(e: Empresa): string {
   const linhas = [
     `Nome: ${e.nome}`,
     e.perfil_instagram ? `Instagram: ${e.perfil_instagram}` : null,
@@ -32,7 +32,7 @@ function perfilDaMarca(e: Empresa): string {
   return linhas.filter(Boolean).join("\n");
 }
 
-function regrasDeLinguagem(e: Empresa): string {
+export function regrasDeLinguagem(e: Empresa): string {
   if (!e.regras_de_linguagem?.trim()) return "Nenhuma regra extra além do tom de voz.";
   return e.regras_de_linguagem.trim();
 }
@@ -79,7 +79,7 @@ function agendadosTexto(itens: ContextoIA["agendados"]): string {
   return itens.map((c) => `- ${formatarCurta(c.data)}${c.hora ? ` ${c.hora.slice(0, 5)}` : ""} · ${c.formato}${c.tipo ? ` (${c.tipo})` : ""} · ${c.tema || "sem tema"} · ${c.status}${c.origem === "ia" ? " · sugestão da IA" : ""}`).join("\n");
 }
 
-const REGRAS_GERAIS = `Regras obrigatórias:
+export const REGRAS_GERAIS = `Regras obrigatórias:
 1. Use SOMENTE os números e fatos que estão neste pedido. Não invente dados, percentuais, nomes de posts ou resultados.
 2. Escreva em português do Brasil, no tom de voz da marca, e siga à risca as regras de linguagem da marca (palavras proibidas, modos de se referir a produtos etc.). Elas valem para tudo: temas, roteiros, legendas, stories e justificativas.
 3. Toda legenda termina com uma chamada para ação concreta (ex.: "Comenta EU QUERO", "Salva pra ver depois", "Me chama no direct", "Clica no link da bio"). Nunca termine uma legenda sem CTA.
@@ -177,5 +177,67 @@ ${dias.map((d) => `- ${d.data} (${DIAS[d.ritmo.dia]} ${d.ritmo.hora}): formato $
 
 Hoje é ${ctx.hoje}. Gere o JSON pedido com ${dias.length} ${dias.length === 1 ? "dia" : "dias"}.`;
 
+  return { system, usuario };
+}
+
+// ---------- Peças prontas de um conteúdo ----------
+
+const INSTRUCOES_PECA: Record<"carrossel" | "estatico" | "video" | "roteiro_falado", string> = {
+  carrossel: `Escreva o texto de um carrossel do Instagram que o sistema vai transformar em imagens 1080×1350 com as cores da marca.
+- 5 a 8 slides: 1 capa (título que prende e faz arrastar), slides de conteúdo (uma ideia por slide, frases curtas) e 1 fechamento com a chamada para ação.
+- Respeite os limites de tamanho: o texto precisa caber na arte sem letra miúda.
+- "destaque" é uma frase curta que merece ênfase visual; use em no máximo metade dos slides.`,
+  estatico: `Escreva o texto de um post estático do Instagram que o sistema vai transformar em uma imagem 1080×1350 com as cores da marca.
+- Uma frase principal forte (identificação, provocação ou benefício), um apoio curto e, se fizer sentido, um rodapé com a chamada para ação.`,
+  video: `Escreva as cenas de um Reels de texto na tela que o sistema vai transformar em vídeo vertical 1080×1920 com as cores da marca, sem pessoas e sem imagens externas.
+- 4 a 10 cenas; cada cena é uma frase curta que aparece animada na tela. Primeira cena: gancho forte nos 2 primeiros segundos. Última: chamada para ação.
+- Duração de cada cena proporcional ao texto (2 a 6 s); total entre 15 e 45 segundos.
+- "destaque" deve repetir palavras exatas do texto da cena.`,
+  roteiro_falado: `Escreva o roteiro de um Reels gravado por uma pessoa da empresa.
+- Cenas em ordem com tempo de início e fim; a primeira é o gancho (até 3 s).
+- "fala" é exatamente o que a pessoa vai dizer, palavra por palavra, em linguagem natural de quem fala (frases curtas, sem jargão), pronta para ler num teleprompter.
+- "enquadramento": plano (fechado, médio), posição, gesto, corte ou B-roll sugerido.
+- "texto_na_tela": legenda de apoio curta para a edição, quando ajudar.
+- Termine com a chamada para ação falada.`,
+};
+
+export function montarPromptPeca(
+  empresa: Empresa,
+  modo: "carrossel" | "estatico" | "video" | "roteiro_falado",
+  conteudo: Pick<Conteudo, "data" | "formato" | "tipo" | "pilar" | "tema" | "objetivo" | "roteiro" | "legenda" | "cta" | "orientacao_arte" | "ganchos">,
+): { system: string; usuario: string } {
+  const system = `Você é roteirista e designer de conteúdo para Instagram da marca "${empresa.nome}". Sua tarefa é transformar o planejamento de um conteúdo em uma peça pronta para publicar ou gravar.
+
+${REGRAS_GERAIS}
+
+${INSTRUCOES_PECA[modo]}`;
+  const ganchos = Array.isArray(conteudo.ganchos) && conteudo.ganchos.length ? conteudo.ganchos.map((g) => `- ${g}`).join("\n") : "Nenhum.";
+  const usuario = `## Marca
+${perfilDaMarca(empresa)}
+
+## Regras de linguagem (obrigatórias)
+${regrasDeLinguagem(empresa)}
+
+## Conteúdo planejado
+- Data: ${conteudo.data}
+- Formato: ${conteudo.formato}${conteudo.tipo ? ` · ${conteudo.tipo}` : ""}
+- Pilar: ${conteudo.pilar || "—"}
+- Tema: ${conteudo.tema || "—"}
+- Objetivo: ${conteudo.objetivo || "—"}
+- Chamada para ação: ${conteudo.cta || "—"}
+
+### Roteiro / slides planejados
+${conteudo.roteiro || "—"}
+
+### Legenda
+${conteudo.legenda || "—"}
+
+### Orientação de arte
+${conteudo.orientacao_arte || "—"}
+
+### Ganchos alternativos
+${ganchos}
+
+Use o planejamento acima como base (pode melhorar o texto). Gere o JSON pedido.`;
   return { system, usuario };
 }

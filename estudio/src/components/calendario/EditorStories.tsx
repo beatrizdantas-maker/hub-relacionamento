@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowDown, ArrowUp, Check, Plus, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, Download, Plus, Trash2, X } from "lucide-react";
 import { Botao } from "@/components/ui/Botao";
 import { Aviso } from "@/components/ui/Aviso";
 import { Selo } from "@/components/ui/Selo";
@@ -14,6 +14,7 @@ import { excluirStory, salvarStory } from "@/app/(app)/calendario/acoes";
 import type { Conteudo, Papel, StatusConteudo, Story, TelaStory, TipoTelaStory } from "@/lib/tipos/database";
 import { Painel } from "./Painel";
 import { ORIGEM, STATUS } from "./rotulos";
+import { baixarZip, imagensDosStories, nomeBase, prepararMarca, type DadosMarca } from "@/lib/pecas/exportar";
 
 type Form = { data: string; objetivo: string; status: StatusConteudo; conteudo_id: string; telas: TelaStory[] };
 
@@ -40,8 +41,8 @@ const TEM_INTERACAO: Partial<Record<TipoTelaStory, ("pergunta" | "opcoes" | "emo
 };
 
 export function EditorStories({
-  empresaId, story, dataInicial, conteudosDoDia, papel, onFechar,
-}: { empresaId: string; story: Story | null; dataInicial: string; conteudosDoDia: Conteudo[]; papel: Papel; onFechar: () => void }) {
+  empresaId, story, dataInicial, conteudosDoDia, papel, onFechar, marca,
+}: { empresaId: string; story: Story | null; dataInicial: string; conteudosDoDia: Conteudo[]; papel: Papel; onFechar: () => void; marca: DadosMarca }) {
   const router = useRouter();
   const podeEditar = permissoes.podeEditar(papel);
   const podeColaborar = permissoes.podeColaborar(papel);
@@ -51,7 +52,23 @@ export function EditorStories({
   const [aviso, setAviso] = useState<string | null>(null);
   const [excluindo, setExcluindo] = useState(false);
   const [pendente, iniciar] = useTransition();
+  const [baixando, setBaixando] = useState(false);
   const novo = !atual;
+
+  async function baixarTelas() {
+    setErro(null);
+    setBaixando(true);
+    try {
+      const m = await prepararMarca(marca);
+      const tema = conteudosDoDia.find((c) => c.id === form.conteudo_id)?.tema ?? null;
+      const imagens = await imagensDosStories(form.telas, m, `${nomeBase(form.data, tema ?? "stories")}-stories`, tema);
+      await baixarZip(imagens, `${nomeBase(form.data, tema ?? "stories")}-stories.zip`);
+    } catch (e) {
+      setErro((e as Error).message || "Não foi possível gerar as imagens.");
+    } finally {
+      setBaixando(false);
+    }
+  }
 
   const alterar = (parcial: Partial<Form>) => { setForm((f) => ({ ...f, ...parcial })); setAviso(null); };
   const alterarTela = (i: number, parcial: Partial<TelaStory>) => alterar({ telas: form.telas.map((t, j) => (j === i ? { ...t, ...parcial } : t)) });
@@ -110,6 +127,12 @@ export function EditorStories({
           <div className="flex flex-wrap gap-1">
             <Selo tom={ORIGEM[atual.origem].tom}>{ORIGEM[atual.origem].rotulo}</Selo>
             <Selo tom={STATUS[atual.status].tom}>{STATUS[atual.status].rotulo}</Selo>
+          </div>
+        )}
+        {form.telas.length > 0 && (
+          <div className="rounded-xl border border-borda p-3">
+            <Botao type="button" tamanho="sm" variante="secundaria" carregando={baixando} onClick={baixarTelas}><Download className="h-4 w-4" aria-hidden /> Baixar telas prontas (ZIP)</Botao>
+            <p className="mt-1.5 text-xs text-texto-2">Imagens 1080×1920 com as cores e a logo da marca. Enquete, pergunta, quiz e slider aparecem como guia: adicione a figurinha interativa no próprio Instagram, por cima.</p>
           </div>
         )}
         {!podeColaborar && <Aviso tipo="info">Você pode ver estes stories, mas não alterá-los.</Aviso>}
