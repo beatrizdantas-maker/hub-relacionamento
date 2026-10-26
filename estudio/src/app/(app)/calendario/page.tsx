@@ -31,7 +31,6 @@ export default async function PaginaCalendario({ searchParams }: { searchParams:
   return (
     <Calendario
       empresa={{ id: empresa.id, nome: empresa.nome, fuso: empresa.fuso_horario, pilares: empresa.pilares ?? [], ritmo: empresa.ritmo_semanal ?? [] }}
-      marca={{ nome: empresa.nome, perfil: empresa.perfil_instagram, primaria: empresa.cor_primaria, secundaria: empresa.cor_secundaria, logoUrl: empresa.logo_url ?? null }}
       papel={ctx.papel}
       usuarioId={ctx.usuario.id}
       hoje={hoje}

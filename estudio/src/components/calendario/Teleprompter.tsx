@@ -2,10 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Minus, Pause, Play, Plus, RotateCcw, X } from "lucide-react";
-import type { CenaFalada } from "@/lib/tipos/database";
 
 /** Tela cheia com a fala em letras grandes, rolando sozinha, para gravar lendo. */
-export function Teleprompter({ cenas, onFechar }: { cenas: CenaFalada[]; onFechar: () => void }) {
+export function Teleprompter({ falas, onFechar }: { falas: { rotulo: string; fala: string }[]; onFechar: () => void }) {
   const caixa = useRef<HTMLDivElement>(null);
   const [rodando, setRodando] = useState(false);
   const [velocidade, setVelocidade] = useState(2);
@@ -58,9 +57,9 @@ export function Teleprompter({ cenas, onFechar }: { cenas: CenaFalada[]; onFecha
       </div>
       <div ref={caixa} className="flex-1 overflow-y-auto px-6 py-[40vh]" style={{ transform: espelhado ? "scaleX(-1)" : undefined }}>
         <div className="mx-auto max-w-3xl space-y-12">
-          {cenas.map((c, i) => (
+          {falas.map((c, i) => (
             <p key={i} className="font-semibold leading-snug" style={{ fontSize: tamanho }}>
-              <span className="mb-2 block text-base font-normal text-white/60 tabular">{c.inicio_s}s – {c.fim_s}s</span>
+              <span className="mb-2 block text-base font-normal text-white/60 tabular">{c.rotulo}</span>
               {c.fala}
             </p>
           ))}

@@ -32,7 +32,7 @@ export default async function Pagina({ searchParams }: { searchParams: Promise<{
     case "calendario":
     case "calendario-dia":
       conteudo = (
-        <Calendario empresa={{ id: "e1", nome: "NARAEDU", fuso: "America/Sao_Paulo", pilares: EMPRESA.pilares, ritmo: EMPRESA.ritmo_semanal }} marca={{ nome: "NARAEDU", perfil: "naraeducacional", primaria: "#7C3AED", secundaria: "#F59E0B", logoUrl: null }} papel={papel} usuarioId="u1" hoje={HOJE} segunda="2026-10-26" dia={tela === "calendario-dia" ? HOJE : null} filtro="todos" abrir={sp.abrir ?? null} iaConfigurada conteudos={CONTEUDOS} stories={STORIES} tarefas={TAREFAS} campanhas={CAMPANHAS.map((k) => ({ id: k.id, nome: k.nome }))} />
+        <Calendario empresa={{ id: "e1", nome: "NARAEDU", fuso: "America/Sao_Paulo", pilares: EMPRESA.pilares, ritmo: EMPRESA.ritmo_semanal }} papel={papel} usuarioId="u1" hoje={HOJE} segunda="2026-10-26" dia={tela === "calendario-dia" ? HOJE : null} filtro="todos" abrir={sp.abrir ?? null} iaConfigurada conteudos={CONTEUDOS} stories={STORIES} tarefas={TAREFAS} campanhas={CAMPANHAS.map((k) => ({ id: k.id, nome: k.nome }))} />
       );
       break;
     case "tarefas":

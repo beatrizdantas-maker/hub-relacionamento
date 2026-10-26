@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Copy, ListChecks, Trash2 } from "lucide-react";
+import { Check, Copy, ListChecks, ScrollText, Trash2 } from "lucide-react";
 import { Botao } from "@/components/ui/Botao";
 import { Aviso } from "@/components/ui/Aviso";
 import { Selo } from "@/components/ui/Selo";
@@ -15,8 +15,9 @@ import { permissoes } from "@/lib/papeis";
 import { criarTarefasPadrao, excluirConteudo, mudarStatusTarefa, salvarConteudo } from "@/app/(app)/calendario/acoes";
 import type { Conteudo, FormatoConteudo, Papel, RitmoDia, StatusConteudo, Tarefa } from "@/lib/tipos/database";
 import { Painel } from "./Painel";
-import { PecasProntas } from "./PecasProntas";
-import type { DadosMarca } from "@/lib/pecas/exportar";
+import { BriefingIA } from "./BriefingIA";
+import { Teleprompter } from "./Teleprompter";
+import { extrairFalas } from "@/lib/ia/briefing";
 import { ORIGEM, STATUS } from "./rotulos";
 
 type Form = {
@@ -42,10 +43,10 @@ function formDe(c: Conteudo | null, data: string, ritmo: RitmoDia[]): Form {
 const STATUS_TAREFA: Record<Tarefa["status"], string> = { pendente: "Pendente", em_producao: "Em produção", aguardando: "Aguardando", concluido: "Concluída" };
 
 export function EditorConteudo({
-  empresaId, conteudo, dataInicial, ritmo, pilares, campanhas, tarefas, papel, usuarioId, hoje, onFechar, marca,
+  empresaId, conteudo, dataInicial, ritmo, pilares, campanhas, tarefas, papel, usuarioId, hoje, onFechar,
 }: {
   empresaId: string; conteudo: Conteudo | null; dataInicial: string; ritmo: RitmoDia[]; pilares: string[]; campanhas: { id: string; nome: string }[];
-  tarefas: Tarefa[]; papel: Papel; usuarioId: string; hoje: string; onFechar: () => void; marca: DadosMarca;
+  tarefas: Tarefa[]; papel: Papel; usuarioId: string; hoje: string; onFechar: () => void;
 }) {
   const router = useRouter();
   const podeEditar = permissoes.podeEditar(papel);
@@ -58,6 +59,7 @@ export function EditorConteudo({
   const [aviso, setAviso] = useState<string | null>(null);
   const [excluindo, setExcluindo] = useState(false);
   const [copiado, setCopiado] = useState(false);
+  const [teleprompter, setTeleprompter] = useState(false);
   const [pendente, iniciar] = useTransition();
   const novo = !atual;
 
@@ -212,8 +214,18 @@ export function EditorConteudo({
               {campanhas.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
             </CampoSelecao>
           )}
+          {podeEditar && (
+            <BriefingIA
+              empresaId={empresaId}
+              campos={{ data: form.data, formato: form.formato, tipo: form.tipo, pilar: form.pilar, tema: form.tema, objetivo: form.objetivo, roteiro: form.roteiro, legenda: form.legenda, cta: form.cta, orientacao_arte: form.orientacao_arte, ganchos: form.ganchos }}
+              onAplicar={(r) => {
+                alterar({ roteiro: r.roteiro, orientacao_arte: r.orientacao_arte, legenda: r.legenda || form.legenda, cta: r.cta || form.cta, ganchos: r.ganchos.length ? r.ganchos : form.ganchos });
+                setAviso("Briefing preenchido pela IA. Revise e clique em Salvar.");
+              }}
+            />
+          )}
           <CampoTexto rotulo="Chamada para ação (CTA)" value={form.cta} onChange={(e) => alterar({ cta: e.target.value })} placeholder="Ex.: Salve para rever antes da próxima aula" maxLength={300} />
-          <CampoArea rotulo={form.formato === "Reels" ? "Roteiro" : "Roteiro ou slides"} value={form.roteiro} onChange={(e) => alterar({ roteiro: e.target.value })} rows={6} placeholder={form.formato === "Reels" ? "Gancho, desenvolvimento e fechamento." : "Slide 1: … Slide 2: …"} />
+          <CampoArea rotulo={form.formato === "Reels" ? "Roteiro do vídeo" : form.formato === "Carrossel" ? "Slides (texto e imagem de cada um)" : "Arte (texto e imagem)"} value={form.roteiro} onChange={(e) => alterar({ roteiro: e.target.value })} rows={form.roteiro.length > 400 ? 14 : 6} placeholder={form.formato === "Reels" ? "Cena a cena: imagem, fala, texto na tela, áudio." : "Slide 1: … Slide 2: …"} />
           {form.formato === "Reels" && (
             <div>
               <span className="rotulo">Ganchos alternativos</span>
@@ -225,7 +237,7 @@ export function EditorConteudo({
             </div>
           )}
           <CampoArea rotulo="Legenda" value={form.legenda} onChange={(e) => alterar({ legenda: e.target.value })} rows={6} placeholder="Termine com uma chamada concreta: salvar, enviar, comentar…" />
-          <CampoArea rotulo="Orientação de arte" value={form.orientacao_arte} onChange={(e) => alterar({ orientacao_arte: e.target.value })} rows={3} placeholder="Enquadramento, cores, texto na tela, referências." />
+          <CampoArea rotulo="Orientação de arte" value={form.orientacao_arte} onChange={(e) => alterar({ orientacao_arte: e.target.value })} rows={form.orientacao_arte.length > 300 ? 9 : 3} placeholder="Estilo, cores, tipografia, fotografia, elementos." />
           <CampoArea rotulo="Notas" value={form.notas} onChange={(e) => alterar({ notas: e.target.value })} rows={3} />
           {novo && (
             <label className="flex items-center gap-2 text-sm">
@@ -235,7 +247,13 @@ export function EditorConteudo({
           )}
         </fieldset>
 
-        {atual && <PecasProntas key={`${atual.id}-${atual.atualizado_em}`} empresaId={empresaId} conteudo={atual} marca={marca} podeEditar={podeEditar} />}
+        {form.formato === "Reels" && extrairFalas(form.roteiro).length > 0 && (
+          <div className="flex flex-wrap items-center gap-2">
+            <Botao type="button" tamanho="sm" variante="secundaria" onClick={() => setTeleprompter(true)}><ScrollText className="h-4 w-4" aria-hidden /> Abrir teleprompter</Botao>
+            <span className="text-xs text-texto-2">Mostra só as falas do roteiro, em letra grande, para gravar lendo.</span>
+          </div>
+        )}
+        {teleprompter && <Teleprompter falas={extrairFalas(form.roteiro)} onFechar={() => setTeleprompter(false)} />}
 
         {atual && (
           <section className="space-y-2 border-t border-borda pt-3">

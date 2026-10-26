@@ -7,6 +7,7 @@
 import * as z from "zod/v4";
 import { FORMATOS, TIPOS_TELA } from "@/lib/validacao/conteudo";
 import { ehDataISO } from "@/lib/datas";
+import { camposBriefing, problemasBriefing } from "./briefing";
 
 // ---------- Sugestões da semana ----------
 
@@ -63,10 +64,9 @@ export const SaidaDiaCalendario = z.object({
   pilar: z.string(),
   tema: z.string().describe("Título curto do conteúdo"),
   objetivo: z.string(),
-  roteiro: z.string().describe("Reels: roteiro falado com marcação de tempo. Carrossel: slide a slide (Slide 1: …). Estático: texto da arte"),
   legenda: z.string().describe("Legenda pronta, terminando com a chamada para ação"),
   cta: z.string(),
-  orientacao_arte: z.string().describe("Como gravar ou desenhar: enquadramento, cores, texto na tela, referências"),
+  ...camposBriefing,
   ganchos: z.array(z.string()).describe("Reels: exatamente 3 ganchos alternativos na ordem curiosidade, identificação, provocação. Outros formatos: lista vazia"),
   stories: z.object({
     objetivo: z.string(),
@@ -101,6 +101,7 @@ export function validarSemana(s: SemanaGerada, datasPedidas: string[]): { valido
     if (!d.legenda.trim()) erros.push("legenda vazia");
     if (!d.cta.trim()) erros.push("sem chamada para ação");
     if (d.formato === "Reels" && d.ganchos.filter((g) => g.trim()).length !== 3) erros.push("Reels precisa de 3 ganchos");
+    erros.push(...problemasBriefing(d.formato, d));
     if (d.stories.telas.length !== 4) erros.push("stories precisam de 4 telas");
     if (!d.stories.telas.some((t) => INTERATIVAS.has(t.tipo))) erros.push("stories sem tela de interação");
     if (!d.stories.telas.some((t) => t.tipo === "Compartilhar post")) erros.push("stories sem tela de compartilhar o post");

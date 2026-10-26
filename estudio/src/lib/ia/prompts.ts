@@ -142,7 +142,13 @@ export function montarPromptSemanaCalendario(ctx: ContextoIA, dias: { data: Data
 
 ${REGRAS_GERAIS}
 5. Gere exatamente um item por data pedida, com a data exata e o formato/tipo/pilar do ritmo daquele dia.
-6. Reels: roteiro falado com marcação de tempo (0–3 s gancho, …), e exatamente 3 ganchos alternativos nesta ordem: curiosidade, identificação, provocação. Carrossel: roteiro slide a slide ("Slide 1: …") com 5 a 8 slides. Estático: texto da arte e ideia visual. Para Carrossel e Estático, "ganchos" é uma lista vazia.
+6. A equipe vai produzir as artes e gravar os vídeos a partir do que você escrever, então descreva tudo com precisão:
+   - "conceito_visual": estilo, cores (a partir das cores e regras de imagem da marca), tipografia, tipo de foto ou vídeo e elementos gráficos.
+   - Carrossel: em "slides", de 5 a 8 slides com o título e o texto que vão escritos na arte e, em "imagem", exatamente como deve ser a imagem de cada slide (o que mostrar, composição, onde fica o texto). "cenas" vazia, "arte_estatico" null.
+   - Estático: em "arte_estatico", o texto da arte, a imagem e a composição. "slides" e "cenas" vazias.
+   - Reels: em "cenas", o roteiro completo com tempo de início e fim, o que aparece e como filmar ("imagem"), a fala palavra por palavra ("fala"), o texto na tela e o áudio; sugira a música em "musica". Se o tipo do dia envolve uma pessoa da empresa falando (pessoa falando, prova social, depoimento, bastidores), escreva a fala para essa pessoa gravar olhando para a câmera; nos outros Reels, use imagens de apoio, texto na tela e, se fizer sentido, narração em off. Exatamente 3 ganchos alternativos nesta ordem: curiosidade, identificação, provocação. "slides" vazia, "arte_estatico" null.
+   - "dicas_producao": 2 a 4 dicas práticas para produzir a peça.
+   Para Carrossel e Estático, "ganchos" é uma lista vazia.
 7. Stories do dia: exatamente 4 telas, nesta ordem: (1) abertura que puxa o assunto do post, (2) "Compartilhar post" chamando para ver o post, (3) uma tela de interação — Enquete (2 a 4 opções), Caixa de pergunta, Quiz (2 a 4 opções) ou Slider — com pergunta e opções preenchidas, (4) fechamento com chamada para ação. Em telas sem interação, "pergunta", "opcoes" e "emoji" são null.
 8. Use as campanhas ativas nos dias marcados como "campanha" no ritmo e as datas comemorativas só quando fizerem sentido para a marca.
 9. Varie os temas entre os dias e não repita o que já está programado.
@@ -180,40 +186,35 @@ Hoje é ${ctx.hoje}. Gere o JSON pedido com ${dias.length} ${dias.length === 1 ?
   return { system, usuario };
 }
 
-// ---------- Peças prontas de um conteúdo ----------
+// ---------- Briefing de produção de um conteúdo ----------
 
-const INSTRUCOES_PECA: Record<"carrossel" | "estatico" | "video" | "roteiro_falado", string> = {
-  carrossel: `Escreva o texto de um carrossel do Instagram que o sistema vai transformar em imagens 1080×1350 com as cores da marca.
-- 5 a 8 slides: 1 capa (título que prende e faz arrastar), slides de conteúdo (uma ideia por slide, frases curtas) e 1 fechamento com a chamada para ação.
-- Respeite os limites de tamanho: o texto precisa caber na arte sem letra miúda.
-- "destaque" é uma frase curta que merece ênfase visual; use em no máximo metade dos slides.`,
-  estatico: `Escreva o texto de um post estático do Instagram que o sistema vai transformar em uma imagem 1080×1350 com as cores da marca.
-- Uma frase principal forte (identificação, provocação ou benefício), um apoio curto e, se fizer sentido, um rodapé com a chamada para ação.`,
-  video: `Escreva as cenas de um Reels de texto na tela que o sistema vai transformar em vídeo vertical 1080×1920 com as cores da marca, sem pessoas e sem imagens externas.
-- 4 a 10 cenas; cada cena é uma frase curta que aparece animada na tela. Primeira cena: gancho forte nos 2 primeiros segundos. Última: chamada para ação.
-- Duração de cada cena proporcional ao texto (2 a 6 s); total entre 15 e 45 segundos.
-- "destaque" deve repetir palavras exatas do texto da cena.`,
-  roteiro_falado: `Escreva o roteiro de um Reels gravado por uma pessoa da empresa.
-- Cenas em ordem com tempo de início e fim; a primeira é o gancho (até 3 s).
-- "fala" é exatamente o que a pessoa vai dizer, palavra por palavra, em linguagem natural de quem fala (frases curtas, sem jargão), pronta para ler num teleprompter.
-- "enquadramento": plano (fechado, médio), posição, gesto, corte ou B-roll sugerido.
-- "texto_na_tela": legenda de apoio curta para a edição, quando ajudar.
-- Termine com a chamada para ação falada.`,
-};
-
-export function montarPromptPeca(
+export function montarPromptBriefing(
   empresa: Empresa,
-  modo: "carrossel" | "estatico" | "video" | "roteiro_falado",
+  modoReels: "com_pessoa" | "sem_pessoa",
   conteudo: Pick<Conteudo, "data" | "formato" | "tipo" | "pilar" | "tema" | "objetivo" | "roteiro" | "legenda" | "cta" | "orientacao_arte" | "ganchos">,
 ): { system: string; usuario: string } {
-  const system = `Você é roteirista e designer de conteúdo para Instagram da marca "${empresa.nome}". Sua tarefa é transformar o planejamento de um conteúdo em uma peça pronta para publicar ou gravar.
+  const instrucoes =
+    conteudo.formato === "Carrossel"
+      ? `Formato: CARROSSEL. Em "slides", escreva de 5 a 8 slides: o título e o texto que vão escritos em cada arte e, em "imagem", exatamente como deve ser a imagem daquele slide (o que mostrar, foto ou ilustração, composição, onde fica o texto). O primeiro slide é a capa que faz arrastar; o último traz a chamada para ação. "cenas" vazia, "arte_estatico" null, "musica" null, "ganchos" vazia.`
+      : conteudo.formato === "Estático"
+        ? `Formato: POST ESTÁTICO. Em "arte_estatico", escreva o título e o texto da arte, como deve ser a imagem e a composição (onde fica cada elemento). "slides" e "cenas" vazias, "musica" null, "ganchos" vazia.`
+        : modoReels === "com_pessoa"
+          ? `Formato: REELS GRAVADO POR UMA PESSOA DA EMPRESA. Em "cenas", escreva o roteiro completo, de 15 a 60 segundos: tempo de início e fim, como filmar ("imagem": plano, ângulo, cenário, gesto, cortes e imagens de apoio), a fala palavra por palavra em linguagem natural de quem fala, pronta para ler num teleprompter, o texto na tela e o áudio. A primeira cena é o gancho (até 3 s); a última fala traz a chamada para ação. Sugira a música em "musica". Exatamente 3 ganchos alternativos: curiosidade, identificação, provocação. "slides" vazia, "arte_estatico" null.`
+          : `Formato: REELS SEM PESSOA FALANDO (imagens de apoio, texto na tela e edição). Em "cenas", escreva o roteiro completo, de 15 a 45 segundos: tempo de início e fim, o que aparece em cada cena ("imagem": que imagem ou vídeo de apoio gravar ou buscar, movimento, transição), o texto na tela de cada cena, a narração em off em "fala" quando fizer sentido (ou null) e o áudio. A primeira cena é o gancho (até 3 s); a última traz a chamada para ação. Sugira a música em "musica". Exatamente 3 ganchos alternativos: curiosidade, identificação, provocação. "slides" vazia, "arte_estatico" null.`;
+
+  const system = `Você é diretor de criação e roteirista de Instagram da marca "${empresa.nome}". A equipe vai produzir as artes e gravar os vídeos a partir do seu briefing, então seja preciso e prático: descreva o que fazer, não o que pensar.
 
 ${REGRAS_GERAIS}
 
-${INSTRUCOES_PECA[modo]}`;
+${instrucoes}
+- "conceito_visual": estilo, cores (a partir das cores e regras de imagem da marca), tipografia, fotografia/vídeo e elementos gráficos.
+- "dicas_producao": 2 a 4 dicas práticas para produzir esta peça.
+- "legenda": pronta, terminando com a chamada para ação; "cta": a chamada.`;
+
   const ganchos = Array.isArray(conteudo.ganchos) && conteudo.ganchos.length ? conteudo.ganchos.map((g) => `- ${g}`).join("\n") : "Nenhum.";
   const usuario = `## Marca
 ${perfilDaMarca(empresa)}
+Cores da marca: primária ${empresa.cor_primaria}, secundária ${empresa.cor_secundaria}.
 
 ## Regras de linguagem (obrigatórias)
 ${regrasDeLinguagem(empresa)}
@@ -226,18 +227,18 @@ ${regrasDeLinguagem(empresa)}
 - Objetivo: ${conteudo.objetivo || "—"}
 - Chamada para ação: ${conteudo.cta || "—"}
 
-### Roteiro / slides planejados
+### Roteiro já escrito (use como base e complete)
 ${conteudo.roteiro || "—"}
 
-### Legenda
+### Legenda já escrita
 ${conteudo.legenda || "—"}
 
-### Orientação de arte
+### Orientação de arte já escrita
 ${conteudo.orientacao_arte || "—"}
 
-### Ganchos alternativos
+### Ganchos
 ${ganchos}
 
-Use o planejamento acima como base (pode melhorar o texto). Gere o JSON pedido.`;
+Gere o JSON pedido.`;
   return { system, usuario };
 }

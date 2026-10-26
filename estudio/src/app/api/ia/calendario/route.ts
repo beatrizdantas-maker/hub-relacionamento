@@ -8,6 +8,7 @@ import { montarPromptSemanaCalendario } from "@/lib/ia/prompts";
 import { gerarTarefasPadrao } from "@/lib/tarefasPadrao";
 import { diaDaSemana, ehDataISO, inicioDaSemana, somarDias } from "@/lib/datas";
 import { TIPOS_TELA } from "@/lib/validacao/conteudo";
+import { formatarOrientacao, formatarRoteiro } from "@/lib/ia/briefing";
 import type { RitmoDia, TelaStory } from "@/lib/tipos/database";
 
 export const runtime = "nodejs";
@@ -74,7 +75,7 @@ export async function POST(req: NextRequest) {
     const stream = obterClienteIA().messages.stream(
       {
         model: MODELO_IA,
-        max_tokens: 24000,
+        max_tokens: 32000,
         system,
         messages: [{ role: "user", content: usuario }],
         output_config: { format: zodOutputFormat(SaidaSemanaCalendario), effort: "medium" },
@@ -104,10 +105,10 @@ export async function POST(req: NextRequest) {
           pilar: dia.pilar.trim().slice(0, 80) || slot.pilar,
           tema: dia.tema.trim().slice(0, 200),
           objetivo: (dia.objetivo.trim() || slot.objetivo).slice(0, 120),
-          roteiro: dia.roteiro.trim(),
+          roteiro: formatarRoteiro(slot.formato, dia),
           legenda: dia.legenda.trim(),
           cta: dia.cta.trim().slice(0, 300),
-          orientacao_arte: dia.orientacao_arte.trim().slice(0, 4000),
+          orientacao_arte: formatarOrientacao(dia),
           ganchos: slot.formato === "Reels" ? dia.ganchos.map((g) => g.trim().slice(0, 300)).slice(0, 3) : [],
           status: "sugestao",
           origem: "ia",

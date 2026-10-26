@@ -6,7 +6,7 @@ import { esquemaConteudo, esquemaStory, type EntradaConteudo, type EntradaStory 
 import { gerarTarefasPadrao } from "@/lib/tarefasPadrao";
 import { hojeNaEmpresa, somarDias } from "@/lib/datas";
 import { deslocarPrazos } from "@/lib/reagendar";
-import type { Conteudo, Pecas, Story, Tarefa, TelaStory } from "@/lib/tipos/database";
+import type { Conteudo, Story, Tarefa, TelaStory } from "@/lib/tipos/database";
 
 type Erro = { ok: false; erro: string };
 
@@ -176,26 +176,6 @@ export async function excluirStory(empresaId: string, id: string): Promise<{ ok:
   const { data, error } = await supabase.from("stories").delete().eq("id", id).eq("empresa_id", empresaId).select("id");
   if (error) return { ok: false, erro: mensagemErro(error) };
   if (!data?.length) return { ok: false, erro: "Você não tem permissão para excluir stories." };
-  revalidar();
-  return { ok: true };
-}
-
-// ---------------- Peças prontas ----------------
-
-/** Salva a peça editada à mão (textos dos slides, cenas do vídeo ou do roteiro). */
-export async function salvarPecas(empresaId: string, conteudoId: string, pecas: Pecas | null): Promise<{ ok: true } | Erro> {
-  let valor: Pecas | null = null;
-  if (pecas) {
-    const { normalizarPeca } = await import("@/lib/pecas/esquemas");
-    const bruto = pecas.tipo === "carrossel" ? { slides: pecas.slides } : pecas.tipo === "video" ? { cenas: pecas.cenas } : pecas.tipo === "estatico" ? { titulo: pecas.titulo, texto: pecas.texto, destaque: pecas.destaque, rodape: pecas.rodape } : { duracao_s: pecas.duracao_s, cenas: pecas.cenas, dicas: pecas.dicas };
-    const r = normalizarPeca(pecas.tipo, bruto, pecas.gerado_em);
-    if (!r.peca) return { ok: false, erro: `Peça inválida: ${r.problemas.join("; ")}` };
-    valor = r.peca;
-  }
-  const supabase = await criarClienteServidor();
-  const { data, error } = await supabase.from("conteudos").update({ pecas: valor }).eq("id", conteudoId).eq("empresa_id", empresaId).select("id");
-  if (error) return { ok: false, erro: mensagemErro(error) };
-  if (!data?.length) return { ok: false, erro: "Você não tem permissão para editar a peça." };
   revalidar();
   return { ok: true };
 }

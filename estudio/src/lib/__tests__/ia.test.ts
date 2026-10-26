@@ -130,8 +130,15 @@ describe("validação do que a IA devolve", () => {
   });
 
   const dia = (data: string, extra: Partial<DiaGerado> = {}): DiaGerado => ({
-    data, formato: "Reels", tipo: "Reels prova social", pilar: "Prova", tema: "Tema", objetivo: "Obj", roteiro: "R", legenda: "L. Me chama no direct", cta: "Me chama no direct",
-    orientacao_arte: "A", ganchos: ["g1", "g2", "g3"],
+    data, formato: "Reels", tipo: "Reels prova social", pilar: "Prova", tema: "Tema", objetivo: "Obj", legenda: "L. Me chama no direct", cta: "Me chama no direct",
+    ganchos: ["g1", "g2", "g3"],
+    conceito_visual: { estilo: "e", paleta: "p", tipografia: "t", fotografia: "f", elementos: "el" },
+    slides: [], arte_estatico: null, musica: "lo-fi", dicas_producao: ["luz natural"],
+    cenas: [
+      { inicio_s: 0, fim_s: 3, imagem: "close", fala: "Oi", texto_na_tela: null, audio: null },
+      { inicio_s: 3, fim_s: 10, imagem: "médio", fala: "Meio", texto_na_tela: null, audio: null },
+      { inicio_s: 10, fim_s: 15, imagem: "close", fala: "Chama no direct", texto_na_tela: "Direct", audio: null },
+    ],
     stories: { objetivo: "s", telas: [
       { tipo: "Texto", texto: "abre", pergunta: null, opcoes: null, emoji: null },
       { tipo: "Compartilhar post", texto: "vê o post", pergunta: null, opcoes: null, emoji: null },
@@ -147,7 +154,7 @@ describe("validação do que a IA devolve", () => {
         dia("2026-11-02"),
         dia("2026-11-09"),                               // não pedida
         dia("2026-11-04", { ganchos: ["só um"] }),       // Reels com 1 gancho
-        dia("2026-11-08", { formato: "Carrossel", ganchos: [] }),
+        dia("2026-11-08", { formato: "Carrossel", ganchos: [], cenas: [], musica: null, slides: Array.from({ length: 5 }, (_, i) => ({ titulo_na_arte: `S${i + 1}`, texto_na_arte: "", imagem: "foto" })) }),
       ] },
       ["2026-11-02", "2026-11-04", "2026-11-08", "2026-11-06"],
     );

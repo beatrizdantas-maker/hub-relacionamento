@@ -15,14 +15,12 @@ import { CartaoConteudo, CartaoStories } from "./Cartoes";
 import { EditorConteudo } from "./EditorConteudo";
 import { EditorStories } from "./EditorStories";
 import { GerarMes } from "./GerarMes";
-import type { DadosMarca } from "@/lib/pecas/exportar";
 import { FILTROS, ICONE_FORMATO, ORIGEM, STATUS, rotuloFiltro, type Filtro } from "./rotulos";
 
 type Selecao = { tipo: "conteudo"; id: string } | { tipo: "novo"; data: string } | { tipo: "story"; id: string } | { tipo: "novoStory"; data: string } | { tipo: "gerarMes" } | null;
 
 export interface CalendarioProps {
   empresa: { id: string; nome: string; fuso: string; pilares: string[]; ritmo: RitmoDia[] };
-  marca: DadosMarca;
   papel: Papel;
   usuarioId: string;
   hoje: string;
@@ -148,7 +146,6 @@ export function Calendario(p: CalendarioProps) {
           ritmo={p.empresa.ritmo}
           pilares={p.empresa.pilares}
           campanhas={p.campanhas}
-          marca={p.marca}
           tarefas={conteudoSelecionado ? p.tarefas.filter((t) => t.conteudo_id === conteudoSelecionado.id) : []}
           papel={p.papel}
           usuarioId={p.usuarioId}
@@ -166,7 +163,6 @@ export function Calendario(p: CalendarioProps) {
           story={storySelecionado}
           dataInicial={dataEditor}
           conteudosDoDia={p.conteudos.filter((c) => c.data === dataEditor)}
-          marca={p.marca}
           papel={p.papel}
           onFechar={fechar}
         />
