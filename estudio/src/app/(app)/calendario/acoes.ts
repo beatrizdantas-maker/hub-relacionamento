@@ -7,11 +7,13 @@ import { gerarTarefasPadrao } from "@/lib/tarefasPadrao";
 import { hojeNaEmpresa, somarDias } from "@/lib/datas";
 import { deslocarPrazos } from "@/lib/reagendar";
 import type { Conteudo, Story, Tarefa, TelaStory } from "@/lib/tipos/database";
+import { FORMATOS_POR_REDE, MENSAGEM_MIGRACAO_LINKEDIN, faltaMigracaoLinkedin, redeDe, rotuloFormato, rotuloRede } from "@/lib/redes";
 
 type Erro = { ok: false; erro: string };
 
 function mensagemErro(e: { message?: string; code?: string } | null | undefined): string {
   if (!e) return "Algo deu errado. Tente de novo.";
+  if (faltaMigracaoLinkedin(e)) return MENSAGEM_MIGRACAO_LINKEDIN;
   if (e.code === "42501" || /row-level security|permission denied/i.test(e.message ?? "")) {
     return e.message && !/row-level security|permission denied/i.test(e.message) ? e.message : "Você não tem permissão para fazer isso.";
   }
@@ -45,14 +47,17 @@ export async function salvarConteudo(
   const parse = esquemaConteudo.safeParse(entrada);
   if (!parse.success) return { ok: false, erro: parse.error.issues[0]?.message ?? "Dados inválidos" };
   const supabase = await criarClienteServidor();
-  const { id, ...campos } = parse.data;
+  const { id, rede: redePedida, ...campos } = parse.data;
 
   let reagendadoDe: string | null = null;
   let conteudo: Conteudo;
 
   if (id) {
-    const { data: anterior } = await supabase.from("conteudos").select("data").eq("id", id).eq("empresa_id", empresaId).maybeSingle();
+    // A rede não muda depois de criado; select("*") funciona mesmo sem a coluna.
+    const { data: anterior } = await supabase.from("conteudos").select("*").eq("id", id).eq("empresa_id", empresaId).maybeSingle();
     if (!anterior) return { ok: false, erro: "Conteúdo não encontrado." };
+    const rede = redeDe(anterior);
+    if (!FORMATOS_POR_REDE[rede].includes(campos.formato)) return { ok: false, erro: `${rotuloFormato(campos.formato, rede)} não é um formato do ${rotuloRede(rede)}.` };
     const { data, error } = await supabase.from("conteudos").update(campos).eq("id", id).eq("empresa_id", empresaId).select("*");
     if (error) return { ok: false, erro: mensagemErro(error) };
     if (!data?.length) return { ok: false, erro: "Você não tem permissão para editar este conteúdo." };
@@ -66,7 +71,10 @@ export async function salvarConteudo(
       }
     }
   } else {
-    const { data, error } = await supabase.from("conteudos").insert({ ...campos, empresa_id: empresaId, origem: "equipe" }).select("*");
+    const rede = redePedida ?? "instagram";
+    if (!FORMATOS_POR_REDE[rede].includes(campos.formato)) return { ok: false, erro: `${rotuloFormato(campos.formato, rede)} não é um formato do ${rotuloRede(rede)}.` };
+    // Só manda a coluna quando é LinkedIn: o Instagram continua funcionando antes da migração 0007.
+    const { data, error } = await supabase.from("conteudos").insert({ ...campos, ...(rede === "linkedin" ? { rede } : {}), empresa_id: empresaId, origem: "equipe" }).select("*");
     if (error) return { ok: false, erro: mensagemErro(error) };
     if (!data?.length) return { ok: false, erro: "Você não tem permissão para criar conteúdo." };
     conteudo = data[0];

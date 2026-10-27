@@ -2,19 +2,22 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Check, CheckCheck, Copy, ListChecks, MessageSquareText, ScrollText, Trash2 } from "lucide-react";
+import { Check, CheckCheck, Copy, ListChecks, MessageSquareText, ScrollText, Sparkles, Trash2 } from "lucide-react";
 import { Botao } from "@/components/ui/Botao";
 import { Aviso } from "@/components/ui/Aviso";
 import { Selo } from "@/components/ui/Selo";
 import { Confirmacao } from "@/components/ui/Confirmacao";
 import { CampoArea, CampoSelecao, CampoTexto } from "@/components/ui/Campo";
 import { OBJETIVOS_RITMO } from "@/lib/validacao/empresa";
-import { FORMATOS, STATUS_CONTEUDO } from "@/lib/validacao/conteudo";
+import { STATUS_CONTEUDO } from "@/lib/validacao/conteudo";
 import { diaDaSemana, formatarCurta, horaCurta } from "@/lib/datas";
 import { permissoes } from "@/lib/papeis";
 import { concluirTarefasDoConteudo, criarTarefasPadrao, excluirConteudo, mudarStatusTarefa, salvarConteudo } from "@/app/(app)/calendario/acoes";
 import { copiarTexto, falasDoRoteiro } from "@/lib/copiarArtes";
-import type { Conteudo, FormatoConteudo, Papel, RitmoDia, StatusConteudo, Tarefa } from "@/lib/tipos/database";
+import type { Conteudo, FormatoConteudo, Papel, Rede, RitmoDia, StatusConteudo, Tarefa } from "@/lib/tipos/database";
+import { FORMATOS_POR_REDE, redeDe, rotuloFormato, rotuloRede } from "@/lib/redes";
+import { SeloLinkedin } from "./Cartoes";
+import type { ResultadoAdaptar } from "@/app/api/ia/adaptar/route";
 import { Painel } from "./Painel";
 import { BriefingIA } from "./BriefingIA";
 import { Teleprompter } from "./Teleprompter";
@@ -22,38 +25,59 @@ import { extrairFalas } from "@/lib/ia/briefing";
 import { ORIGEM, STATUS } from "./rotulos";
 
 type Form = {
-  data: string; hora: string; formato: FormatoConteudo; status: StatusConteudo; tema: string; tipo: string; pilar: string; objetivo: string;
+  rede: Rede; data: string; hora: string; formato: FormatoConteudo; status: StatusConteudo; tema: string; tipo: string; pilar: string; objetivo: string;
   cta: string; roteiro: string; legenda: string; orientacao_arte: string; notas: string; campanha_id: string; ganchos: string[];
 };
 
-function formDe(c: Conteudo | null, data: string, ritmo: RitmoDia[]): Form {
+function formDe(c: Conteudo | null, data: string, ritmo: RitmoDia[], rede: Rede = "instagram"): Form {
   if (c) {
     return {
-      data: c.data, hora: horaCurta(c.hora), formato: c.formato, status: c.status, tema: c.tema ?? "", tipo: c.tipo ?? "", pilar: c.pilar ?? "", objetivo: c.objetivo ?? "",
+      rede: redeDe(c), data: c.data, hora: horaCurta(c.hora), formato: c.formato, status: c.status, tema: c.tema ?? "", tipo: c.tipo ?? "", pilar: c.pilar ?? "", objetivo: c.objetivo ?? "",
       cta: c.cta ?? "", roteiro: c.roteiro ?? "", legenda: c.legenda ?? "", orientacao_arte: c.orientacao_arte ?? "", notas: c.notas ?? "", campanha_id: c.campanha_id ?? "",
       ganchos: Array.isArray(c.ganchos) ? c.ganchos : [],
     };
   }
   const r = ritmo.find((x) => x.dia === diaDaSemana(data));
   return {
-    data, hora: r?.hora ?? "12:00", formato: r?.formato ?? "Reels", status: "aprovado", tema: "", tipo: r?.tipo ?? "", pilar: r?.pilar ?? "", objetivo: r?.objetivo ?? "",
+    rede, data, hora: r?.hora ?? "12:00", formato: r?.formato ?? FORMATOS_POR_REDE[rede][0], status: "aprovado", tema: "", tipo: r?.tipo ?? "", pilar: r?.pilar ?? "", objetivo: r?.objetivo ?? "",
     cta: "", roteiro: "", legenda: "", orientacao_arte: "", notas: "", campanha_id: "", ganchos: [],
   };
 }
 
+const ROTULO_ROTEIRO: Record<FormatoConteudo, string> = {
+  Reels: "Roteiro do vídeo",
+  Carrossel: "Slides (texto e imagem de cada um)",
+  "Estático": "Arte (texto e imagem)",
+  Texto: "Imagem de apoio (opcional)",
+  Enquete: "Pergunta e opções",
+  Artigo: "Artigo (título, subtítulo e seções)",
+};
+const DICA_ROTEIRO: Record<FormatoConteudo, string> = {
+  Reels: "Cena a cena: imagem, fala, texto na tela, áudio.",
+  Carrossel: "Slide 1: … Slide 2: …",
+  "Estático": "Texto da arte e descrição da imagem.",
+  Texto: "O texto completo vai em “Texto do post”. Aqui, só a imagem que acompanha (se houver).",
+  Enquete: "PERGUNTA: …\nOPÇÕES:\n1. …\n2. …",
+  Artigo: "TÍTULO: …\nSUBTÍTULO: …\n## Intertítulo\nTexto…",
+};
+
 const STATUS_TAREFA: Record<Tarefa["status"], string> = { pendente: "Pendente", em_producao: "Em produção", aguardando: "Aguardando", concluido: "Concluída" };
 
 export function EditorConteudo({
-  empresaId, conteudo, dataInicial, ritmo, pilares, campanhas, tarefas, papel, usuarioId, hoje, onFechar,
+  empresaId, conteudo, dataInicial, ritmo: ritmoInstagram, ritmoLinkedin = null, redeInicial = "instagram", pilares, campanhas, tarefas, papel, usuarioId, hoje, onFechar,
 }: {
-  empresaId: string; conteudo: Conteudo | null; dataInicial: string; ritmo: RitmoDia[]; pilares: string[]; campanhas: { id: string; nome: string }[];
+  empresaId: string; conteudo: Conteudo | null; dataInicial: string; ritmo: RitmoDia[];
+  /** Ritmo do LinkedIn; null quando a empresa não usa LinkedIn. */
+  ritmoLinkedin?: RitmoDia[] | null; redeInicial?: Rede; pilares: string[]; campanhas: { id: string; nome: string }[];
   tarefas: Tarefa[]; papel: Papel; usuarioId: string; hoje: string; onFechar: () => void;
 }) {
   const router = useRouter();
   const podeEditar = permissoes.podeEditar(papel);
   const podeColaborar = permissoes.podeColaborar(papel);
   const [atual, setAtual] = useState<Conteudo | null>(conteudo);
-  const [form, setForm] = useState<Form>(() => formDe(conteudo, dataInicial, ritmo));
+  const ritmoDa = (r: Rede) => (r === "linkedin" ? ritmoLinkedin ?? [] : ritmoInstagram);
+  const redeComeco: Rede = redeInicial === "linkedin" && ritmoLinkedin ? "linkedin" : "instagram";
+  const [form, setForm] = useState<Form>(() => formDe(conteudo, dataInicial, ritmoDa(conteudo ? redeDe(conteudo) : redeComeco), redeComeco));
   const [criarTarefas, setCriarTarefas] = useState(true);
   const [listaTarefas, setListaTarefas] = useState<Tarefa[]>(tarefas);
   const [erro, setErro] = useState<string | null>(null);
@@ -63,7 +87,24 @@ export function EditorConteudo({
   const [teleprompter, setTeleprompter] = useState(false);
   const [falasCopiadas, setFalasCopiadas] = useState(false);
   const [pendente, iniciar] = useTransition();
+  const [adaptando, setAdaptando] = useState(false);
   const novo = !atual;
+
+  async function adaptarParaLinkedin() {
+    if (!atual) return;
+    setErro(null); setAviso(null); setAdaptando(true);
+    try {
+      const r = await fetch("/api/ia/adaptar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ empresaId, conteudoId: atual.id }) });
+      const corpo = (await r.json().catch(() => ({}))) as Partial<ResultadoAdaptar> & { erro?: string; detalhes?: string[] };
+      if (!r.ok || !corpo.id) return setErro(`${corpo.erro ?? `Erro ${r.status} ao adaptar.`}${corpo.detalhes?.length ? ` (${corpo.detalhes.slice(0, 3).join("; ")})` : ""}`);
+      setAviso(`Versão do LinkedIn criada em ${formatarCurta(corpo.data!)} (${rotuloFormato(corpo.formato as FormatoConteudo, "linkedin")}) como sugestão da IA${corpo.tarefas ? `, com ${corpo.tarefas} tarefas` : ""}. Ela aparece no calendário com a marca “in”.`);
+      router.refresh();
+    } catch {
+      setErro("Não foi possível falar com o servidor.");
+    } finally {
+      setAdaptando(false);
+    }
+  }
 
   const alterar = (parcial: Partial<Form>) => { setForm((f) => ({ ...f, ...parcial })); setAviso(null); };
 
@@ -77,7 +118,7 @@ export function EditorConteudo({
       );
       if (!r.ok) return setErro(r.erro);
       setAtual(r.conteudo);
-      setForm(formDe(r.conteudo, r.conteudo.data, ritmo));
+      setForm(formDe(r.conteudo, r.conteudo.data, ritmoDa(redeDe(r.conteudo))));
       const partes: string[] = [];
       if (r.reagendadoDe) partes.push(`Reagendado para ${formatarCurta(r.conteudo.data)}`);
       else if (status === "aprovado") partes.push("Conteúdo aprovado");
@@ -177,7 +218,7 @@ export function EditorConteudo({
         <Botao variante="secundaria" carregando={pendente} onClick={() => salvar("aprovado")}>Aprovar</Botao>
       )}
       <Botao variante="secundaria" onClick={copiarLegenda} disabled={!form.legenda}>
-        <Copy className="h-4 w-4" aria-hidden /> {copiado ? "Copiado" : "Copiar legenda"}
+        <Copy className="h-4 w-4" aria-hidden /> {copiado ? "Copiado" : form.rede === "linkedin" ? "Copiar texto" : "Copiar legenda"}
       </Botao>
       {podeEditar && atual && (
         <Botao variante="fantasma" className="ml-auto text-atrasado" onClick={() => setExcluindo(true)} disabled={pendente}>
@@ -188,10 +229,11 @@ export function EditorConteudo({
   ) : null;
 
   return (
-    <Painel titulo={novo ? "Novo conteúdo" : atual?.tema || "Conteúdo"} onFechar={onFechar} rodape={rodape}>
+    <Painel titulo={novo ? (form.rede === "linkedin" ? "Novo conteúdo no LinkedIn" : "Novo conteúdo") : atual?.tema || "Conteúdo"} onFechar={onFechar} rodape={rodape}>
       <div className="space-y-4">
         {atual && (
           <div className="flex flex-wrap gap-1">
+            {form.rede === "linkedin" && <SeloLinkedin comNome />}
             <Selo tom={ORIGEM[atual.origem].tom}>{ORIGEM[atual.origem].rotulo}</Selo>
             <Selo tom={STATUS[atual.status].tom}>{STATUS[atual.status].rotulo}</Selo>
           </div>
@@ -205,13 +247,23 @@ export function EditorConteudo({
         )}
 
         <fieldset disabled={!podeEditar} className="space-y-3">
+          {novo && ritmoLinkedin && (
+            <div className="grid grid-cols-2 gap-1 rounded-xl bg-superficie-2 p-1" role="radiogroup" aria-label="Rede">
+              {(["instagram", "linkedin"] as const).map((r) => (
+                <button key={r} type="button" role="radio" aria-checked={form.rede === r} onClick={() => r !== form.rede && setForm((f) => ({ ...formDe(null, f.data, ritmoDa(r), r), tema: f.tema, notas: f.notas, campanha_id: f.campanha_id }))} className={`rounded-lg px-2 py-2 text-sm font-medium ${form.rede === r ? "bg-superficie text-texto shadow-sm" : "text-texto-2"}`}>
+                  {rotuloRede(r)}
+                </button>
+              ))}
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <CampoTexto rotulo="Data" type="date" value={form.data} onChange={(e) => alterar({ data: e.target.value })} className="tabular" ajuda={atual && form.data !== atual.data ? `Vai reagendar de ${formatarCurta(atual.data)}` : undefined} />
             <CampoTexto rotulo="Hora" type="time" value={form.hora} onChange={(e) => alterar({ hora: e.target.value })} className="tabular" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <CampoSelecao rotulo="Formato" value={form.formato} onChange={(e) => alterar({ formato: e.target.value as FormatoConteudo })}>
-              {FORMATOS.map((f) => <option key={f} value={f}>{f}</option>)}
+              {FORMATOS_POR_REDE[form.rede].map((f) => <option key={f} value={f}>{rotuloFormato(f, form.rede)}</option>)}
+              {!FORMATOS_POR_REDE[form.rede].includes(form.formato) && <option value={form.formato}>{form.formato}</option>}
             </CampoSelecao>
             <CampoSelecao rotulo="Status" value={form.status} disabled={!podeColaborar} onChange={(e) => alterar({ status: e.target.value as StatusConteudo })}>
               {STATUS_CONTEUDO.map((s) => <option key={s} value={s}>{STATUS[s].rotulo}</option>)}
@@ -244,6 +296,7 @@ export function EditorConteudo({
           {podeEditar && (
             <BriefingIA
               empresaId={empresaId}
+              rede={form.rede}
               campos={{ data: form.data, formato: form.formato, tipo: form.tipo, pilar: form.pilar, tema: form.tema, objetivo: form.objetivo, roteiro: form.roteiro, legenda: form.legenda, cta: form.cta, orientacao_arte: form.orientacao_arte, ganchos: form.ganchos }}
               onAplicar={(r) => {
                 alterar({ roteiro: r.roteiro, orientacao_arte: r.orientacao_arte, legenda: r.legenda || form.legenda, cta: r.cta || form.cta, ganchos: r.ganchos.length ? r.ganchos : form.ganchos });
@@ -252,7 +305,7 @@ export function EditorConteudo({
             />
           )}
           <CampoTexto rotulo="Chamada para ação (CTA)" value={form.cta} onChange={(e) => alterar({ cta: e.target.value })} placeholder="Ex.: Salve para rever antes da próxima aula" maxLength={300} />
-          <CampoArea rotulo={form.formato === "Reels" ? "Roteiro do vídeo" : form.formato === "Carrossel" ? "Slides (texto e imagem de cada um)" : "Arte (texto e imagem)"} value={form.roteiro} onChange={(e) => alterar({ roteiro: e.target.value })} rows={form.roteiro.length > 400 ? 14 : 6} placeholder={form.formato === "Reels" ? "Cena a cena: imagem, fala, texto na tela, áudio." : "Slide 1: … Slide 2: …"} />
+          <CampoArea rotulo={ROTULO_ROTEIRO[form.formato]} value={form.roteiro} onChange={(e) => alterar({ roteiro: e.target.value })} rows={form.roteiro.length > 400 ? 14 : 6} placeholder={DICA_ROTEIRO[form.formato]} />
           {form.formato === "Reels" && (
             <div>
               <span className="rotulo">Ganchos alternativos</span>
@@ -263,7 +316,7 @@ export function EditorConteudo({
               </div>
             </div>
           )}
-          <CampoArea rotulo="Legenda" value={form.legenda} onChange={(e) => alterar({ legenda: e.target.value })} rows={6} placeholder="Termine com uma chamada concreta: salvar, enviar, comentar…" />
+          <CampoArea rotulo={form.rede === "linkedin" ? "Texto do post" : "Legenda"} value={form.legenda} onChange={(e) => alterar({ legenda: e.target.value })} rows={6} placeholder="Termine com uma chamada concreta: salvar, enviar, comentar…" />
           <CampoArea rotulo="Orientação de arte" value={form.orientacao_arte} onChange={(e) => alterar({ orientacao_arte: e.target.value })} rows={form.orientacao_arte.length > 300 ? 9 : 3} placeholder="Estilo, cores, tipografia, fotografia, elementos." />
           <CampoArea rotulo="Notas" value={form.notas} onChange={(e) => alterar({ notas: e.target.value })} rows={3} />
           {novo && (
@@ -282,6 +335,16 @@ export function EditorConteudo({
             </Botao>
             <span className="w-full text-xs text-texto-2">Só o que é para falar, sem imagem, texto na tela nem áudio.</span>
           </div>
+        )}
+        {podeEditar && atual && form.rede === "instagram" && ritmoLinkedin && (
+          <section aria-label="Adaptar para o LinkedIn" className="space-y-2 rounded-xl border border-linkedin/40 bg-linkedin/5 p-3">
+            <p className="text-sm"><strong>LinkedIn:</strong> a IA reescreve este conteúdo para a página da empresa (para gestores e decisores) e cria a versão como sugestão, com as tarefas.</p>
+            {adaptando ? (
+              <p role="status" className="flex items-center gap-2 text-sm"><span className="h-4 w-4 animate-spin rounded-full border-2 border-ia border-t-transparent" aria-hidden /> Adaptando… leva até 1 minuto.</p>
+            ) : (
+              <Botao type="button" tamanho="sm" variante="secundaria" onClick={adaptarParaLinkedin} disabled={pendente}><Sparkles className="h-4 w-4 text-ia" aria-hidden /> Adaptar para o LinkedIn</Botao>
+            )}
+          </section>
         )}
         {teleprompter && <Teleprompter falas={extrairFalas(form.roteiro)} onFechar={() => setTeleprompter(false)} />}
 

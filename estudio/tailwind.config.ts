@@ -25,6 +25,7 @@ const config: Config = {
         real: "rgb(var(--real) / <alpha-value>)",
         manual: "rgb(var(--manual) / <alpha-value>)",
         atrasado: "rgb(var(--atrasado) / <alpha-value>)",
+        linkedin: "rgb(10 102 194 / <alpha-value>)",
       },
       fontFamily: {
         titulo: ["var(--fonte-titulo)", "Georgia", "serif"],

@@ -3,7 +3,8 @@ import { z } from "./ptBR";
 const texto = (max = 8000) => z.string().trim().max(max).optional().nullable().transform((v) => (v ? v : null));
 const dataISO = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida");
 
-export const FORMATOS = ["Reels", "Carrossel", "Estático"] as const;
+export const FORMATOS = ["Reels", "Carrossel", "Estático", "Texto", "Enquete", "Artigo"] as const;
+export const REDES_VALIDAS = ["instagram", "linkedin"] as const;
 export const STATUS_CONTEUDO = ["sugestao", "aprovado", "producao", "publicado"] as const;
 export const TIPOS_TELA = ["Foto ou vídeo", "Texto", "Compartilhar post", "Enquete", "Caixa de pergunta", "Quiz", "Slider de emoji", "Slider", "Contagem regressiva", "Link"] as const;
 
@@ -12,6 +13,7 @@ export const esquemaConteudo = z.object({
   data: dataISO,
   hora: z.string().regex(/^\d{2}:\d{2}$/).optional().nullable().transform((v) => (v ? v : null)),
   formato: z.enum(FORMATOS),
+  rede: z.enum(REDES_VALIDAS).optional(),
   status: z.enum(STATUS_CONTEUDO),
   tipo: texto(120),
   pilar: texto(80),

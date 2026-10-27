@@ -4,7 +4,8 @@
  *   npx supabase gen types typescript --project-id <id> --schema estudio > src/lib/tipos/database.ts
  */
 export type Papel = "dono" | "editor" | "colaborador" | "leitor";
-export type FormatoConteudo = "Reels" | "Carrossel" | "Estático";
+export type FormatoConteudo = "Reels" | "Carrossel" | "Estático" | "Texto" | "Enquete" | "Artigo";
+export type Rede = "instagram" | "linkedin";
 export type StatusConteudo = "sugestao" | "aprovado" | "producao" | "publicado";
 export type Origem = "ia" | "equipe";
 export type TipoTarefa = "Gravar" | "Fotografar" | "Criar arte" | "Editar" | "Revisar" | "Publicar" | "Planejamento" | "Outro";
@@ -58,6 +59,8 @@ export type EmpresaRow = {
   objetivos: string | null; tom_de_voz: string | null; regras_de_linguagem: string | null; regras_de_imagem: string | null;
   pilares: string[]; melhores_horarios: string | null; cor_primaria: string; cor_secundaria: string;
   fuso_horario: string; metas: Metas; ritmo_semanal: RitmoDia[]; arquivada: boolean; logo_url: string | null;
+  // LinkedIn (migração 0007; opcionais até ela ser aplicada)
+  redes?: string[] | null; ritmo_linkedin?: RitmoDia[] | null;
   criado_por: string | null; criado_em: string; atualizado_em: string;
 }
 
@@ -83,6 +86,7 @@ export interface Database {
         id: string; empresa_id: string; data: string; hora: string | null; formato: FormatoConteudo; tipo: string | null;
         pilar: string | null; tema: string; objetivo: string | null; roteiro: string | null; legenda: string | null; cta: string | null;
         orientacao_arte: string | null; ganchos: string[]; notas: string | null; status: StatusConteudo; origem: Origem;
+        rede?: Rede; // migração 0007; sem a coluna, vale "instagram"
         campanha_id: string | null; criado_por: string | null; criado_em: string; atualizado_em: string;
       }>;
       stories: Linha<{

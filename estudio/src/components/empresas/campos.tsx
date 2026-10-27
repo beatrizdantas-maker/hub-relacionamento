@@ -5,11 +5,12 @@ import { X } from "lucide-react";
 import { Botao } from "@/components/ui/Botao";
 import { CampoSelecao, CampoTexto } from "@/components/ui/Campo";
 import { OBJETIVOS_RITMO } from "@/lib/validacao/empresa";
-import type { FormatoConteudo, Metas, RitmoDia } from "@/lib/tipos/database";
+import type { FormatoConteudo, Metas, Rede, RitmoDia } from "@/lib/tipos/database";
+import { FORMATOS_POR_REDE, rotuloFormato } from "@/lib/redes";
 import { METAS_PADRAO } from "@/lib/padroes";
 
 export const DIAS = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"];
-export const FORMATOS: FormatoConteudo[] = ["Reels", "Carrossel", "Estático"];
+export const FORMATOS: FormatoConteudo[] = FORMATOS_POR_REDE.instagram;
 
 export { METAS_PADRAO, RITMO_PADRAO } from "@/lib/padroes";
 
@@ -128,19 +129,19 @@ export function CamposMetas({ metas, onChange, disabled }: { metas: MetasTexto; 
   );
 }
 
-export function CamposRitmo({ ritmo, pilares, onChange, disabled }: { ritmo: RitmoDia[]; pilares: string[]; onChange: (r: RitmoDia[]) => void; disabled?: boolean }) {
+export function CamposRitmo({ ritmo, pilares, onChange, disabled, rede = "instagram" }: { ritmo: RitmoDia[]; pilares: string[]; onChange: (r: RitmoDia[]) => void; disabled?: boolean; rede?: Rede }) {
   const atualizar = (i: number, parcial: Partial<RitmoDia>) => onChange(ritmo.map((r, j) => (j === i ? { ...r, ...parcial } : r)));
   return (
     <ul className="space-y-3">
       {ritmo.map((r, i) => (
         <li key={r.dia} className="rounded-xl border border-borda p-3">
           <p className="mb-2 text-sm font-semibold">{DIAS[r.dia - 1]}</p>
-          <div className="grid gap-2 sm:grid-cols-[110px_130px_1fr_170px]">
+          <div className={`grid gap-2 ${rede === "linkedin" ? "sm:grid-cols-[110px_170px_1fr_170px]" : "sm:grid-cols-[110px_130px_1fr_170px]"}`}>
             <CampoTexto rotulo="Hora" type="time" disabled={disabled} value={r.hora} onChange={(e) => atualizar(i, { hora: e.target.value })} className="tabular" />
             <CampoSelecao rotulo="Formato" disabled={disabled} value={r.formato} onChange={(e) => atualizar(i, { formato: e.target.value as FormatoConteudo })}>
-              {FORMATOS.map((f) => <option key={f} value={f}>{f}</option>)}
+              {FORMATOS_POR_REDE[rede].map((f) => <option key={f} value={f}>{rotuloFormato(f, rede)}</option>)}
             </CampoSelecao>
-            <CampoTexto rotulo="Tipo" disabled={disabled} value={r.tipo} onChange={(e) => atualizar(i, { tipo: e.target.value })} placeholder="Ex.: Reels de prova social" maxLength={120} />
+            <CampoTexto rotulo="Tipo" disabled={disabled} value={r.tipo} onChange={(e) => atualizar(i, { tipo: e.target.value })} placeholder={rede === "linkedin" ? "Ex.: Caso de escola atendida" : "Ex.: Reels de prova social"} maxLength={120} />
             <CampoSelecao rotulo="Objetivo" disabled={disabled} value={r.objetivo} onChange={(e) => atualizar(i, { objetivo: e.target.value })}>
               {OBJETIVOS_RITMO.map((o) => <option key={o.valor} value={o.valor}>{o.rotulo}</option>)}
             </CampoSelecao>

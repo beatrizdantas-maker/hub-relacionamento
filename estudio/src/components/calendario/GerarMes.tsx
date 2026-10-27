@@ -9,7 +9,8 @@ import { Selo } from "@/components/ui/Selo";
 import { CampoSelecao } from "@/components/ui/Campo";
 import { formatarCurta, formatarMesAno, capitalizar, rotuloSemana } from "@/lib/datas";
 import { mesesDisponiveis, planejarMes, type SemanaDoPlano } from "@/lib/ia/planoMes";
-import type { RitmoDia } from "@/lib/tipos/database";
+import type { Rede, RitmoDia } from "@/lib/tipos/database";
+import { rotuloFormato } from "@/lib/redes";
 import type { ResultadoSemanaIA } from "@/app/api/ia/calendario/route";
 import { Painel } from "./Painel";
 
@@ -20,10 +21,18 @@ type EstadoSemana = { semana: SemanaDoPlano; estado: "fila" | "pensando" | "ok" 
  * chamada curta; dá para cancelar entre elas). Só dias de hoje em diante,
  * com slot no ritmo semanal e ainda vazios.
  */
-export function GerarMes({ empresaId, hoje, ritmo, iaConfigurada, onFechar }: { empresaId: string; hoje: string; ritmo: RitmoDia[]; iaConfigurada: boolean; onFechar: () => void }) {
+export function GerarMes({ empresaId, hoje, ritmo: ritmoInstagram, ritmoLinkedin, redeInicial = "instagram", iaConfigurada, onFechar }: {
+  empresaId: string; hoje: string; ritmo: RitmoDia[];
+  /** Ritmo do LinkedIn; null quando a empresa não usa LinkedIn. */
+  ritmoLinkedin: RitmoDia[] | null;
+  redeInicial?: Rede;
+  iaConfigurada: boolean; onFechar: () => void;
+}) {
   const router = useRouter();
   const meses = useMemo(() => mesesDisponiveis(hoje), [hoje]);
   const [mes, setMes] = useState(meses[0].valor);
+  const [rede, setRede] = useState<Rede>(ritmoLinkedin ? redeInicial : "instagram");
+  const ritmo = rede === "linkedin" && ritmoLinkedin ? ritmoLinkedin : ritmoInstagram;
   const plano = useMemo(() => planejarMes(mes, hoje, ritmo), [mes, hoje, ritmo]);
   const totalDias = plano.reduce((a, s) => a + s.dias.length, 0);
   const [semanas, setSemanas] = useState<EstadoSemana[] | null>(null);
@@ -44,7 +53,7 @@ export function GerarMes({ empresaId, hoje, ritmo, iaConfigurada, onFechar }: { 
         const resposta = await fetch("/api/ia/calendario", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ empresaId, dias: fila[i].semana.dias }),
+          body: JSON.stringify({ empresaId, dias: fila[i].semana.dias, ...(rede === "linkedin" ? { rede } : {}) }),
           signal: ac.signal,
         });
         const corpo = (await resposta.json().catch(() => ({}))) as Partial<ResultadoSemanaIA> & { erro?: string; detalhes?: string[] };
@@ -75,7 +84,7 @@ export function GerarMes({ empresaId, hoje, ritmo, iaConfigurada, onFechar }: { 
 
   return (
     <Painel
-      titulo="Gerar mês com IA"
+      titulo={rede === "linkedin" ? "Gerar mês do LinkedIn com IA" : "Gerar mês com IA"}
       onFechar={onFechar}
       rodape={
         <div className="flex flex-wrap justify-end gap-2">
@@ -94,6 +103,15 @@ export function GerarMes({ empresaId, hoje, ritmo, iaConfigurada, onFechar }: { 
         {!iaConfigurada && <Aviso tipo="erro">A IA não está configurada neste servidor: falta a variável <code className="rounded bg-superficie-2 px-1">ANTHROPIC_API_KEY</code>.</Aviso>}
         {!semanas && (
           <>
+            {ritmoLinkedin && (
+              <div className="grid grid-cols-2 gap-1 rounded-xl bg-superficie-2 p-1" role="radiogroup" aria-label="Rede">
+                {(["instagram", "linkedin"] as const).map((r) => (
+                  <button key={r} type="button" role="radio" aria-checked={rede === r} onClick={() => setRede(r)} className={`rounded-lg px-2 py-2 text-sm font-medium ${rede === r ? "bg-superficie text-texto shadow-sm" : "text-texto-2"}`}>
+                    {r === "instagram" ? "Instagram" : "LinkedIn"}
+                  </button>
+                ))}
+              </div>
+            )}
             <CampoSelecao rotulo="Mês" value={mes} onChange={(e) => setMes(e.target.value)}>
               {meses.map((m) => <option key={m.valor} value={m.valor}>{capitalizar(formatarMesAno(m.inicio))}</option>)}
             </CampoSelecao>
@@ -101,7 +119,11 @@ export function GerarMes({ empresaId, hoje, ritmo, iaConfigurada, onFechar }: { 
               <p className="font-medium text-ia">O que vai acontecer</p>
               <ul className="mt-1.5 list-disc space-y-1 pl-4 text-texto-2">
                 <li>Para cada dia do ritmo semanal de hoje em diante, a IA escreve o conteúdo completo: tema, objetivo, roteiro ou slides, legenda pronta com CTA, orientação de arte e, nos Reels, 3 ganchos alternativos.</li>
-                <li>Cada dia ganha 4 telas de stories (abertura, compartilhar o post, interação e fechamento).</li>
+                {rede === "linkedin" ? (
+                  <li>Ritmo do LinkedIn: {ritmo.map((r) => `${["seg", "ter", "qua", "qui", "sex", "sáb", "dom"][r.dia - 1]} ${rotuloFormato(r.formato, "linkedin")}`).join(" · ")}. Texto na voz da empresa, para gestores e decisores; sem stories.</li>
+                ) : (
+                  <li>Cada dia ganha 4 telas de stories (abertura, compartilhar o post, interação e fechamento).</li>
+                )}
                 <li>Tudo entra como <Selo tom="ia">Sugestão da IA</Selo> para você aprovar, e as tarefas padrão são criadas.</li>
                 <li>Dias que já têm conteúdo são pulados. Uma semana por vez: dá para cancelar no meio.</li>
               </ul>
@@ -133,7 +155,7 @@ export function GerarMes({ empresaId, hoje, ritmo, iaConfigurada, onFechar }: { 
                 </div>
               ) : (
                 <p>
-                  <span className="font-medium">{criados} {criados === 1 ? "conteúdo criado" : "conteúdos criados"}</span> com stories, {tarefas} tarefas.
+                  <span className="font-medium">{criados} {criados === 1 ? "conteúdo criado" : "conteúdos criados"}</span>{rede === "instagram" ? " com stories" : " no LinkedIn"}, {tarefas} tarefas.
                   {pulados > 0 && ` ${pulados} ${pulados === 1 ? "dia pulado" : "dias pulados"} (já tinham conteúdo).`}
                 </p>
               )}
@@ -151,7 +173,7 @@ export function GerarMes({ empresaId, hoje, ritmo, iaConfigurada, onFechar }: { 
                   </div>
                   {s.estado === "erro" && <p className="mt-1 text-xs text-atrasado">{s.erro}</p>}
                   {s.resultado && s.resultado.criados.length > 0 && (
-                    <ul className="mt-2 space-y-1 text-xs text-texto-2">{s.resultado.criados.map((c) => <li key={c.data} className="tabular">{formatarCurta(c.data)} · {c.formato} · {c.tema}</li>)}</ul>
+                    <ul className="mt-2 space-y-1 text-xs text-texto-2">{s.resultado.criados.map((c) => <li key={c.data} className="tabular">{formatarCurta(c.data)} · {rotuloFormato(c.formato as never, rede)} · {c.tema}</li>)}</ul>
                   )}
                   {s.resultado && s.resultado.avisos.length > 0 && (
                     <ul className="mt-2 space-y-1 text-xs text-manual">{s.resultado.avisos.slice(0, 4).map((a, i) => <li key={i}>{a}</li>)}</ul>

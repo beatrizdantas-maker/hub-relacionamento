@@ -8,6 +8,8 @@ import { Selo } from "@/components/ui/Selo";
 import { Aviso } from "@/components/ui/Aviso";
 import { Botao } from "@/components/ui/Botao";
 import { ICONE_FORMATO, STATUS } from "@/components/calendario/rotulos";
+import { SeloLinkedin } from "@/components/calendario/Cartoes";
+import { redeDe, rotuloFormato } from "@/lib/redes";
 import { PRIORIDADE_TOM } from "@/components/tarefas/rotulos";
 import { mudarStatusTarefa } from "@/app/(app)/tarefas/acoes";
 import { capitalizar, formatarCurta, formatarDiaSemanaCurto, formatarLonga, formatarMesAno, horaCurta, rotuloSemana, somarDias } from "@/lib/datas";
@@ -261,9 +263,9 @@ function ItemConteudo({ conteudo: c, compacto = false }: { conteudo: Conteudo; c
   return (
     <div>
       <Link href={`/calendario?dia=${c.data}&abrir=${c.id}`} className={`flex items-center gap-2 rounded-xl border border-borda bg-superficie text-sm transition hover:border-primaria/60 ${compacto ? "px-2.5 py-1.5" : "p-3"} ${c.status === "sugestao" ? "border-dashed border-ia/50" : ""}`}>
-        <Icone className="h-4 w-4 shrink-0 text-texto-2" aria-hidden />
+        {redeDe(c) === "linkedin" ? <SeloLinkedin /> : <Icone className="h-4 w-4 shrink-0 text-texto-2" aria-hidden />}
         {c.hora && <span className={`shrink-0 text-xs tabular text-texto-2 ${compacto ? "hidden sm:inline" : ""}`}>{horaCurta(c.hora)}</span>}
-        <span className="min-w-0 flex-1 break-words font-medium line-clamp-2">{c.tema || <span className="text-texto-3">{c.formato} sem tema</span>}</span>
+        <span className="min-w-0 flex-1 break-words font-medium line-clamp-2">{c.tema || <span className="text-texto-3">{rotuloFormato(c.formato, redeDe(c))} sem tema</span>}</span>
         <Selo tom={st.tom} className="shrink-0">{st.rotulo}</Selo>
       </Link>
     </div>

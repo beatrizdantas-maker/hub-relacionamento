@@ -3,12 +3,14 @@
 import { Selo } from "@/components/ui/Selo";
 import { horaCurta } from "@/lib/datas";
 import type { Conteudo, Story } from "@/lib/tipos/database";
+import { redeDe, rotuloFormato } from "@/lib/redes";
 import { ICONE_FORMATO, ORIGEM, STATUS } from "./rotulos";
 
 export function CartaoConteudo({ conteudo, onAbrir, compacto = true }: { conteudo: Conteudo; onAbrir: () => void; compacto?: boolean }) {
   const Icone = ICONE_FORMATO[conteudo.formato];
   const st = STATUS[conteudo.status];
   const or = ORIGEM[conteudo.origem];
+  const rede = redeDe(conteudo);
   return (
     <button
       type="button"
@@ -17,7 +19,8 @@ export function CartaoConteudo({ conteudo, onAbrir, compacto = true }: { conteud
     >
       <div className="flex items-center gap-1.5 text-xs text-texto-2">
         <Icone className="h-3.5 w-3.5 shrink-0" aria-hidden />
-        <span className="min-w-0 truncate font-medium md:hidden xl:inline">{conteudo.formato}</span>
+        {rede === "linkedin" && <SeloLinkedin />}
+        <span className="min-w-0 truncate font-medium md:hidden xl:inline">{rotuloFormato(conteudo.formato, rede)}</span>
         {conteudo.hora && <span className="ml-auto shrink-0 tabular">{horaCurta(conteudo.hora)}</span>}
       </div>
       <p className={`mt-1 text-sm font-medium ${compacto ? "line-clamp-2" : ""}`}>{conteudo.tema || <span className="text-texto-3">Sem tema</span>}</p>
@@ -26,6 +29,15 @@ export function CartaoConteudo({ conteudo, onAbrir, compacto = true }: { conteud
         <Selo tom={or.tom}>{or.rotulo}</Selo>
       </div>
     </button>
+  );
+}
+
+/** Marca "in" do LinkedIn (texto, não logotipo). */
+export function SeloLinkedin({ comNome = false }: { comNome?: boolean }) {
+  return (
+    <span className="inline-flex shrink-0 items-center gap-1 rounded bg-linkedin px-1 text-[10px] font-bold leading-4 text-white" title="LinkedIn">
+      in{comNome ? <span className="font-medium"> LinkedIn</span> : <span className="sr-only"> LinkedIn</span>}
+    </span>
   );
 }
 

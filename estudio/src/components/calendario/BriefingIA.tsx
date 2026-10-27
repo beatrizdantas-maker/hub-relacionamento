@@ -6,11 +6,19 @@ import { Botao } from "@/components/ui/Botao";
 import { Aviso } from "@/components/ui/Aviso";
 import { Confirmacao } from "@/components/ui/Confirmacao";
 import { modoReelsPadrao, type ModoReels } from "@/lib/ia/briefing";
-import type { FormatoConteudo } from "@/lib/tipos/database";
+import type { FormatoConteudo, Rede } from "@/lib/tipos/database";
 
 export type CamposBriefing = {
   data: string; formato: FormatoConteudo; tipo: string; pilar: string; tema: string; objetivo: string;
   roteiro: string; legenda: string; cta: string; orientacao_arte: string; ganchos: string[];
+};
+const O_QUE: Record<FormatoConteudo, string> = {
+  Reels: "roteiro completo do vídeo",
+  Carrossel: "texto e imagem de cada slide",
+  "Estático": "texto e imagem da arte",
+  Texto: "texto do post e imagem de apoio",
+  Enquete: "pergunta e opções da enquete",
+  Artigo: "artigo com título e seções",
 };
 type Resposta = { roteiro: string; orientacao_arte: string; legenda: string; cta: string; ganchos: string[] };
 
@@ -19,7 +27,7 @@ type Resposta = { roteiro: string; orientacao_arte: string; legenda: string; cta
  * (carrossel e estático) ou o roteiro completo do vídeo (Reels). Preenche os
  * campos do formulário; nada é salvo até clicar em Salvar.
  */
-export function BriefingIA({ empresaId, campos, onAplicar }: { empresaId: string; campos: CamposBriefing; onAplicar: (r: Resposta) => void }) {
+export function BriefingIA({ empresaId, rede = "instagram", campos, onAplicar }: { empresaId: string; rede?: Rede; campos: CamposBriefing; onAplicar: (r: Resposta) => void }) {
   const [modo, setModo] = useState<ModoReels>(() => modoReelsPadrao(campos.tipo));
   const [gerando, setGerando] = useState(false);
   const [confirmando, setConfirmando] = useState(false);
@@ -28,7 +36,7 @@ export function BriefingIA({ empresaId, campos, onAplicar }: { empresaId: string
   useEffect(() => () => controlador.current?.abort(), []);
 
   const jaTemTexto = Boolean(campos.roteiro.trim() || campos.orientacao_arte.trim());
-  const oQue = campos.formato === "Reels" ? "roteiro completo do vídeo" : campos.formato === "Carrossel" ? "texto e imagem de cada slide" : "texto e imagem da arte";
+  const oQue = O_QUE[campos.formato];
 
   async function gerar() {
     setConfirmando(false);
@@ -41,7 +49,7 @@ export function BriefingIA({ empresaId, campos, onAplicar }: { empresaId: string
       const r = await fetch("/api/ia/briefing", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ empresaId, modoReels: modo, conteudo: campos }),
+        body: JSON.stringify({ empresaId, modoReels: modo, rede, conteudo: campos }),
         signal: ac.signal,
       });
       const corpo = (await r.json().catch(() => ({}))) as Partial<Resposta> & { erro?: string; detalhes?: string[] };

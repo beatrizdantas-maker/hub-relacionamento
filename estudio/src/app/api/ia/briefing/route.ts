@@ -4,7 +4,7 @@ import { autorizarIA, respostaErro } from "@/lib/ia/autorizar";
 import { ErroIA, MODELO_IA, obterClienteIA, traduzirErroIA } from "@/lib/ia/cliente";
 import { montarPromptBriefing } from "@/lib/ia/prompts";
 import { SaidaBriefing, formatarOrientacao, formatarRoteiro, problemasBriefing, type ModoReels } from "@/lib/ia/briefing";
-import { FORMATOS } from "@/lib/validacao/conteudo";
+import { FORMATOS_POR_REDE } from "@/lib/redes";
 import { juntarLegenda } from "@/lib/ia/hashtags";
 import type { FormatoConteudo } from "@/lib/tipos/database";
 
@@ -20,7 +20,7 @@ const texto = (v: unknown, max = 8000) => (typeof v === "string" ? v.slice(0, ma
  * preencher o formulário; quem salva é a pessoa, no botão Salvar.
  */
 export async function POST(req: NextRequest) {
-  let corpo: { empresaId?: unknown; modoReels?: unknown; conteudo?: Record<string, unknown> } = {};
+  let corpo: { empresaId?: unknown; modoReels?: unknown; rede?: unknown; conteudo?: Record<string, unknown> } = {};
   try { corpo = await req.json(); } catch { /* corpo vazio */ }
   const auth = await autorizarIA(corpo.empresaId);
   if (auth instanceof NextResponse) return auth;
@@ -28,12 +28,13 @@ export async function POST(req: NextRequest) {
 
   const c = corpo.conteudo ?? {};
   const formato = c.formato as FormatoConteudo;
-  if (!(FORMATOS as readonly string[]).includes(formato)) return respostaErro(new ErroIA("Formato inválido.", 400));
+  const rede = corpo.rede === "linkedin" ? "linkedin" : "instagram";
+  if (!FORMATOS_POR_REDE[rede].includes(formato)) return respostaErro(new ErroIA("Formato inválido para esta rede.", 400));
   if (!texto(c.tema, 200)?.trim()) return respostaErro(new ErroIA("Escreva o tema do conteúdo antes de pedir o briefing.", 400));
   const modoReels: ModoReels = corpo.modoReels === "com_pessoa" ? "com_pessoa" : "sem_pessoa";
 
   try {
-    const { system, usuario } = montarPromptBriefing(empresa, modoReels, {
+    const { system, usuario } = montarPromptBriefing(empresa, modoReels, rede, {
       data: texto(c.data, 10) ?? "",
       formato,
       tipo: texto(c.tipo, 120),
@@ -67,7 +68,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       roteiro: formatarRoteiro(formato, b),
       orientacao_arte: formatarOrientacao(b),
-      legenda: juntarLegenda(b.legenda, b.hashtags),
+      legenda: juntarLegenda(b.legenda, b.hashtags, rede === "linkedin" ? 5 : 10),
       cta: b.cta.trim().slice(0, 300),
       ganchos: formato === "Reels" ? b.ganchos.map((g) => g.trim().slice(0, 300)).filter(Boolean).slice(0, 3) : [],
     });

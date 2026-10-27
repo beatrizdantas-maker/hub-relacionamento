@@ -40,7 +40,7 @@ export function FormularioResultadoPost({ empresaId, hoje, existente, onFechar }
   function salvar() {
     setErro(null);
     iniciar(async () => {
-      const r = await salvarResultadoPost(empresaId, { ...form, id: existente?.id, publicado_em: form.publicado_em, formato: form.formato as FormatoConteudo });
+      const r = await salvarResultadoPost(empresaId, { ...form, id: existente?.id, publicado_em: form.publicado_em, formato: form.formato as "Reels" | "Carrossel" | "Estático" });
       if (!r.ok) return setErro(r.erro);
       router.refresh();
       onFechar();

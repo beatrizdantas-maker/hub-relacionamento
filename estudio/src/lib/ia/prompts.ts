@@ -3,7 +3,8 @@
  * JSON compacto e a IA é obrigada a usar só o que está ali.
  */
 import { formatarCurta, formatarLonga, capitalizar, rotuloSemana, somarDias, type DataISO } from "@/lib/datas";
-import type { Campanha, Conteudo, Empresa, MetricaSemanal, ResultadoPost, RitmoDia } from "@/lib/tipos/database";
+import type { Campanha, Conteudo, Empresa, MetricaSemanal, Rede, ResultadoPost, RitmoDia } from "@/lib/tipos/database";
+import { rotuloFormato } from "@/lib/redes";
 import type { DadosReais } from "./dadosReais";
 import { datasComemorativasEntre } from "./datasComemorativas";
 
@@ -12,7 +13,7 @@ export interface ContextoIA {
   hoje: DataISO;
   campanhas: Campanha[];
   dadosReais: DadosReais;
-  agendados: Pick<Conteudo, "data" | "hora" | "formato" | "tipo" | "tema" | "status" | "origem">[];
+  agendados: (Pick<Conteudo, "data" | "hora" | "formato" | "tipo" | "tema" | "status" | "origem"> & { rede?: string | null })[];
 }
 
 const DIAS = ["", "segunda", "terça", "quarta", "quinta", "sexta", "sábado", "domingo"];
@@ -76,15 +77,46 @@ function postsJson(posts: ResultadoPost[]) {
 
 function agendadosTexto(itens: ContextoIA["agendados"]): string {
   if (!itens.length) return "Nada programado.";
-  return itens.map((c) => `- ${formatarCurta(c.data)}${c.hora ? ` ${c.hora.slice(0, 5)}` : ""} · ${c.formato}${c.tipo ? ` (${c.tipo})` : ""} · ${c.tema || "sem tema"} · ${c.status}${c.origem === "ia" ? " · sugestão da IA" : ""}`).join("\n");
+  return itens.map((c) => `- ${formatarCurta(c.data)}${c.hora ? ` ${c.hora.slice(0, 5)}` : ""} · ${c.rede === "linkedin" ? `LinkedIn · ${rotuloFormato(c.formato, "linkedin")}` : c.formato}${c.tipo ? ` (${c.tipo})` : ""} · ${c.tema || "sem tema"} · ${c.status}${c.origem === "ia" ? " · sugestão da IA" : ""}`).join("\n");
 }
 
-export const REGRAS_GERAIS = `Regras obrigatórias:
+/** Regras que valem para tudo que a IA escreve; hashtags e chamada para ação mudam por rede. */
+export function regrasGerais(rede: Rede = "instagram"): string {
+  const cta = rede === "linkedin"
+    ? '(ex.: "Conta nos comentários como é na sua escola", "Manda uma mensagem para a gente", "Compartilha com a sua equipe", "Conheça no nosso site"). Nunca use "link na bio", "arrasta pro lado" nem outras expressões de Instagram'
+    : '(ex.: "Comenta EU QUERO", "Salva pra ver depois", "Me chama no direct", "Clica no link da bio")';
+  const tags = rede === "linkedin" ? "de 3 a 5" : "de 5 a 10";
+  return `Regras obrigatórias:
 1. Use SOMENTE os números e fatos que estão neste pedido. Não invente dados, percentuais, nomes de posts ou resultados.
 2. Escreva em português do Brasil, no tom de voz da marca, e siga à risca as regras de linguagem da marca (palavras proibidas, modos de se referir a produtos etc.). Elas valem para tudo: temas, roteiros, legendas, stories e justificativas.
-3. Toda legenda termina com uma chamada para ação concreta (ex.: "Comenta EU QUERO", "Salva pra ver depois", "Me chama no direct", "Clica no link da bio"). Nunca termine uma legenda sem CTA.
-   Não escreva hashtags dentro da legenda: coloque de 5 a 10 em "hashtags" (sem espaços, em português, específicas do tema e do público da marca, misturando 2 ou 3 mais amplas com as de nicho, e respeitando as regras de linguagem). O sistema acrescenta as hashtags no fim da legenda.
-4. Nunca use emojis no lugar de palavras; emojis só como apoio, no máximo dois por legenda.`;
+3. Toda legenda termina com uma chamada para ação concreta ${cta}. Nunca termine uma legenda sem CTA.
+   Não escreva hashtags dentro da legenda: coloque ${tags} em "hashtags" (sem espaços, em português, específicas do tema e do público da marca, misturando amplas e de nicho, e respeitando as regras de linguagem). O sistema acrescenta as hashtags no fim da legenda.
+4. Nunca use emojis no lugar de palavras; emojis só como apoio, no máximo dois por legenda${rede === "linkedin" ? " (no LinkedIn, prefira nenhum)" : ""}.`;
+}
+export const REGRAS_GERAIS = regrasGerais("instagram");
+
+/** Como escrever para a página da empresa no LinkedIn. */
+export const REGRAS_LINKEDIN = `Esta peça é para a PÁGINA DA EMPRESA no LinkedIn: a marca fala como "nós". Público: gestores, diretores, coordenadores, mantenedores e educadores que decidem.
+- As 2 primeiras linhas são o gancho: é o que aparece antes do "ver mais". Comece com uma afirmação forte, um número real ou uma pergunta do dia a dia da escola.
+- Parágrafos curtos (1 a 3 linhas), frases diretas, tom profissional e humano. Nada de linguagem de vendedor.
+- Traga aprendizado prático, bastidor ou caso real; a marca aparece como quem entende do assunto, não como anúncio.`;
+
+/** Instruções por formato para o briefing de produção, em cada rede. */
+export function instrucoesFormatos(rede: Rede): string {
+  if (rede === "linkedin") {
+    return `   - Texto: "legenda" é o post completo (de 900 a 1.800 caracteres), com gancho nas 2 primeiras linhas. "arte_estatico" só se uma imagem de apoio ajudar (senão null). "slides" e "cenas" vazias, "enquete" e "artigo" null.
+   - Carrossel (documento em PDF): em "slides", de 6 a 10 páginas com o título e o texto de cada uma e, em "imagem", como deve ser cada página (o que mostrar, composição). Primeira página: título que faz abrir; última: chamada para ação. A "legenda" apresenta o documento.
+   - Reels (vídeo no LinkedIn): em "cenas", o roteiro completo de 30 a 90 segundos com tempo, como filmar ("imagem"), a fala palavra por palavra e o texto na tela (muita gente assiste sem som: legende as falas importantes). Exatamente 3 ganchos alternativos: curiosidade, identificação, provocação.
+   - Estático (imagem): em "arte_estatico", o texto da imagem, a imagem e a composição. A "legenda" é o post que acompanha a imagem.
+   - Enquete: em "enquete", a pergunta (até 140 caracteres) e de 2 a 4 opções (até 30 caracteres cada). A "legenda" é o texto que acompanha a enquete e convida a votar e comentar.
+   - Artigo: em "artigo", título, subtítulo e de 3 a 6 seções com intertítulo e texto completo. A "legenda" é o post curto que divulga o artigo.
+   Em todos: preencha só o campo do formato; os outros ficam vazios ou null. Para formatos que não são Reels, "ganchos" é uma lista vazia e "musica" é null.`;
+  }
+  return `   - Carrossel: em "slides", de 5 a 8 slides com o título e o texto que vão escritos na arte e, em "imagem", exatamente como deve ser a imagem de cada slide (o que mostrar, composição, onde fica o texto). "cenas" vazia, "arte_estatico" null.
+   - Estático: em "arte_estatico", o texto da arte, a imagem e a composição. "slides" e "cenas" vazias.
+   - Reels: em "cenas", o roteiro completo com tempo de início e fim, o que aparece e como filmar ("imagem"), a fala palavra por palavra ("fala"), o texto na tela e o áudio; sugira a música em "musica". Se o tipo do dia envolve uma pessoa da empresa falando (pessoa falando, prova social, depoimento, bastidores), escreva a fala para essa pessoa gravar olhando para a câmera; nos outros Reels, use imagens de apoio, texto na tela e, se fizer sentido, narração em off. Exatamente 3 ganchos alternativos nesta ordem: curiosidade, identificação, provocação. "slides" vazia, "arte_estatico" null.
+   Em todos: "enquete" e "artigo" são null. Para Carrossel e Estático, "ganchos" é uma lista vazia.`;
+}
 
 // ---------- Sugestões da semana ----------
 
@@ -137,20 +169,18 @@ Gere o JSON pedido.`;
 
 // ---------- Semana do calendário do mês ----------
 
-export function montarPromptSemanaCalendario(ctx: ContextoIA, dias: { data: DataISO; ritmo: RitmoDia }[]): { system: string; usuario: string } {
+export function montarPromptSemanaCalendario(ctx: ContextoIA, dias: { data: DataISO; ritmo: RitmoDia }[], rede: Rede = "instagram"): { system: string; usuario: string } {
   const primeiro = dias[0].data, ultimo = dias[dias.length - 1].data;
-  const system = `Você é roteirista e redator de Instagram da marca "${ctx.empresa.nome}". Sua tarefa é escrever o conteúdo completo de cada dia pedido, pronto para a equipe gravar ou desenhar, seguindo o ritmo semanal da marca.
+  const linkedin = rede === "linkedin";
+  const system = `Você é roteirista e redator de ${linkedin ? "LinkedIn" : "Instagram"} da marca "${ctx.empresa.nome}". Sua tarefa é escrever o conteúdo completo de cada dia pedido, pronto para a equipe gravar ou desenhar, seguindo o ritmo semanal da marca ${linkedin ? "no LinkedIn" : "no Instagram"}.
 
-${REGRAS_GERAIS}
+${regrasGerais(rede)}${linkedin ? `\n\n${REGRAS_LINKEDIN}` : ""}
 5. Gere exatamente um item por data pedida, com a data exata e o formato/tipo/pilar do ritmo daquele dia.
 6. A equipe vai produzir as artes e gravar os vídeos a partir do que você escrever, então descreva tudo com precisão:
    - "conceito_visual": estilo, cores (a partir das cores e regras de imagem da marca), tipografia, tipo de foto ou vídeo e elementos gráficos.
-   - Carrossel: em "slides", de 5 a 8 slides com o título e o texto que vão escritos na arte e, em "imagem", exatamente como deve ser a imagem de cada slide (o que mostrar, composição, onde fica o texto). "cenas" vazia, "arte_estatico" null.
-   - Estático: em "arte_estatico", o texto da arte, a imagem e a composição. "slides" e "cenas" vazias.
-   - Reels: em "cenas", o roteiro completo com tempo de início e fim, o que aparece e como filmar ("imagem"), a fala palavra por palavra ("fala"), o texto na tela e o áudio; sugira a música em "musica". Se o tipo do dia envolve uma pessoa da empresa falando (pessoa falando, prova social, depoimento, bastidores), escreva a fala para essa pessoa gravar olhando para a câmera; nos outros Reels, use imagens de apoio, texto na tela e, se fizer sentido, narração em off. Exatamente 3 ganchos alternativos nesta ordem: curiosidade, identificação, provocação. "slides" vazia, "arte_estatico" null.
+${instrucoesFormatos(rede)}
    - "dicas_producao": 2 a 4 dicas práticas para produzir a peça.
-   Para Carrossel e Estático, "ganchos" é uma lista vazia.
-7. Stories do dia: exatamente 4 telas, nesta ordem: (1) abertura que puxa o assunto do post, (2) "Compartilhar post" chamando para ver o post, (3) uma tela de interação — Enquete (2 a 4 opções), Caixa de pergunta, Quiz (2 a 4 opções) ou Slider — com pergunta e opções preenchidas, (4) fechamento com chamada para ação. Em telas sem interação, "pergunta", "opcoes" e "emoji" são null.
+${linkedin ? "7. Não há stories no LinkedIn." : `7. Stories do dia: exatamente 4 telas, nesta ordem: (1) abertura que puxa o assunto do post, (2) "Compartilhar post" chamando para ver o post, (3) uma tela de interação — Enquete (2 a 4 opções), Caixa de pergunta, Quiz (2 a 4 opções) ou Slider — com pergunta e opções preenchidas, (4) fechamento com chamada para ação. Em telas sem interação, "pergunta", "opcoes" e "emoji" são null.`}
 8. Use as campanhas ativas nos dias marcados como "campanha" no ritmo e as datas comemorativas só quando fizerem sentido para a marca.
 9. Varie os temas entre os dias e não repita o que já está programado.
 10. Baseie as escolhas nos dados reais quando houver; sem dado, use o perfil da marca.`;
@@ -180,7 +210,7 @@ ${agendadosTexto(ctx.agendados)}
 ${datasComemorativasEntre(primeiro, ultimo).map((d) => `- ${formatarCurta(d.data)}: ${d.nome}`).join("\n") || "Nenhuma."}
 
 ## Dias a gerar (um item por linha, com o slot do ritmo)
-${dias.map((d) => `- ${d.data} (${DIAS[d.ritmo.dia]} ${d.ritmo.hora}): formato ${d.ritmo.formato} · tipo "${d.ritmo.tipo}" · pilar "${d.ritmo.pilar}" · objetivo "${d.ritmo.objetivo}"`).join("\n")}
+${dias.map((d) => `- ${d.data} (${DIAS[d.ritmo.dia]} ${d.ritmo.hora}): formato ${rotuloFormato(d.ritmo.formato, rede)} (valor no JSON: "${d.ritmo.formato}") · tipo "${d.ritmo.tipo}" · pilar "${d.ritmo.pilar}" · objetivo "${d.ritmo.objetivo}"`).join("\n")}
 
 Hoje é ${ctx.hoje}. Gere o JSON pedido com ${dias.length} ${dias.length === 1 ? "dia" : "dias"}.`;
 
@@ -189,23 +219,78 @@ Hoje é ${ctx.hoje}. Gere o JSON pedido com ${dias.length} ${dias.length === 1 ?
 
 // ---------- Briefing de produção de um conteúdo ----------
 
+/**
+ * "Adaptar para o LinkedIn": reescreve um conteúdo do Instagram para a página
+ * da empresa no LinkedIn. A IA escolhe o formato (o do ritmo do dia é sugerido).
+ */
+export function montarPromptAdaptar(
+  empresa: Empresa,
+  origem: Pick<Conteudo, "data" | "formato" | "tipo" | "pilar" | "tema" | "objetivo" | "roteiro" | "legenda" | "cta" | "orientacao_arte">,
+  sugerido: RitmoDia | null,
+): { system: string; usuario: string } {
+  const system = `Você é estrategista e redator de LinkedIn da marca "${empresa.nome}". Vai transformar um conteúdo que a marca fez para o Instagram num post para a página da empresa no LinkedIn. A equipe produz as artes e grava os vídeos a partir do seu briefing.
+
+${regrasGerais("linkedin")}
+
+${REGRAS_LINKEDIN}
+
+Como adaptar:
+- Não traduza o post do Instagram ao pé da letra. Mantenha a ideia central e reescreva para gestores, coordenadores e decisores: mais contexto, dado ou exemplo concreto, menos gíria e menos emoji.
+- Escolha o formato do LinkedIn que melhor serve a ideia: "Texto", "Carrossel" (documento PDF), "Reels" (vídeo), "Estático" (imagem), "Enquete" ou "Artigo".${sugerido ? ` O ritmo da marca pede ${rotuloFormato(sugerido.formato, "linkedin")} (${sugerido.tipo || "sem tipo"}) neste dia: prefira esse formato, a menos que a ideia claramente não caiba nele.` : ""}
+- Um Reels com pessoa falando costuma virar Vídeo (mesma fala, mais contexto) ou Texto. Um carrossel costuma virar Carrossel em PDF.
+
+Preencha assim:
+${instrucoesFormatos("linkedin")}
+- "conceito_visual": estilo, cores (a partir das cores e regras de imagem da marca), tipografia, fotografia/vídeo e elementos gráficos.
+- "dicas_producao": 2 a 4 dicas práticas para produzir esta peça.
+- "legenda": o texto do post, pronto, terminando com a chamada para ação; "cta": a chamada.
+- "tema", "tipo" e "objetivo" do novo post.`;
+
+  const usuario = `## Marca
+${perfilDaMarca(empresa)}
+Cores da marca: primária ${empresa.cor_primaria}, secundária ${empresa.cor_secundaria}.
+
+## Regras de linguagem (obrigatórias)
+${regrasDeLinguagem(empresa)}
+
+## Conteúdo do Instagram para adaptar
+- Data: ${origem.data}
+- Formato no Instagram: ${origem.formato}${origem.tipo ? ` · ${origem.tipo}` : ""}
+- Pilar: ${origem.pilar || "—"}
+- Tema: ${origem.tema || "—"}
+- Objetivo: ${origem.objetivo || "—"}
+- Chamada para ação: ${origem.cta || "—"}
+
+### Roteiro / slides
+${origem.roteiro || "—"}
+
+### Legenda
+${origem.legenda || "—"}
+
+### Orientação de arte
+${origem.orientacao_arte || "—"}
+
+Gere o JSON pedido.`;
+  return { system, usuario };
+}
+
 export function montarPromptBriefing(
   empresa: Empresa,
   modoReels: "com_pessoa" | "sem_pessoa",
+  rede: Rede,
   conteudo: Pick<Conteudo, "data" | "formato" | "tipo" | "pilar" | "tema" | "objetivo" | "roteiro" | "legenda" | "cta" | "orientacao_arte" | "ganchos">,
 ): { system: string; usuario: string } {
-  const instrucoes =
-    conteudo.formato === "Carrossel"
-      ? `Formato: CARROSSEL. Em "slides", escreva de 5 a 8 slides: o título e o texto que vão escritos em cada arte e, em "imagem", exatamente como deve ser a imagem daquele slide (o que mostrar, foto ou ilustração, composição, onde fica o texto). O primeiro slide é a capa que faz arrastar; o último traz a chamada para ação. "cenas" vazia, "arte_estatico" null, "musica" null, "ganchos" vazia.`
-      : conteudo.formato === "Estático"
-        ? `Formato: POST ESTÁTICO. Em "arte_estatico", escreva o título e o texto da arte, como deve ser a imagem e a composição (onde fica cada elemento). "slides" e "cenas" vazias, "musica" null, "ganchos" vazia.`
-        : modoReels === "com_pessoa"
-          ? `Formato: REELS GRAVADO POR UMA PESSOA DA EMPRESA. Em "cenas", escreva o roteiro completo, de 15 a 60 segundos: tempo de início e fim, como filmar ("imagem": plano, ângulo, cenário, gesto, cortes e imagens de apoio), a fala palavra por palavra em linguagem natural de quem fala, pronta para ler num teleprompter, o texto na tela e o áudio. A primeira cena é o gancho (até 3 s); a última fala traz a chamada para ação. Sugira a música em "musica". Exatamente 3 ganchos alternativos: curiosidade, identificação, provocação. "slides" vazia, "arte_estatico" null.`
-          : `Formato: REELS SEM PESSOA FALANDO (imagens de apoio, texto na tela e edição). Em "cenas", escreva o roteiro completo, de 15 a 45 segundos: tempo de início e fim, o que aparece em cada cena ("imagem": que imagem ou vídeo de apoio gravar ou buscar, movimento, transição), o texto na tela de cada cena, a narração em off em "fala" quando fizer sentido (ou null) e o áudio. A primeira cena é o gancho (até 3 s); a última traz a chamada para ação. Sugira a música em "musica". Exatamente 3 ganchos alternativos: curiosidade, identificação, provocação. "slides" vazia, "arte_estatico" null.`;
+  const linkedin = rede === "linkedin";
+  const formato = rotuloFormato(conteudo.formato, rede).toUpperCase();
+  const reelsPessoa = conteudo.formato === "Reels" && modoReels === "com_pessoa";
+  const reelsSemPessoa = conteudo.formato === "Reels" && modoReels === "sem_pessoa";
+  const instrucoes = `Formato: ${formato}${linkedin ? " NO LINKEDIN" : ""}.${reelsPessoa ? " Vídeo gravado por uma pessoa da empresa falando para a câmera: escreva a fala palavra por palavra, pronta para teleprompter." : ""}${reelsSemPessoa ? " Vídeo sem pessoa falando: imagens de apoio, texto na tela e, se fizer sentido, narração em off em \"fala\"." : ""}
+Preencha assim:
+${instrucoesFormatos(rede)}`;
 
-  const system = `Você é diretor de criação e roteirista de Instagram da marca "${empresa.nome}". A equipe vai produzir as artes e gravar os vídeos a partir do seu briefing, então seja preciso e prático: descreva o que fazer, não o que pensar.
+  const system = `Você é diretor de criação e roteirista de ${linkedin ? "LinkedIn" : "Instagram"} da marca "${empresa.nome}". A equipe vai produzir as artes e gravar os vídeos a partir do seu briefing, então seja preciso e prático: descreva o que fazer, não o que pensar.
 
-${REGRAS_GERAIS}
+${regrasGerais(rede)}${linkedin ? `\n\n${REGRAS_LINKEDIN}` : ""}
 
 ${instrucoes}
 - "conceito_visual": estilo, cores (a partir das cores e regras de imagem da marca), tipografia, fotografia/vídeo e elementos gráficos.
@@ -222,7 +307,8 @@ ${regrasDeLinguagem(empresa)}
 
 ## Conteúdo planejado
 - Data: ${conteudo.data}
-- Formato: ${conteudo.formato}${conteudo.tipo ? ` · ${conteudo.tipo}` : ""}
+- Rede: ${linkedin ? "LinkedIn (página da empresa)" : "Instagram"}
+- Formato: ${rotuloFormato(conteudo.formato, rede)}${conteudo.tipo ? ` · ${conteudo.tipo}` : ""}
 - Pilar: ${conteudo.pilar || "—"}
 - Tema: ${conteudo.tema || "—"}
 - Objetivo: ${conteudo.objetivo || "—"}

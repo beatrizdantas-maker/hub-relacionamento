@@ -32,7 +32,7 @@ export const OBJETIVOS_RITMO = [
 export const esquemaRitmoDia = z.object({
   dia: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5), z.literal(6), z.literal(7)]),
   hora: z.string().regex(/^\d{2}:\d{2}$/, "Hora no formato HH:MM"),
-  formato: z.enum(["Reels", "Carrossel", "Estático"]),
+  formato: z.enum(["Reels", "Carrossel", "Estático", "Texto", "Enquete", "Artigo"]),
   tipo: z.string().trim().max(120),
   pilar: z.string().trim().max(80),
   objetivo: z.string().trim().max(40),
@@ -84,12 +84,17 @@ export const esquemaSecaoIdentidade = esquemaEmpresa
 export const esquemaSecaoPublico = esquemaEmpresa.pick({ publico: true, objetivos: true, pilares: true, melhores_horarios: true });
 export const esquemaSecaoMetas = esquemaEmpresa.pick({ metas: true });
 export const esquemaSecaoRitmo = esquemaEmpresa.pick({ ritmo_semanal: true });
+export const esquemaSecaoLinkedin = z.object({
+  redes: z.array(z.enum(["instagram", "linkedin"])).min(1, "Escolha pelo menos uma rede"),
+  ritmo_linkedin: z.array(esquemaRitmoDia).length(7, "O ritmo semanal precisa dos 7 dias"),
+});
 
 export const ESQUEMAS_SECOES = {
   identidade: esquemaSecaoIdentidade,
   publico: esquemaSecaoPublico,
   metas: esquemaSecaoMetas,
   ritmo: esquemaSecaoRitmo,
+  linkedin: esquemaSecaoLinkedin,
 } as const;
 export type SecaoMarca = keyof typeof ESQUEMAS_SECOES;
 

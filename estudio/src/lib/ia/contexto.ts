@@ -17,7 +17,7 @@ export async function carregarContextoIA(supabase: Cliente, empresa: Empresa, ho
     supabase.from("campanhas").select("*").eq("empresa_id", empresa.id).order("inicio", { ascending: true, nullsFirst: false }),
     supabase.from("metricas_semanais").select("*").eq("empresa_id", empresa.id).lt("fim", hoje).order("semana", { ascending: false }).limit(8),
     supabase.from("resultados_posts").select("*").eq("empresa_id", empresa.id).order("publicado_em", { ascending: false }).limit(15),
-    supabase.from("conteudos").select("data, hora, formato, tipo, tema, status, origem").eq("empresa_id", empresa.id).gte("data", intervalo.de).lte("data", intervalo.ate).order("data").order("hora", { nullsFirst: false }),
+    supabase.from("conteudos").select("*").eq("empresa_id", empresa.id).gte("data", intervalo.de).lte("data", intervalo.ate).order("data").order("hora", { nullsFirst: false }),
   ]);
   return {
     empresa,

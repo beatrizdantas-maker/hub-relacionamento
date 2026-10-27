@@ -1,5 +1,6 @@
 import type { Campanha, Conteudo, Empresa, MetricaSemanal, ResultadoPost, Story, Sugestao, Tarefa } from "@/lib/tipos/database";
 import { RITMO_PADRAO } from "@/lib/padroes";
+import { RITMO_LINKEDIN_PADRAO } from "@/lib/redes";
 import { somarDias } from "@/lib/datas";
 
 export const HOJE = "2026-10-28";
@@ -8,7 +9,7 @@ export const EMPRESA: Empresa = {
   objetivos: "Gerar conversas no direct", tom_de_voz: "Próximo e direto", regras_de_linguagem: "Nunca usar 'IA' ou 'inteligência artificial'.", regras_de_imagem: null,
   pilares: ["Educação", "Prova social", "Bastidores"], melhores_horarios: "20h", cor_primaria: "#7c3aed", cor_secundaria: "#f59e0b", fuso_horario: "America/Sao_Paulo",
   metas: { visualizacoes_dia: 3000, seguidores_liquidos_mes: 100, mensagens_mes: 40, salvamentos_carrossel: 40, alcance_reels: 5000, engajamento_pct: 6 },
-  ritmo_semanal: RITMO_PADRAO, arquivada: false, logo_url: null, criado_por: null, criado_em: "", atualizado_em: "2026-10-01T00:00:00Z",
+  ritmo_semanal: RITMO_PADRAO, redes: ["instagram", "linkedin"], ritmo_linkedin: RITMO_LINKEDIN_PADRAO, arquivada: false, logo_url: null, criado_por: null, criado_em: "", atualizado_em: "2026-10-01T00:00:00Z",
 };
 export const c = (p: Partial<Conteudo> & { id: string; data: string; formato: Conteudo["formato"]; tema: string }): Conteudo => ({
   empresa_id: "e1", hora: "20:00", tipo: null, pilar: null, objetivo: null, roteiro: "0–3 s: gancho…", legenda: "Legenda. Comenta EU QUERO", cta: "Comenta EU QUERO", orientacao_arte: null, ganchos: ["g1", "g2", "g3"], notas: null,
@@ -28,6 +29,10 @@ export const CONTEUDOS: Conteudo[] = [
   c({ id: "c5", data: "2026-10-14", formato: "Estático", tema: "Frase da semana" }),
   c({ id: "c6", data: "2026-10-20", formato: "Reels", tema: "Bastidores da aula" }),
   c({ id: "c4", data: "2026-11-01", formato: "Estático", tema: "Você também já se sentiu assim?", status: "sugestao", origem: "ia" }),
+  c({ id: "l1", rede: "linkedin", data: HOJE, hora: "08:00", formato: "Texto", tema: "O que aprendemos com 40 escolas em 2026", status: "sugestao", origem: "ia", ganchos: [],
+    legenda: "Nós visitamos 40 escolas este ano.\n\nO que mais trava a gestão não é tecnologia.\n\n#gestaoescolar #educacao", roteiro: "IMAGEM DE APOIO: Foto da equipe numa sala de aula" }),
+  c({ id: "l2", rede: "linkedin", data: "2026-10-31", hora: "10:00", formato: "Enquete", tema: "Qual o maior desafio da coordenação?", ganchos: [],
+    roteiro: "PERGUNTA: Qual o maior desafio da coordenação hoje?\nOPÇÕES:\n1. Engajar professores\n2. Falar com as famílias" }),
 ];
 export const STORIES: Story[] = [{ id: "s1", empresa_id: "e1", data: HOJE, objetivo: "Puxar o Reels", telas: [{ tipo: "Texto", texto: "Abertura" }, { tipo: "Compartilhar post", texto: "" }, { tipo: "Enquete", texto: "", interacao: { pergunta: "Qual?", opcoes: ["A", "B"] } }, { tipo: "Texto", texto: "Fecho" }], status: "sugestao", origem: "ia", conteudo_id: "c1", criado_por: null, criado_em: "", atualizado_em: "" }];
 export const TAREFAS: Tarefa[] = [

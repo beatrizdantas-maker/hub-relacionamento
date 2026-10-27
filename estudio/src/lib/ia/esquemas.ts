@@ -82,14 +82,23 @@ export const SaidaSemanaCalendario = z.object({
 export type DiaGerado = z.infer<typeof SaidaDiaCalendario>;
 export type SemanaGerada = z.infer<typeof SaidaSemanaCalendario>;
 
+/** LinkedIn: o mesmo dia, sem stories. */
+export const SaidaDiaLinkedin = SaidaDiaCalendario.omit({ stories: true });
+export const SaidaSemanaLinkedin = z.object({ dias: z.array(SaidaDiaLinkedin) });
+export type DiaGeradoLinkedin = z.infer<typeof SaidaDiaLinkedin>;
+
 const INTERATIVAS = new Set(["Enquete", "Caixa de pergunta", "Quiz", "Slider de emoji", "Slider"]);
 
 /**
  * Valida os dias gerados contra as datas pedidas. Dias com data fora do pedido
  * são descartados; problemas de conteúdo invalidam o dia (não a semana toda).
  */
-export function validarSemana(s: SemanaGerada, datasPedidas: string[]): { validos: DiaGerado[]; problemas: ProblemaValidacao[] } {
-  const validos: DiaGerado[] = [];
+export function validarSemana<T extends DiaGeradoLinkedin & { stories?: DiaGerado["stories"] }>(
+  s: { dias: T[] },
+  datasPedidas: string[],
+  comStories = true,
+): { validos: T[]; problemas: ProblemaValidacao[] } {
+  const validos: T[] = [];
   const problemas: ProblemaValidacao[] = [];
   const vistas = new Set<string>();     // datas válidas já aceitas
   const recebidas = new Set<string>();  // datas pedidas que a IA devolveu (válidas ou não)
@@ -104,9 +113,12 @@ export function validarSemana(s: SemanaGerada, datasPedidas: string[]): { valido
     if (!d.cta.trim()) erros.push("sem chamada para ação");
     if (d.formato === "Reels" && d.ganchos.filter((g) => g.trim()).length !== 3) erros.push("Reels precisa de 3 ganchos");
     erros.push(...problemasBriefing(d.formato, d));
-    if (d.stories.telas.length !== 4) erros.push("stories precisam de 4 telas");
-    if (!d.stories.telas.some((t) => INTERATIVAS.has(t.tipo))) erros.push("stories sem tela de interação");
-    if (!d.stories.telas.some((t) => t.tipo === "Compartilhar post")) erros.push("stories sem tela de compartilhar o post");
+    if (comStories) {
+      const telas = d.stories?.telas ?? [];
+      if (telas.length !== 4) erros.push("stories precisam de 4 telas");
+      if (!telas.some((t) => INTERATIVAS.has(t.tipo))) erros.push("stories sem tela de interação");
+      if (!telas.some((t) => t.tipo === "Compartilhar post")) erros.push("stories sem tela de compartilhar o post");
+    }
     if (erros.length) { problemas.push({ campo, mensagem: erros.join("; ") }); continue; }
     vistas.add(d.data);
     validos.push(d);

@@ -13,12 +13,13 @@ import { analisarMetas, analisarRitmo } from "@/lib/analiseSistema";
 import { compararUltimos, progressoMetas, semanaParaPeriodo } from "@/lib/metricas";
 import { CAMPANHAS, CONTEUDOS, EMPRESA, HOJE, POSTS, SEMANAS, STORIES, SUGESTAO, TAREFAS } from "./fixtures";
 import type { Papel } from "@/lib/tipos/database";
+import { RITMO_LINKEDIN_PADRAO } from "@/lib/redes";
 
 /**
  * Telas com dados de exemplo, sem login, para a auditoria de acessibilidade
  * (scripts/a11y.mjs). Só existe quando ESTUDIO_PREVIEW=1; em produção é 404.
  */
-export default async function Pagina({ searchParams }: { searchParams: Promise<{ tela?: string; papel?: string; abrir?: string }> }) {
+export default async function Pagina({ searchParams }: { searchParams: Promise<{ tela?: string; papel?: string; abrir?: string; rede?: string }> }) {
   if (process.env.ESTUDIO_PREVIEW !== "1") notFound();
   const sp = await searchParams;
   const papel = (sp.papel ?? "dono") as Papel;
@@ -33,7 +34,7 @@ export default async function Pagina({ searchParams }: { searchParams: Promise<{
     case "calendario-dia":
     case "calendario-mes":
       conteudo = (
-        <Calendario empresa={{ id: "e1", nome: "NARAEDU", fuso: "America/Sao_Paulo", pilares: EMPRESA.pilares, ritmo: EMPRESA.ritmo_semanal }} papel={papel} usuarioId="u1" hoje={HOJE} segunda={tela === "calendario-mes" ? "2026-09-28" : "2026-10-26"} dia={tela === "calendario-dia" ? HOJE : null} mes={tela === "calendario-mes" ? "2026-10" : null} filtro="todos" abrir={sp.abrir ?? null} iaConfigurada conteudos={CONTEUDOS} stories={STORIES} tarefas={TAREFAS} campanhas={CAMPANHAS.map((k) => ({ id: k.id, nome: k.nome }))} />
+        <Calendario empresa={{ id: "e1", nome: "NARAEDU", fuso: "America/Sao_Paulo", pilares: EMPRESA.pilares, ritmo: EMPRESA.ritmo_semanal, ritmoLinkedin: RITMO_LINKEDIN_PADRAO }} rede={sp.rede ?? "todas"} papel={papel} usuarioId="u1" hoje={HOJE} segunda={tela === "calendario-mes" ? "2026-09-28" : "2026-10-26"} dia={tela === "calendario-dia" ? HOJE : null} mes={tela === "calendario-mes" ? "2026-10" : null} filtro="todos" abrir={sp.abrir ?? null} iaConfigurada conteudos={CONTEUDOS} stories={STORIES} tarefas={TAREFAS} campanhas={CAMPANHAS.map((k) => ({ id: k.id, nome: k.nome }))} />
       );
       break;
     case "tarefas":
@@ -43,7 +44,7 @@ export default async function Pagina({ searchParams }: { searchParams: Promise<{
       conteudo = <PainelEvolucao empresa={{ id: "e1", nome: "NARAEDU", metas: EMPRESA.metas }} papel={papel} hoje={HOJE} visao="semanas" abrir={sp.abrir ?? null} semanas={SEMANAS} posts={POSTS} metricool={papel === "dono" ? { configurado: true, ultimaImportacao: "2026-10-27T09:00:00Z" } : null} />;
       break;
     case "marca":
-      conteudo = <EditorMarca empresa={EMPRESA} papel={papel} campanhas={CAMPANHAS} integracao={papel === "dono" ? { metricool_user_id: "5391741", metricool_brand_id: "6987210", tokenMascarado: "abcd…wxyz", tokenIlegivel: false, ultimaImportacao: null } : null} analise={{ metas: analisarMetas({ hoje: HOJE, semanas: sp.abrir === "vazio" ? [] : SEMANAS, posts: sp.abrir === "vazio" ? [] : POSTS }), ritmo: analisarRitmo({ hoje: HOJE, posts: POSTS, ritmo: EMPRESA.ritmo_semanal, fuso: "America/Sao_Paulo" }) }} />;
+      conteudo = <EditorMarca empresa={EMPRESA} papel={papel} abaInicial={sp.abrir === "linkedin" ? "linkedin" : undefined} campanhas={CAMPANHAS} integracao={papel === "dono" ? { metricool_user_id: "5391741", metricool_brand_id: "6987210", tokenMascarado: "abcd…wxyz", tokenIlegivel: false, ultimaImportacao: null } : null} analise={{ metas: analisarMetas({ hoje: HOJE, semanas: sp.abrir === "vazio" ? [] : SEMANAS, posts: sp.abrir === "vazio" ? [] : POSTS }), ritmo: analisarRitmo({ hoje: HOJE, posts: POSTS, ritmo: EMPRESA.ritmo_semanal, fuso: "America/Sao_Paulo" }) }} />;
       break;
     case "empresa-nova":
       conteudo = <FormularioEmpresa />;

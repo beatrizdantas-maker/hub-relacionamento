@@ -11,17 +11,18 @@ import { capitalizar, diasDaSemana, formatarCurta, formatarDiaSemanaCurto, forma
 import { copiarTexto, textoDasArtes, textoDasFalas } from "@/lib/copiarArtes";
 import { permissoes } from "@/lib/papeis";
 import { aprovarSugestoesDaSemana } from "@/app/(app)/calendario/acoes";
-import type { Conteudo, Papel, RitmoDia, Story, Tarefa } from "@/lib/tipos/database";
-import { CartaoConteudo, CartaoStories } from "./Cartoes";
+import type { Conteudo, Papel, Rede, RitmoDia, Story, Tarefa } from "@/lib/tipos/database";
+import { redeDe, rotuloFormato, rotuloRede } from "@/lib/redes";
+import { CartaoConteudo, CartaoStories, SeloLinkedin } from "./Cartoes";
 import { EditorConteudo } from "./EditorConteudo";
 import { EditorStories } from "./EditorStories";
 import { GerarMes } from "./GerarMes";
-import { FILTROS, ICONE_FORMATO, ORIGEM, STATUS, rotuloFiltro, type Filtro } from "./rotulos";
+import { FILTROS, ICONE_FORMATO, ORIGEM, REDE_FILTROS, STATUS, filtrosPara, rotuloFiltro, type Filtro, type RedeFiltro } from "./rotulos";
 
-type Selecao = { tipo: "conteudo"; id: string } | { tipo: "novo"; data: string } | { tipo: "story"; id: string } | { tipo: "novoStory"; data: string } | { tipo: "gerarMes" } | null;
+type Selecao = { tipo: "conteudo"; id: string } | { tipo: "novo"; data: string; rede?: Rede } | { tipo: "story"; id: string } | { tipo: "novoStory"; data: string } | { tipo: "gerarMes" } | null;
 
 export interface CalendarioProps {
-  empresa: { id: string; nome: string; fuso: string; pilares: string[]; ritmo: RitmoDia[] };
+  empresa: { id: string; nome: string; fuso: string; pilares: string[]; ritmo: RitmoDia[]; ritmoLinkedin: RitmoDia[] | null };
   papel: Papel;
   usuarioId: string;
   hoje: string;
@@ -29,6 +30,7 @@ export interface CalendarioProps {
   dia: string | null;
   mes: string | null;   // "AAAA-MM" quando a visão é por mês
   filtro: string;
+  rede: string;          // "todas" | "instagram" | "linkedin"
   abrir: string | null;
   iaConfigurada: boolean;
   conteudos: Conteudo[];
@@ -40,9 +42,14 @@ export interface CalendarioProps {
 export function Calendario(p: CalendarioProps) {
   const router = useRouter();
   const podeEditar = permissoes.podeEditar(p.papel);
-  const filtro: Filtro = (FILTROS as readonly string[]).includes(p.filtro) ? (p.filtro as Filtro) : "todos";
+  const temLinkedin = p.empresa.ritmoLinkedin !== null;
+  const redeFiltro: RedeFiltro = temLinkedin && (REDE_FILTROS as readonly string[]).includes(p.rede) ? (p.rede as RedeFiltro) : "todas";
+  const redesNaTela: Rede[] = redeFiltro === "todas" ? (temLinkedin ? ["instagram", "linkedin"] : ["instagram"]) : [redeFiltro];
+  const filtrosDisponiveis = filtrosPara(redesNaTela);
+  const filtro: Filtro = (filtrosDisponiveis as readonly string[]).includes(p.filtro) ? (p.filtro as Filtro) : "todos";
+  const redeNova: Rede = redeFiltro === "linkedin" ? "linkedin" : "instagram";
   const [selecao, setSelecao] = useState<Selecao>(() => {
-    if (p.abrir === "novo") return { tipo: "novo", data: p.dia ?? p.hoje };
+    if (p.abrir === "novo") return { tipo: "novo", data: p.dia ?? p.hoje, rede: redeNova };
     if (p.abrir === "gerar-mes") return { tipo: "gerarMes" };
     if (p.abrir && p.conteudos.some((c) => c.id === p.abrir)) return { tipo: "conteudo", id: p.abrir };
     return null;
@@ -53,13 +60,14 @@ export function Calendario(p: CalendarioProps) {
   const fechar = useCallback(() => setSelecao(null), []);
 
   const dias = useMemo(() => diasDaSemana(p.segunda), [p.segunda]);
-  const conteudosVisiveis = filtro === "Stories" ? [] : p.conteudos.filter((c) => filtro === "todos" || c.formato === filtro);
-  const storiesVisiveis = filtro === "todos" || filtro === "Stories" ? p.stories : [];
+  const daRede = p.conteudos.filter((c) => redesNaTela.includes(redeDe(c)));
+  const conteudosVisiveis = filtro === "Stories" ? [] : daRede.filter((c) => filtro === "todos" || c.formato === filtro);
+  const storiesVisiveis = redesNaTela.includes("instagram") && (filtro === "todos" || filtro === "Stories") ? p.stories : [];
   const sugestoes = p.conteudos.filter((c) => c.status === "sugestao").length + p.stories.filter((s) => s.status === "sugestao").length;
 
   const url = (q: Record<string, string | null>) => {
     const sp = new URLSearchParams();
-    const base: Record<string, string | null> = { semana: p.mes || p.dia ? null : p.segunda, dia: p.dia, mes: p.mes, formato: filtro === "todos" ? null : filtro, ...q };
+    const base: Record<string, string | null> = { semana: p.mes || p.dia ? null : p.segunda, dia: p.dia, mes: p.mes, formato: filtro === "todos" ? null : filtro, rede: redeFiltro === "todas" ? null : redeFiltro, ...q };
     for (const [k, v] of Object.entries(base)) if (v) sp.set(k, v);
     const s = sp.toString();
     return `/calendario${s ? `?${s}` : ""}`;
@@ -87,13 +95,13 @@ export function Calendario(p: CalendarioProps) {
   async function copiar(tipo: "artes" | "falas") {
     setErro(null); setMensagem(null);
     setCopiando(tipo);
-    const doPeriodo = p.mes ? p.conteudos.filter((c) => mesDaData(c.data) === p.mes) : p.conteudos;
-    const opcoes = { empresa: p.empresa.nome, periodo: p.mes ? periodoTexto : `Semana de ${rotuloSemana(p.segunda)}` };
+    const doPeriodo = p.mes ? daRede.filter((c) => mesDaData(c.data) === p.mes) : daRede;
+    const opcoes = { empresa: redeFiltro === "todas" ? p.empresa.nome : `${p.empresa.nome} · ${rotuloRede(redeFiltro)}`, periodo: p.mes ? periodoTexto : `Semana de ${rotuloSemana(p.segunda)}` };
     const { texto, total } = tipo === "artes" ? textoDasArtes(doPeriodo, opcoes) : textoDasFalas(doPeriodo, opcoes);
     const noPeriodo = p.mes ? "neste mês" : "nesta semana";
     if (total === 0) {
       setCopiando(null);
-      return setMensagem(tipo === "artes" ? `Nenhum carrossel ou post estático para produzir ${noPeriodo}.` : `Nenhum Reels para gravar ${noPeriodo}.`);
+      return setMensagem(tipo === "artes" ? `Nenhuma postagem com imagem para produzir ${noPeriodo}.` : `Nenhum vídeo para gravar ${noPeriodo}.`);
     }
     const ok = await copiarTexto(texto);
     setCopiando(null);
@@ -119,7 +127,7 @@ export function Calendario(p: CalendarioProps) {
             <Botao variante="secundaria" onClick={() => setSelecao({ tipo: "gerarMes" })}>
               <Sparkles className="h-5 w-5 text-ia" aria-hidden /> Gerar mês com IA
             </Botao>
-            <Botao onClick={() => setSelecao({ tipo: "novo", data: diaAlvo })}>
+            <Botao onClick={() => setSelecao({ tipo: "novo", data: diaAlvo, rede: redeNova })}>
               <Plus className="h-5 w-5" aria-hidden /> Novo conteúdo
             </Botao>
           </div>
@@ -142,8 +150,17 @@ export function Calendario(p: CalendarioProps) {
           <Link href={url({ mes: null, semana: null, dia: diaAlvo })} aria-current={p.dia ? "page" : undefined} className={`rounded-lg px-3 py-1.5 text-sm font-medium ${p.dia ? "bg-primaria/10 text-primaria" : "hover:bg-superficie-2"}`}>Dia</Link>
           <Link href={url({ dia: null, semana: null, mes: mesAlvo })} aria-current={p.mes ? "page" : undefined} className={`rounded-lg px-3 py-1.5 text-sm font-medium ${p.mes ? "bg-primaria/10 text-primaria" : "hover:bg-superficie-2"}`}>Mês</Link>
         </div>
+        {temLinkedin && (
+          <div className="flex items-center gap-1 rounded-xl border border-borda bg-superficie p-1" role="group" aria-label="Rede">
+            {REDE_FILTROS.map((r) => (
+              <Link key={r} href={url({ rede: r === "todas" ? null : r, formato: null })} aria-current={redeFiltro === r ? "true" : undefined} className={`rounded-lg px-3 py-1.5 text-sm font-medium ${redeFiltro === r ? "bg-primaria/10 text-primaria" : "hover:bg-superficie-2"}`}>
+                {r === "todas" ? "Todas" : rotuloRede(r)}
+              </Link>
+            ))}
+          </div>
+        )}
         <div className="flex flex-wrap gap-1" role="group" aria-label="Filtrar por formato">
-          {FILTROS.map((f) => (
+          {filtrosDisponiveis.map((f) => (
             <Link key={f} href={url({ formato: f === "todos" ? null : f })} aria-current={filtro === f ? "true" : undefined} className={`rounded-full border px-3 py-1 text-xs font-medium ${filtro === f ? "border-primaria bg-primaria/10 text-primaria" : "border-borda text-texto-2 hover:bg-superficie-2"}`}>
               {rotuloFiltro(f)}
             </Link>
@@ -170,23 +187,25 @@ export function Calendario(p: CalendarioProps) {
       {mensagem && <Aviso tipo="sucesso">{mensagem}</Aviso>}
 
       {p.mes ? (
-        <VisaoMes mes={p.mes} hoje={p.hoje} conteudos={conteudosVisiveis} stories={storiesVisiveis} filtro={filtro} onAbrir={setSelecao} urlDia={(d) => url({ mes: null, dia: d })} />
+        <VisaoMes mes={p.mes} hoje={p.hoje} redesNaTela={redesNaTela} conteudos={conteudosVisiveis} stories={storiesVisiveis} filtro={filtro} onAbrir={setSelecao} urlDia={(d) => url({ mes: null, dia: d })} />
       ) : p.dia ? (
         <VisaoDia
           dia={p.dia} hoje={p.hoje} conteudos={conteudosVisiveis.filter((c) => c.data === p.dia)} stories={storiesVisiveis.filter((s) => s.data === p.dia)}
-          tarefas={p.tarefas} podeEditar={podeEditar} onAbrir={setSelecao}
+          tarefas={p.tarefas} podeEditar={podeEditar} redesNaTela={redesNaTela} onAbrir={setSelecao}
         />
       ) : (
-        <VisaoSemana dias={dias} hoje={p.hoje} conteudos={conteudosVisiveis} stories={storiesVisiveis} podeEditar={podeEditar} filtro={filtro} onAbrir={setSelecao} urlDia={(d) => url({ dia: d, semana: null })} />
+        <VisaoSemana dias={dias} hoje={p.hoje} redesNaTela={redesNaTela} conteudos={conteudosVisiveis} stories={storiesVisiveis} podeEditar={podeEditar} filtro={filtro} onAbrir={setSelecao} urlDia={(d) => url({ dia: d, semana: null })} />
       )}
 
       {(selecao?.tipo === "conteudo" || selecao?.tipo === "novo") && (
         <EditorConteudo
-          key={selecao.tipo === "conteudo" ? selecao.id : `novo-${selecao.data}`}
+          key={selecao.tipo === "conteudo" ? selecao.id : `novo-${selecao.data}-${selecao.rede}`}
           empresaId={p.empresa.id}
           conteudo={conteudoSelecionado}
           dataInicial={dataEditor}
           ritmo={p.empresa.ritmo}
+          ritmoLinkedin={p.empresa.ritmoLinkedin}
+          redeInicial={selecao.tipo === "novo" ? selecao.rede : undefined}
           pilares={p.empresa.pilares}
           campanhas={p.campanhas}
           tarefas={conteudoSelecionado ? p.tarefas.filter((t) => t.conteudo_id === conteudoSelecionado.id) : []}
@@ -197,7 +216,7 @@ export function Calendario(p: CalendarioProps) {
         />
       )}
       {selecao?.tipo === "gerarMes" && (
-        <GerarMes empresaId={p.empresa.id} hoje={p.hoje} ritmo={p.empresa.ritmo} iaConfigurada={p.iaConfigurada} onFechar={fechar} />
+        <GerarMes empresaId={p.empresa.id} hoje={p.hoje} ritmo={p.empresa.ritmo} ritmoLinkedin={p.empresa.ritmoLinkedin} redeInicial={redeNova} iaConfigurada={p.iaConfigurada} onFechar={fechar} />
       )}
       {(selecao?.tipo === "story" || selecao?.tipo === "novoStory") && (
         <EditorStories
@@ -217,8 +236,8 @@ export function Calendario(p: CalendarioProps) {
 // ---------- Semana ----------
 
 function VisaoSemana({
-  dias, hoje, conteudos, stories, podeEditar, filtro, onAbrir, urlDia,
-}: { dias: string[]; hoje: string; conteudos: Conteudo[]; stories: Story[]; podeEditar: boolean; filtro: Filtro; onAbrir: (s: Selecao) => void; urlDia: (d: string) => string }) {
+  dias, hoje, redesNaTela, conteudos, stories, podeEditar, filtro, onAbrir, urlDia,
+}: { dias: string[]; hoje: string; redesNaTela: Rede[]; conteudos: Conteudo[]; stories: Story[]; podeEditar: boolean; filtro: Filtro; onAbrir: (s: Selecao) => void; urlDia: (d: string) => string }) {
   const vazio = conteudos.length === 0 && stories.length === 0;
   return (
     <div className="space-y-3">
@@ -244,12 +263,12 @@ function VisaoSemana({
               {stDoDia.map((s) => <CartaoStories key={s.id} story={s} onAbrir={() => onAbrir({ tipo: "story", id: s.id })} />)}
               {podeEditar && (
                 <div className="mt-auto flex flex-wrap gap-1 pt-1">
-                  {doDia.length === 0 && filtro !== "Stories" && (
-                    <button type="button" onClick={() => onAbrir({ tipo: "novo", data: d })} className="flex-1 rounded-lg border border-dashed border-borda px-2 py-1.5 text-xs text-texto-2 hover:border-primaria hover:text-primaria">
-                      + Adicionar conteúdo
+                  {filtro !== "Stories" && redesNaTela.filter((r) => !doDia.some((c) => redeDe(c) === r)).map((r) => (
+                    <button key={r} type="button" onClick={() => onAbrir({ tipo: "novo", data: d, rede: r })} className="flex-1 rounded-lg border border-dashed border-borda px-2 py-1.5 text-xs text-texto-2 hover:border-primaria hover:text-primaria">
+                      + {redesNaTela.length > 1 ? rotuloRede(r) : "Adicionar conteúdo"}
                     </button>
-                  )}
-                  {stDoDia.length === 0 && filtro !== "Reels" && filtro !== "Carrossel" && filtro !== "Estático" && (
+                  ))}
+                  {stDoDia.length === 0 && redesNaTela.includes("instagram") && (filtro === "todos" || filtro === "Stories") && (
                     <button type="button" onClick={() => onAbrir({ tipo: "novoStory", data: d })} className="flex-1 rounded-lg border border-dashed border-borda px-2 py-1.5 text-xs text-texto-2 hover:border-primaria hover:text-primaria">
                       + Stories
                     </button>
@@ -276,16 +295,16 @@ function ItemMes({ conteudo: c, onAbrir }: { conteudo: Conteudo; onAbrir: () => 
       onClick={onAbrir}
       className={`flex w-full items-center gap-1 rounded-md border bg-superficie px-1.5 py-1 text-left text-xs hover:border-primaria/60 ${c.status === "sugestao" ? "border-dashed border-ia/60" : "border-borda"}`}
     >
-      <Icone className="h-3.5 w-3.5 shrink-0 text-texto-2" aria-hidden />
-      <span className="min-w-0 flex-1 truncate">{c.tema || c.formato}</span>
-      <span className="sr-only"> · {c.formato} · {STATUS[c.status].rotulo}</span>
+      {redeDe(c) === "linkedin" ? <SeloLinkedin /> : <Icone className="h-3.5 w-3.5 shrink-0 text-texto-2" aria-hidden />}
+      <span className="min-w-0 flex-1 truncate">{c.tema || rotuloFormato(c.formato, redeDe(c))}</span>
+      <span className="sr-only"> · {rotuloFormato(c.formato, redeDe(c))} · {STATUS[c.status].rotulo}</span>
     </button>
   );
 }
 
 function VisaoMes({
-  mes, hoje, conteudos, stories, filtro, onAbrir, urlDia,
-}: { mes: string; hoje: string; conteudos: Conteudo[]; stories: Story[]; filtro: Filtro; onAbrir: (s: Selecao) => void; urlDia: (d: string) => string }) {
+  mes, hoje, redesNaTela, conteudos, stories, filtro, onAbrir, urlDia,
+}: { mes: string; hoje: string; redesNaTela: Rede[]; conteudos: Conteudo[]; stories: Story[]; filtro: Filtro; onAbrir: (s: Selecao) => void; urlDia: (d: string) => string }) {
   const grade = useMemo(() => gradeDoMes(mes), [mes]);
   const doMes = conteudos.filter((c) => mesDaData(c.data) === mes);
   const storiesDoMes = stories.filter((s) => mesDaData(s.data) === mes);
@@ -295,7 +314,8 @@ function VisaoMes({
     <div className="space-y-3">
       <p className="text-sm text-texto-2 tabular">
         {doMes.length} {doMes.length === 1 ? "postagem" : "postagens"} no mês
-        {doMes.length > 0 && ` · ${(["Reels", "Carrossel", "Estático"] as const).map((f) => `${doMes.filter((c) => c.formato === f).length} ${f}`).join(" · ")}`}
+        {doMes.length > 0 && redesNaTela.length > 1 && ` · ${redesNaTela.map((r) => `${doMes.filter((c) => redeDe(c) === r).length} no ${rotuloRede(r)}`).join(" · ")}`}
+        {doMes.length > 0 && redesNaTela.length === 1 && ` · ${FILTROS.filter((f): f is Exclude<Filtro, "todos" | "Stories"> => f !== "todos" && f !== "Stories").map((f) => [f, doMes.filter((c) => c.formato === f).length] as const).filter(([, n]) => n > 0).map(([f, n]) => `${n} ${rotuloFormato(f, redesNaTela[0])}`).join(" · ")}`}
       </p>
 
       {/* Computador: grade do mês */}
@@ -355,7 +375,7 @@ function VisaoMes({
 
 // ---------- Dia ----------
 
-function VisaoDia({ dia, hoje, conteudos, stories, tarefas, podeEditar, onAbrir }: { dia: string; hoje: string; conteudos: Conteudo[]; stories: Story[]; tarefas: Tarefa[]; podeEditar: boolean; onAbrir: (s: Selecao) => void }) {
+function VisaoDia({ dia, hoje, conteudos, stories, tarefas, podeEditar, redesNaTela, onAbrir }: { dia: string; hoje: string; conteudos: Conteudo[]; stories: Story[]; tarefas: Tarefa[]; podeEditar: boolean; redesNaTela: Rede[]; onAbrir: (s: Selecao) => void }) {
   const [copiado, setCopiado] = useState<string | null>(null);
   async function copiar(id: string, texto: string) {
     try { await navigator.clipboard.writeText(texto); setCopiado(id); setTimeout(() => setCopiado(null), 2000); } catch {}
@@ -367,8 +387,10 @@ function VisaoDia({ dia, hoje, conteudos, stories, tarefas, podeEditar, onAbrir 
         <p className="text-sm text-texto-2">Nada programado para {formatarCurta(dia)}.</p>
         {podeEditar && (
           <div className="flex flex-wrap justify-center gap-2">
-            <Botao tamanho="sm" onClick={() => onAbrir({ tipo: "novo", data: dia })}>Adicionar conteúdo</Botao>
-            <Botao tamanho="sm" variante="secundaria" onClick={() => onAbrir({ tipo: "novoStory", data: dia })}>Adicionar stories</Botao>
+            {redesNaTela.map((r) => (
+              <Botao key={r} tamanho="sm" onClick={() => onAbrir({ tipo: "novo", data: dia, rede: r })}>{redesNaTela.length > 1 ? `Adicionar no ${rotuloRede(r)}` : "Adicionar conteúdo"}</Botao>
+            ))}
+            {redesNaTela.includes("instagram") && <Botao tamanho="sm" variante="secundaria" onClick={() => onAbrir({ tipo: "novoStory", data: dia })}>Adicionar stories</Botao>}
           </div>
         )}
       </div>
@@ -384,7 +406,7 @@ function VisaoDia({ dia, hoje, conteudos, stories, tarefas, podeEditar, onAbrir 
           <article key={c.id} className="cartao space-y-3">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div className="min-w-0">
-                <div className="flex items-center gap-1.5 text-sm text-texto-2"><Icone className="h-4 w-4" aria-hidden /> {c.formato}{c.hora && <span className="tabular">· {horaCurta(c.hora)}</span>}{c.pilar && <span>· {c.pilar}</span>}</div>
+                <div className="flex items-center gap-1.5 text-sm text-texto-2">{redeDe(c) === "linkedin" && <SeloLinkedin comNome />}<Icone className="h-4 w-4" aria-hidden /> {rotuloFormato(c.formato, redeDe(c))}{c.hora && <span className="tabular">· {horaCurta(c.hora)}</span>}{c.pilar && <span>· {c.pilar}</span>}</div>
                 <h2 className="text-xl font-semibold">{c.tema || "Sem tema"}</h2>
                 <div className="mt-1 flex flex-wrap gap-1">
                   <Selo tom={STATUS[c.status].tom}>{STATUS[c.status].rotulo}</Selo>

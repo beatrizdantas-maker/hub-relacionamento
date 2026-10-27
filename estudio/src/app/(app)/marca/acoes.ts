@@ -6,11 +6,13 @@ import { cifrar } from "@/lib/cripto";
 import { testarConexao } from "@/lib/metricool/importar";
 import { ESQUEMAS_SECOES, esquemaCampanha, esquemaIntegracao, type EntradaCampanha, type SecaoMarca } from "@/lib/validacao/empresa";
 import type { Empresa } from "@/lib/tipos/database";
+import { MENSAGEM_MIGRACAO_LINKEDIN, faltaMigracaoLinkedin } from "@/lib/redes";
 
 type Erro = { ok: false; erro: string };
 
 function mensagemErro(e: { message?: string; code?: string } | null | undefined): string {
   if (!e) return "Algo deu errado. Tente de novo.";
+  if (faltaMigracaoLinkedin(e)) return MENSAGEM_MIGRACAO_LINKEDIN;
   if (e.code === "42501" || /row-level security|permission denied/i.test(e.message ?? "")) {
     return e.message && !/row-level security|permission denied/i.test(e.message) ? e.message : "Você não tem permissão para fazer isso.";
   }

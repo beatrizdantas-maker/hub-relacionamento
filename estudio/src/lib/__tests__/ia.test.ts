@@ -133,7 +133,7 @@ describe("validação do que a IA devolve", () => {
     data, formato: "Reels", tipo: "Reels prova social", pilar: "Prova", tema: "Tema", objetivo: "Obj", legenda: "L. Me chama no direct", cta: "Me chama no direct",
     ganchos: ["g1", "g2", "g3"], hashtags: ["#educacao"],
     conceito_visual: { estilo: "e", paleta: "p", tipografia: "t", fotografia: "f", elementos: "el" },
-    slides: [], arte_estatico: null, musica: "lo-fi", dicas_producao: ["luz natural"],
+    slides: [], arte_estatico: null, enquete: null, artigo: null, musica: "lo-fi", dicas_producao: ["luz natural"],
     cenas: [
       { inicio_s: 0, fim_s: 3, imagem: "close", fala: "Oi", texto_na_tela: null, audio: null },
       { inicio_s: 3, fim_s: 10, imagem: "médio", fala: "Meio", texto_na_tela: null, audio: null },
@@ -164,6 +164,13 @@ describe("validação do que a IA devolve", () => {
       "dia 2026-11-04: Reels precisa de 3 ganchos",
       "dia 2026-11-06: Não veio da IA",
     ]);
+  });
+
+  it("LinkedIn: dia sem stories é válido quando stories não são exigidos", () => {
+    const { stories: _sem, ...semStories } = dia("2026-11-02");
+    void _sem;
+    expect(validarSemana({ dias: [semStories] }, ["2026-11-02"], false).validos).toHaveLength(1);
+    expect(validarSemana({ dias: [semStories] }, ["2026-11-02"]).validos).toHaveLength(0);
   });
 
   it("semana: stories sem tela de interação invalidam o dia", () => {

@@ -27,6 +27,19 @@ const MODELOS = {
     { titulo: "Montar", tipo: "Editar", diasAntes: 1, prioridade: "Alta" },
     { titulo: "Agendar", tipo: "Publicar", diasAntes: 1, prioridade: "Média" },
   ],
+  texto: [
+    { titulo: "Escrever o texto", tipo: "Outro", diasAntes: 2, prioridade: "Alta" },
+    { titulo: "Revisar e agendar", tipo: "Revisar", diasAntes: 1, prioridade: "Média" },
+  ],
+  enquete: [
+    { titulo: "Escrever a enquete", tipo: "Outro", diasAntes: 1, prioridade: "Média" },
+    { titulo: "Agendar", tipo: "Publicar", diasAntes: 1, prioridade: "Média" },
+  ],
+  artigo: [
+    { titulo: "Escrever o artigo", tipo: "Outro", diasAntes: 5, prioridade: "Alta" },
+    { titulo: "Criar a capa", tipo: "Criar arte", diasAntes: 3, prioridade: "Média" },
+    { titulo: "Revisar e publicar", tipo: "Revisar", diasAntes: 1, prioridade: "Média" },
+  ],
   arte: [
     { titulo: "Criar arte", tipo: "Criar arte", diasAntes: 3, prioridade: "Alta" },
     { titulo: "Revisar texto e arte", tipo: "Revisar", diasAntes: 2, prioridade: "Média" },
@@ -44,6 +57,9 @@ export function modeloPara(formato: FormatoConteudo, tipo: string | null | undef
     if (t.includes("texto na tela")) return "textoNaTela";
     return "reels";
   }
+  if (formato === "Texto") return "texto";
+  if (formato === "Enquete") return "enquete";
+  if (formato === "Artigo") return "artigo";
   return "arte";
 }
 

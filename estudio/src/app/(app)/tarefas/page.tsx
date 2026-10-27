@@ -1,4 +1,5 @@
 import { exigirEmpresaAtiva } from "@/lib/contexto";
+import { redeDe, rotuloFormato } from "@/lib/redes";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import { hojeNaEmpresa, inicioDaSemana, somarDias } from "@/lib/datas";
 import { QuadroTarefas } from "@/components/tarefas/QuadroTarefas";
@@ -19,7 +20,8 @@ export default async function PaginaTarefas({ searchParams }: { searchParams: Pr
     supabase.from("tarefas").select("*").eq("empresa_id", empresa.id).neq("status", "concluido").order("prazo", { nullsFirst: false }).order("prioridade"),
     supabase.from("tarefas").select("*").eq("empresa_id", empresa.id).eq("status", "concluido").gte("concluido_em", `${somarDias(hoje, -60)}T00:00:00`).order("concluido_em", { ascending: false }).limit(200),
     supabase.from("membros").select("*").eq("empresa_id", empresa.id),
-    supabase.from("conteudos").select("id, data, formato, tema").eq("empresa_id", empresa.id).gte("data", somarDias(hoje, -30)).lte("data", somarDias(hoje, 90)).order("data"),
+    // select("*"): a coluna "rede" só existe depois da migração 0007.
+    supabase.from("conteudos").select("*").eq("empresa_id", empresa.id).gte("data", somarDias(hoje, -30)).lte("data", somarDias(hoje, 90)).order("data"),
   ]);
 
   return (
@@ -34,7 +36,10 @@ export default async function PaginaTarefas({ searchParams }: { searchParams: Pr
       abrir={sp.abrir ?? null}
       tarefas={[...(abertas ?? []), ...(entregues ?? [])]}
       membros={(membros ?? []).map((m) => ({ id: m.user_id, nome: m.nome_exibicao ?? m.email ?? "Membro" }))}
-      conteudos={conteudos ?? []}
+      conteudos={(conteudos ?? []).map((c) => ({
+        id: c.id, data: c.data, tema: c.tema,
+        formato: redeDe(c) === "linkedin" ? `LinkedIn · ${rotuloFormato(c.formato, "linkedin")}` : c.formato,
+      }))}
     />
   );
 }

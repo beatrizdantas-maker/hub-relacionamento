@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { BarChart3, Check, Megaphone, Palette, Plug, Repeat, Target, Trash2, Users } from "lucide-react";
+import { BarChart3, Briefcase, Check, Megaphone, Palette, Plug, Repeat, Target, Trash2, Users } from "lucide-react";
 import { Botao } from "@/components/ui/Botao";
 import { Aviso } from "@/components/ui/Aviso";
 import { Selo } from "@/components/ui/Selo";
@@ -11,7 +11,8 @@ import { CampoArea, CampoSelecao, CampoTexto } from "@/components/ui/Campo";
 import { CampoCor, CamposMetas, CamposRitmo, DIAS, EditorPilares, FUSOS, PreviaCores, metasParaTexto, ritmoOuPadrao, type MetasTexto } from "@/components/empresas/campos";
 import { permissoes } from "@/lib/papeis";
 import { excluirCampanha, removerTokenMetricool, salvarCampanha, salvarIntegracao, testarConexaoMetricool } from "@/app/(app)/marca/acoes";
-import type { Campanha, Empresa, Papel, RitmoDia } from "@/lib/tipos/database";
+import type { Campanha, Empresa, Papel, Rede, RitmoDia } from "@/lib/tipos/database";
+import { redesDaEmpresa, ritmoLinkedinOuPadrao } from "@/lib/redes";
 import type { SecaoMarca } from "@/lib/validacao/empresa";
 import { useSecaoMarca, type Conflito } from "./useSecaoMarca";
 import { CampoLogo } from "@/components/empresas/CampoLogo";
@@ -29,26 +30,28 @@ export interface IntegracaoResumo {
   ultimaImportacao: string | null;
 }
 
-type Aba = SecaoMarca | "campanhas" | "integracao";
+export type Aba = SecaoMarca | "campanhas" | "integracao";
 const ABAS: { chave: Aba; rotulo: string; Icone: typeof Palette; soDono?: boolean }[] = [
   { chave: "identidade", rotulo: "Identidade", Icone: Palette },
   { chave: "publico", rotulo: "Público", Icone: Users },
   { chave: "metas", rotulo: "Metas", Icone: Target },
   { chave: "ritmo", rotulo: "Ritmo semanal", Icone: Repeat },
+  { chave: "linkedin", rotulo: "LinkedIn", Icone: Briefcase },
   { chave: "campanhas", rotulo: "Campanhas", Icone: Megaphone },
   { chave: "integracao", rotulo: "Metricool", Icone: Plug, soDono: true },
 ];
 
-export function EditorMarca({ empresa, papel, campanhas, integracao, analise }: { empresa: Empresa; papel: Papel; campanhas: Campanha[]; integracao: IntegracaoResumo | null; analise?: AnaliseMarca }) {
+export function EditorMarca({ empresa, papel, campanhas, integracao, analise, abaInicial }: { empresa: Empresa; papel: Papel; campanhas: Campanha[]; integracao: IntegracaoResumo | null; analise?: AnaliseMarca; abaInicial?: Aba }) {
   const podeEditar = permissoes.podeEditar(papel);
-  const [aba, setAba] = useState<Aba>("identidade");
+  const [aba, setAba] = useState<Aba>(abaInicial ?? "identidade");
 
   useEffect(() => {
+    if (abaInicial) return;
     try {
       const salva = localStorage.getItem("estudio:marca:aba") as Aba | null;
       if (salva && ABAS.some((a) => a.chave === salva && (!a.soDono || papel === "dono"))) setAba(salva);
     } catch {}
-  }, [papel]);
+  }, [papel, abaInicial]);
 
   function trocar(a: Aba) {
     setAba(a);
@@ -79,6 +82,7 @@ export function EditorMarca({ empresa, papel, campanhas, integracao, analise }: 
       {aba === "publico" && <SecaoPublico empresa={empresa} podeEditar={podeEditar} />}
       {aba === "metas" && <SecaoMetas empresa={empresa} podeEditar={podeEditar} analise={analise?.metas} />}
       {aba === "ritmo" && <SecaoRitmo empresa={empresa} podeEditar={podeEditar} analise={analise?.ritmo} />}
+      {aba === "linkedin" && <SecaoLinkedin empresa={empresa} podeEditar={podeEditar} />}
       {aba === "campanhas" && <SecaoCampanhas empresaId={empresa.id} campanhas={campanhas} podeEditar={podeEditar} />}
       {aba === "integracao" && papel === "dono" && integracao && <SecaoIntegracao empresaId={empresa.id} integracao={integracao} />}
     </div>
@@ -103,6 +107,7 @@ const ROTULOS: Record<string, string> = {
   nome: "Nome", perfil_instagram: "Perfil no Instagram", sobre: "Sobre a marca", tom_de_voz: "Tom de voz", regras_de_linguagem: "Regras de linguagem",
   regras_de_imagem: "Regras de imagem", cor_primaria: "Cor primária", cor_secundaria: "Cor secundária", fuso_horario: "Fuso horário",
   publico: "Público", objetivos: "Objetivos", pilares: "Pilares", melhores_horarios: "Melhores horários", metas: "Metas", ritmo_semanal: "Ritmo semanal",
+  redes: "Redes", ritmo_linkedin: "Ritmo do LinkedIn",
 };
 
 function MolduraSecao<T extends Record<string, unknown>>({
@@ -304,6 +309,35 @@ function AnaliseMetasCaixa({ analise, podeEditar, onUsar }: { analise: AnaliseMe
         </>
       )}
     </section>
+  );
+}
+
+type LinkedinSecao = { redes: Rede[]; ritmo_linkedin: RitmoDia[] };
+const deLinkedin = (e: Empresa): LinkedinSecao => ({ redes: redesDaEmpresa(e), ritmo_linkedin: ritmoLinkedinOuPadrao(e.ritmo_linkedin) });
+
+function SecaoLinkedin({ empresa, podeEditar }: { empresa: Empresa; podeEditar: boolean }) {
+  const s = useSecaoMarca<LinkedinSecao>({ empresa, secao: "linkedin", deEmpresa: deLinkedin, podeEditar });
+  const ativo = s.valores.redes.includes("linkedin");
+  return (
+    <MolduraSecao titulo="LinkedIn" descricao="Página da empresa no LinkedIn: calendário próprio, ritmo próprio e texto para gestores e decisores. O Instagram continua como está." estado={s} podeEditar={podeEditar} deEmpresa={deLinkedin}>
+      <label className="flex items-start gap-3 rounded-xl border border-borda p-3">
+        <input type="checkbox" className="mt-0.5 h-5 w-5" disabled={!podeEditar} checked={ativo} onChange={(e) => s.alterar({ redes: e.target.checked ? ["instagram", "linkedin"] : ["instagram"] })} />
+        <span>
+          <span className="block font-medium">Planejar também o LinkedIn</span>
+          <span className="block text-sm text-texto-2">Liga o filtro de rede no calendário, o “Gerar mês” do LinkedIn e o botão “Adaptar para o LinkedIn” nos posts do Instagram.</span>
+        </span>
+      </label>
+      {ativo && (
+        <>
+          <div className="rounded-xl border border-ia/40 bg-ia/10 p-3 text-sm">
+            <p className="font-medium text-ia">Sugestão para postar todo dia</p>
+            <p className="mt-1 text-texto-2">Seg texto de opinião · Ter carrossel em PDF · Qua vídeo com especialista · Qui caso de escola · Sex imagem de bastidores · Sáb enquete · Dom reflexão. Ajuste abaixo e clique em Salvar.</p>
+          </div>
+          <h3 className="text-base font-semibold">Ritmo semanal do LinkedIn</h3>
+          <CamposRitmo rede="linkedin" ritmo={s.valores.ritmo_linkedin} pilares={empresa.pilares ?? []} onChange={(r) => s.alterar({ ritmo_linkedin: r })} disabled={!podeEditar} />
+        </>
+      )}
+    </MolduraSecao>
   );
 }
 

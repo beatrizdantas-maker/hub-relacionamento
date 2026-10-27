@@ -26,7 +26,7 @@ const SO_HASHTAGS = /^\s*(#[\p{L}\p{N}_]+\s*)+$/u;
  * Junta legenda e hashtags. Se a legenda já terminar com linhas só de
  * hashtags, elas são aproveitadas (sem repetir) e reescritas numa linha só.
  */
-export function juntarLegenda(legenda: string, hashtags: string[]): string {
+export function juntarLegenda(legenda: string, hashtags: string[], max = MAX_HASHTAGS): string {
   const linhas = legenda.replace(/\s+$/, "").split("\n");
   const existentes: string[] = [];
   while (linhas.length && (SO_HASHTAGS.test(linhas[linhas.length - 1]) || !linhas[linhas.length - 1].trim())) {
@@ -34,6 +34,6 @@ export function juntarLegenda(legenda: string, hashtags: string[]): string {
     existentes.unshift(...(l.match(/#[\p{L}\p{N}_]+/gu) ?? []));
   }
   const texto = linhas.join("\n").trim();
-  const tags = normalizarHashtags([...existentes, ...hashtags]);
+  const tags = normalizarHashtags([...existentes, ...hashtags], max);
   return tags.length ? `${texto}\n\n${tags.join(" ")}` : texto;
 }
