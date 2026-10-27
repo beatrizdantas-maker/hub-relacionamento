@@ -31,8 +31,7 @@ export const CONTEUDOS: Conteudo[] = [
   c({ id: "c4", data: "2026-11-01", formato: "Estático", tema: "Você também já se sentiu assim?", status: "sugestao", origem: "ia" }),
   c({ id: "l1", rede: "linkedin", data: HOJE, hora: "08:00", formato: "Texto", tema: "O que aprendemos com 40 escolas em 2026", status: "sugestao", origem: "ia", ganchos: [],
     legenda: "Nós visitamos 40 escolas este ano.\n\nO que mais trava a gestão não é tecnologia.\n\n#gestaoescolar #educacao", roteiro: "IMAGEM DE APOIO: Foto da equipe numa sala de aula" }),
-  c({ id: "l2", rede: "linkedin", data: "2026-10-31", hora: "10:00", formato: "Enquete", tema: "Qual o maior desafio da coordenação?", ganchos: [],
-    roteiro: "PERGUNTA: Qual o maior desafio da coordenação hoje?\nOPÇÕES:\n1. Engajar professores\n2. Falar com as famílias" }),
+  c({ id: "l2", rede: "linkedin", data: "2026-10-31", hora: "10:00", formato: "Estático", tema: "1 em cada 3 coordenadores sente falta de tempo", ganchos: [] }),
 ];
 export const STORIES: Story[] = [{ id: "s1", empresa_id: "e1", data: HOJE, objetivo: "Puxar o Reels", telas: [{ tipo: "Texto", texto: "Abertura" }, { tipo: "Compartilhar post", texto: "" }, { tipo: "Enquete", texto: "", interacao: { pergunta: "Qual?", opcoes: ["A", "B"] } }, { tipo: "Texto", texto: "Fecho" }], status: "sugestao", origem: "ia", conteudo_id: "c1", criado_por: null, criado_em: "", atualizado_em: "" }];
 export const TAREFAS: Tarefa[] = [

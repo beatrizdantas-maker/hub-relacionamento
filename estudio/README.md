@@ -44,8 +44,9 @@ As três migrations já foram aplicadas no GAME e o teste de RLS passou lá. Par
    - `supabase/migrations/0006_logo.sql` — logo da empresa (coluna e bucket de imagens)
    - `supabase/migrations/0007_linkedin.sql` — LinkedIn: rede de cada conteúdo, redes da empresa, ritmo do LinkedIn e formatos Texto, Enquete e Artigo
    - `supabase/migrations/0008_linkedin_sem_carrossel.sql` — novo ritmo padrão do LinkedIn, sem carrossel
+   - `supabase/migrations/0009_linkedin_sem_enquete.sql` — ritmo do LinkedIn só com texto, vídeo e foto (sábado vira pergunta em texto)
 
-   As migrations 0006 a 0008 podem ser rodadas mais de uma vez sem problema. Sem a 0007, o Instagram continua funcionando; o que for do LinkedIn mostra "rode a migração 0007".
+   As migrations 0006 a 0009 podem ser rodadas mais de uma vez sem problema. Sem a 0007, o Instagram continua funcionando; o que for do LinkedIn mostra "rode a migração 0007".
 2. Em **Project Settings → Data API → Exposed schemas**, inclua `estudio` (sem isso a API não enxerga o schema). No GAME isso já foi feito.
 3. Rode o teste de RLS: `supabase/tests/rls.sql`. Ele cria usuários de teste, exercita os quatro papéis em duas empresas e **desfaz tudo no fim** (`rollback`). Deve terminar com `NOTICE: RLS OK`. Se algum critério falhar, para com `FALHOU: ...`.
 4. Em **Authentication → URL Configuration**:
@@ -210,14 +211,14 @@ A equipe produz as artes e grava os vídeos; a IA entrega o briefing completo (`
 
 Página da empresa no LinkedIn, com calendário e ritmo próprios (`src/lib/redes.ts`, testado). Ligue em **Marca → LinkedIn**.
 
-- **Ritmo sugerido (um post por dia):** seg texto de opinião · ter vídeo com especialista · qua caso de escola com foto real · qui imagem com um dado · sex vídeo de bastidores ou depoimento · sáb enquete · dom reflexão. Editável na mesma aba.
-- **Formatos:** Texto, Vídeo, Imagem, Enquete e Artigo. Sem carrossel: na página da empresa ele rende pouco para o trabalho que dá.
-- **Regras da IA no LinkedIn:** gancho nas 2 primeiras linhas, de 1 a 3 hashtags e nenhum link no texto (quando precisar, "link no primeiro comentário"). No banco, Vídeo é `Reels`, Imagem é `Estático`; Texto, Enquete e Artigo são valores novos do enum. Cada conteúdo tem a coluna `rede` (`instagram` ou `linkedin`).
+- **Ritmo sugerido (um post por dia):** seg texto de opinião · ter vídeo com especialista · qua caso de escola com foto real · qui foto com um dado · sex vídeo de bastidores ou depoimento · sáb pergunta para os gestores · dom reflexão. Editável na mesma aba.
+- **Formatos:** os do botão de publicar da página da empresa: Texto ("Começar publicação"), Vídeo, Foto e Artigo ("Escrever artigo"). Sem carrossel e sem enquete (os valores continuam no banco só para conteúdos antigos). No banco, Vídeo é `Reels` e Foto é `Estático`; Texto, Enquete e Artigo são valores do enum. Cada conteúdo tem a coluna `rede` (`instagram` ou `linkedin`).
+- **Regras da IA no LinkedIn:** gancho nas 2 primeiras linhas, de 1 a 3 hashtags e nenhum link no texto (quando precisar, "link no primeiro comentário").
 - **Calendário:** filtro Todas / Instagram / LinkedIn; os posts do LinkedIn levam a marca "in". Em cada dia há "+ Instagram" e "+ LinkedIn"; stories só no Instagram.
 - **Gerar mês com IA:** escolha a rede. No LinkedIn a IA segue o ritmo do LinkedIn, escreve na voz da empresa ("nós") para gestores e decisores e não cria stories.
 - **Adaptar para o LinkedIn** (`POST /api/ia/adaptar`): no editor de um post do Instagram, a IA reescreve a ideia para o LinkedIn, escolhe o formato (prefere o do ritmo do dia) e cria a versão como sugestão, na mesma data (ou hoje, se já passou), com as tarefas padrão.
 - **Briefing com IA** e as cópias de artes e falas funcionam nas duas redes; o texto copiado indica "LINKEDIN" nos posts de lá.
-- **Tarefas padrão:** Texto (escrever 2 dias antes, revisar e agendar 1 dia antes), Enquete (escrever e agendar 1 dia antes), Artigo (escrever 5 dias antes, capa 3 dias antes, revisar e publicar 1 dia antes).
+- **Tarefas padrão:** Texto (escrever 2 dias antes, revisar e agendar 1 dia antes), Artigo (escrever 5 dias antes, capa 3 dias antes, revisar e publicar 1 dia antes).
 - Ainda não tem: números do LinkedIn no Painel e sugestões semanais por rede (próxima etapa).
 
 ## Papéis e permissões

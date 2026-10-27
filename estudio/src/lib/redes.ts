@@ -1,8 +1,9 @@
 /**
  * Redes sociais da empresa: Instagram e LinkedIn. O mesmo valor de formato
  * guardado no banco ganha nome próprio em cada rede (no LinkedIn, "Reels" é
- * Vídeo e "Estático" é Imagem). Carrossel não é usado no LinkedIn: o alcance
- * de documentos/carrosséis na página da empresa não compensa o trabalho.
+ * Vídeo e "Estático" é Foto). Os formatos são os do botão de publicar da
+ * página da empresa: texto, Vídeo, Foto e Escrever artigo. Carrossel e
+ * enquete não são usados (ficam só para conteúdos antigos).
  */
 import type { FormatoConteudo, Rede, RitmoDia } from "./tipos/database";
 
@@ -14,10 +15,10 @@ export const rotuloRede = (r: Rede) => (r === "linkedin" ? "LinkedIn" : "Instagr
 
 export const FORMATOS_POR_REDE: Record<Rede, FormatoConteudo[]> = {
   instagram: ["Reels", "Carrossel", "Estático"],
-  linkedin: ["Texto", "Reels", "Estático", "Enquete", "Artigo"],
+  linkedin: ["Texto", "Reels", "Estático", "Artigo"],
 };
 
-const NOMES_LINKEDIN: Partial<Record<FormatoConteudo, string>> = { Reels: "Vídeo", Estático: "Imagem" };
+const NOMES_LINKEDIN: Partial<Record<FormatoConteudo, string>> = { Reels: "Vídeo", Estático: "Foto" };
 export function rotuloFormato(formato: FormatoConteudo, rede: Rede = "instagram"): string {
   return rede === "linkedin" ? NOMES_LINKEDIN[formato] ?? formato : formato;
 }
@@ -38,9 +39,9 @@ export const RITMO_LINKEDIN_PADRAO: RitmoDia[] = [
   { dia: 1, hora: "08:00", formato: "Texto", tipo: "Texto de opinião sobre educação", pilar: "", objetivo: "engajamento" },
   { dia: 2, hora: "12:00", formato: "Reels", tipo: "Vídeo curto com especialista falando", pilar: "", objetivo: "alcance" },
   { dia: 3, hora: "08:00", formato: "Texto", tipo: "Caso de escola atendida (prova social), com foto real", pilar: "", objetivo: "direct" },
-  { dia: 4, hora: "12:00", formato: "Estático", tipo: "Imagem com um dado ou aprendizado da gestão escolar", pilar: "", objetivo: "engajamento" },
+  { dia: 4, hora: "12:00", formato: "Estático", tipo: "Foto com um dado ou aprendizado da gestão escolar", pilar: "", objetivo: "engajamento" },
   { dia: 5, hora: "09:00", formato: "Reels", tipo: "Vídeo de bastidores ou depoimento de escola", pilar: "", objetivo: "alcance" },
-  { dia: 6, hora: "10:00", formato: "Enquete", tipo: "Enquete sobre desafio da gestão escolar", pilar: "", objetivo: "comentarios" },
+  { dia: 6, hora: "10:00", formato: "Texto", tipo: "Pergunta para os gestores responderem nos comentários", pilar: "", objetivo: "comentarios" },
   { dia: 7, hora: "18:00", formato: "Texto", tipo: "Reflexão da semana", pilar: "", objetivo: "alcance" },
 ];
 

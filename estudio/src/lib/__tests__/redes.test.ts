@@ -13,10 +13,10 @@ const base: Briefing = {
 describe("redes", () => {
   it("o mesmo formato ganha nome do LinkedIn", () => {
     expect(rotuloFormato("Reels", "linkedin")).toBe("Vídeo");
-    expect(rotuloFormato("Estático", "linkedin")).toBe("Imagem");
+    expect(rotuloFormato("Estático", "linkedin")).toBe("Foto");
     expect(rotuloFormato("Reels")).toBe("Reels");
     expect(FORMATOS_POR_REDE.instagram).not.toContain("Texto");
-    expect(FORMATOS_POR_REDE.linkedin).not.toContain("Carrossel");
+    expect(FORMATOS_POR_REDE.linkedin).toEqual(["Texto", "Reels", "Estático", "Artigo"]);
   });
 
   it("sem a coluna no banco, tudo é Instagram", () => {
@@ -45,8 +45,8 @@ describe("redes", () => {
 
   it("filtros de formato acompanham as redes na tela", () => {
     expect(filtrosPara(["instagram"])).toEqual(["todos", "Reels", "Carrossel", "Estático", "Stories"]);
-    expect(filtrosPara(["linkedin"])).toEqual(["todos", "Reels", "Estático", "Texto", "Enquete", "Artigo"]);
-    expect(filtrosPara(["instagram", "linkedin"])).toEqual(["todos", "Reels", "Carrossel", "Estático", "Texto", "Enquete", "Artigo", "Stories"]);
+    expect(filtrosPara(["linkedin"])).toEqual(["todos", "Reels", "Estático", "Texto", "Artigo"]);
+    expect(filtrosPara(["instagram", "linkedin"])).toEqual(["todos", "Reels", "Carrossel", "Estático", "Texto", "Artigo", "Stories"]);
   });
 });
 

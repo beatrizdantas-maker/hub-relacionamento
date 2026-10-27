@@ -100,15 +100,14 @@ export const REGRAS_LINKEDIN = `Esta peça é para a PÁGINA DA EMPRESA no Linke
 - As 2 primeiras linhas são o gancho: é o que aparece antes do "ver mais". Comece com uma afirmação forte, um número real ou uma pergunta do dia a dia da escola.
 - Parágrafos curtos (1 a 3 linhas), frases diretas, tom profissional e humano. Nada de linguagem de vendedor.
 - Traga aprendizado prático, bastidor ou caso real; a marca aparece como quem entende do assunto, não como anúncio.
-- Formatos que funcionam na página da empresa: texto (com ou sem foto real), vídeo curto com legenda, imagem com um dado ou aprendizado, enquete e artigo. NÃO use carrossel nem documento em PDF no LinkedIn.`;
+- Formatos da página da empresa (os do botão de publicar do LinkedIn): texto, vídeo, foto e artigo. NÃO use carrossel, documento em PDF nem enquete.`;
 
 /** Instruções por formato para o briefing de produção, em cada rede. */
 export function instrucoesFormatos(rede: Rede): string {
   if (rede === "linkedin") {
     return `   - Texto: "legenda" é o post completo (de 900 a 1.800 caracteres), com gancho nas 2 primeiras linhas. "arte_estatico" só se uma imagem de apoio ajudar (senão null). "slides" e "cenas" vazias, "enquete" e "artigo" null.
    - Reels (vídeo no LinkedIn): em "cenas", o roteiro completo de 30 a 90 segundos com tempo, como filmar ("imagem"), a fala palavra por palavra e o texto na tela (muita gente assiste sem som: legende as falas importantes). Exatamente 3 ganchos alternativos: curiosidade, identificação, provocação.
-   - Estático (imagem): uma imagem só (sem carrossel). Em "arte_estatico", o texto da imagem (curto: um dado, uma frase ou um aprendizado), a imagem e a composição; prefira foto real da equipe ou da escola a banco de imagens. A "legenda" é o post que acompanha a imagem.
-   - Enquete: em "enquete", a pergunta (até 140 caracteres) e de 2 a 4 opções (até 30 caracteres cada). A "legenda" é o texto que acompanha a enquete e convida a votar e comentar.
+   - Estático (foto): uma foto só (sem carrossel). Em "arte_estatico", o texto da imagem (curto: um dado, uma frase ou um aprendizado), a imagem e a composição; prefira foto real da equipe ou da escola a banco de imagens. A "legenda" é o post que acompanha a imagem.
    - Artigo: em "artigo", título, subtítulo e de 3 a 6 seções com intertítulo e texto completo. A "legenda" é o post curto que divulga o artigo.
    Em todos: preencha só o campo do formato; os outros ficam vazios ou null. Para formatos que não são Reels, "ganchos" é uma lista vazia e "musica" é null.`;
   }
@@ -236,8 +235,8 @@ ${REGRAS_LINKEDIN}
 
 Como adaptar:
 - Não traduza o post do Instagram ao pé da letra. Mantenha a ideia central e reescreva para gestores, coordenadores e decisores: mais contexto, dado ou exemplo concreto, menos gíria e menos emoji.
-- Escolha o formato do LinkedIn que melhor serve a ideia: "Texto", "Reels" (vídeo), "Estático" (imagem), "Enquete" ou "Artigo". Não existe carrossel no LinkedIn da marca.${sugerido ? ` O ritmo da marca pede ${rotuloFormato(sugerido.formato, "linkedin")} (${sugerido.tipo || "sem tipo"}) neste dia: prefira esse formato, a menos que a ideia claramente não caiba nele.` : ""}
-- Um Reels com pessoa falando costuma virar Vídeo (mesma fala, mais contexto) ou Texto. Um carrossel costuma virar Texto (os pontos do carrossel viram parágrafos ou tópicos curtos) ou Imagem com a ideia principal.
+- Escolha o formato do LinkedIn que melhor serve a ideia: "Texto", "Reels" (vídeo), "Estático" (foto) ou "Artigo". Não use carrossel nem enquete.${sugerido ? ` O ritmo da marca pede ${rotuloFormato(sugerido.formato, "linkedin")} (${sugerido.tipo || "sem tipo"}) neste dia: prefira esse formato, a menos que a ideia claramente não caiba nele.` : ""}
+- Um Reels com pessoa falando costuma virar Vídeo (mesma fala, mais contexto) ou Texto. Um carrossel costuma virar Texto (os pontos do carrossel viram parágrafos ou tópicos curtos) ou Foto com a ideia principal.
 
 Preencha assim:
 ${instrucoesFormatos("linkedin")}
