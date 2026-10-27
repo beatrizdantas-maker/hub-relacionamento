@@ -14,9 +14,9 @@ describe("redes", () => {
   it("o mesmo formato ganha nome do LinkedIn", () => {
     expect(rotuloFormato("Reels", "linkedin")).toBe("Vídeo");
     expect(rotuloFormato("Estático", "linkedin")).toBe("Imagem");
-    expect(rotuloFormato("Carrossel", "linkedin")).toBe("Carrossel (PDF)");
     expect(rotuloFormato("Reels")).toBe("Reels");
     expect(FORMATOS_POR_REDE.instagram).not.toContain("Texto");
+    expect(FORMATOS_POR_REDE.linkedin).not.toContain("Carrossel");
   });
 
   it("sem a coluna no banco, tudo é Instagram", () => {
@@ -26,8 +26,9 @@ describe("redes", () => {
     expect(redesDaEmpresa({ redes: ["linkedin", "instagram"] })).toEqual(["instagram", "linkedin"]);
   });
 
-  it("ritmo do LinkedIn: 7 dias, um post por dia; usa o padrão quando vazio", () => {
+  it("ritmo do LinkedIn: 7 dias, um post por dia, sem carrossel; usa o padrão quando vazio", () => {
     expect(RITMO_LINKEDIN_PADRAO.map((r) => r.dia)).toEqual([1, 2, 3, 4, 5, 6, 7]);
+    expect(RITMO_LINKEDIN_PADRAO.every((r) => FORMATOS_POR_REDE.linkedin.includes(r.formato))).toBe(true);
     expect(ritmoLinkedinOuPadrao(null)).toEqual(RITMO_LINKEDIN_PADRAO);
     expect(ritmoLinkedinOuPadrao([])).toEqual(RITMO_LINKEDIN_PADRAO);
     const proprio = RITMO_LINKEDIN_PADRAO.map((r) => ({ ...r, hora: "07:30" }));
@@ -44,7 +45,8 @@ describe("redes", () => {
 
   it("filtros de formato acompanham as redes na tela", () => {
     expect(filtrosPara(["instagram"])).toEqual(["todos", "Reels", "Carrossel", "Estático", "Stories"]);
-    expect(filtrosPara(["linkedin"])).toEqual(["todos", "Reels", "Carrossel", "Estático", "Texto", "Enquete", "Artigo"]);
+    expect(filtrosPara(["linkedin"])).toEqual(["todos", "Reels", "Estático", "Texto", "Enquete", "Artigo"]);
+    expect(filtrosPara(["instagram", "linkedin"])).toEqual(["todos", "Reels", "Carrossel", "Estático", "Texto", "Enquete", "Artigo", "Stories"]);
   });
 });
 

@@ -83,9 +83,9 @@ function agendadosTexto(itens: ContextoIA["agendados"]): string {
 /** Regras que valem para tudo que a IA escreve; hashtags e chamada para ação mudam por rede. */
 export function regrasGerais(rede: Rede = "instagram"): string {
   const cta = rede === "linkedin"
-    ? '(ex.: "Conta nos comentários como é na sua escola", "Manda uma mensagem para a gente", "Compartilha com a sua equipe", "Conheça no nosso site"). Nunca use "link na bio", "arrasta pro lado" nem outras expressões de Instagram'
+    ? '(ex.: "Conta nos comentários como é na sua escola", "Manda uma mensagem para a gente", "Compartilha com a sua equipe", "O link está no primeiro comentário"). Nunca coloque link no texto do post (o LinkedIn derruba o alcance): se precisar de link, diga que está no primeiro comentário. Nunca use "link na bio", "arrasta pro lado" nem outras expressões de Instagram'
     : '(ex.: "Comenta EU QUERO", "Salva pra ver depois", "Me chama no direct", "Clica no link da bio")';
-  const tags = rede === "linkedin" ? "de 3 a 5" : "de 5 a 10";
+  const tags = rede === "linkedin" ? "de 1 a 3 (no LinkedIn, hashtag demais derruba o alcance)" : "de 5 a 10";
   return `Regras obrigatórias:
 1. Use SOMENTE os números e fatos que estão neste pedido. Não invente dados, percentuais, nomes de posts ou resultados.
 2. Escreva em português do Brasil, no tom de voz da marca, e siga à risca as regras de linguagem da marca (palavras proibidas, modos de se referir a produtos etc.). Elas valem para tudo: temas, roteiros, legendas, stories e justificativas.
@@ -99,15 +99,15 @@ export const REGRAS_GERAIS = regrasGerais("instagram");
 export const REGRAS_LINKEDIN = `Esta peça é para a PÁGINA DA EMPRESA no LinkedIn: a marca fala como "nós". Público: gestores, diretores, coordenadores, mantenedores e educadores que decidem.
 - As 2 primeiras linhas são o gancho: é o que aparece antes do "ver mais". Comece com uma afirmação forte, um número real ou uma pergunta do dia a dia da escola.
 - Parágrafos curtos (1 a 3 linhas), frases diretas, tom profissional e humano. Nada de linguagem de vendedor.
-- Traga aprendizado prático, bastidor ou caso real; a marca aparece como quem entende do assunto, não como anúncio.`;
+- Traga aprendizado prático, bastidor ou caso real; a marca aparece como quem entende do assunto, não como anúncio.
+- Formatos que funcionam na página da empresa: texto (com ou sem foto real), vídeo curto com legenda, imagem com um dado ou aprendizado, enquete e artigo. NÃO use carrossel nem documento em PDF no LinkedIn.`;
 
 /** Instruções por formato para o briefing de produção, em cada rede. */
 export function instrucoesFormatos(rede: Rede): string {
   if (rede === "linkedin") {
     return `   - Texto: "legenda" é o post completo (de 900 a 1.800 caracteres), com gancho nas 2 primeiras linhas. "arte_estatico" só se uma imagem de apoio ajudar (senão null). "slides" e "cenas" vazias, "enquete" e "artigo" null.
-   - Carrossel (documento em PDF): em "slides", de 6 a 10 páginas com o título e o texto de cada uma e, em "imagem", como deve ser cada página (o que mostrar, composição). Primeira página: título que faz abrir; última: chamada para ação. A "legenda" apresenta o documento.
    - Reels (vídeo no LinkedIn): em "cenas", o roteiro completo de 30 a 90 segundos com tempo, como filmar ("imagem"), a fala palavra por palavra e o texto na tela (muita gente assiste sem som: legende as falas importantes). Exatamente 3 ganchos alternativos: curiosidade, identificação, provocação.
-   - Estático (imagem): em "arte_estatico", o texto da imagem, a imagem e a composição. A "legenda" é o post que acompanha a imagem.
+   - Estático (imagem): uma imagem só (sem carrossel). Em "arte_estatico", o texto da imagem (curto: um dado, uma frase ou um aprendizado), a imagem e a composição; prefira foto real da equipe ou da escola a banco de imagens. A "legenda" é o post que acompanha a imagem.
    - Enquete: em "enquete", a pergunta (até 140 caracteres) e de 2 a 4 opções (até 30 caracteres cada). A "legenda" é o texto que acompanha a enquete e convida a votar e comentar.
    - Artigo: em "artigo", título, subtítulo e de 3 a 6 seções com intertítulo e texto completo. A "legenda" é o post curto que divulga o artigo.
    Em todos: preencha só o campo do formato; os outros ficam vazios ou null. Para formatos que não são Reels, "ganchos" é uma lista vazia e "musica" é null.`;
@@ -236,8 +236,8 @@ ${REGRAS_LINKEDIN}
 
 Como adaptar:
 - Não traduza o post do Instagram ao pé da letra. Mantenha a ideia central e reescreva para gestores, coordenadores e decisores: mais contexto, dado ou exemplo concreto, menos gíria e menos emoji.
-- Escolha o formato do LinkedIn que melhor serve a ideia: "Texto", "Carrossel" (documento PDF), "Reels" (vídeo), "Estático" (imagem), "Enquete" ou "Artigo".${sugerido ? ` O ritmo da marca pede ${rotuloFormato(sugerido.formato, "linkedin")} (${sugerido.tipo || "sem tipo"}) neste dia: prefira esse formato, a menos que a ideia claramente não caiba nele.` : ""}
-- Um Reels com pessoa falando costuma virar Vídeo (mesma fala, mais contexto) ou Texto. Um carrossel costuma virar Carrossel em PDF.
+- Escolha o formato do LinkedIn que melhor serve a ideia: "Texto", "Reels" (vídeo), "Estático" (imagem), "Enquete" ou "Artigo". Não existe carrossel no LinkedIn da marca.${sugerido ? ` O ritmo da marca pede ${rotuloFormato(sugerido.formato, "linkedin")} (${sugerido.tipo || "sem tipo"}) neste dia: prefira esse formato, a menos que a ideia claramente não caiba nele.` : ""}
+- Um Reels com pessoa falando costuma virar Vídeo (mesma fala, mais contexto) ou Texto. Um carrossel costuma virar Texto (os pontos do carrossel viram parágrafos ou tópicos curtos) ou Imagem com a ideia principal.
 
 Preencha assim:
 ${instrucoesFormatos("linkedin")}

@@ -57,7 +57,7 @@ export async function salvarConteudo(
     const { data: anterior } = await supabase.from("conteudos").select("*").eq("id", id).eq("empresa_id", empresaId).maybeSingle();
     if (!anterior) return { ok: false, erro: "Conteúdo não encontrado." };
     const rede = redeDe(anterior);
-    if (!FORMATOS_POR_REDE[rede].includes(campos.formato)) return { ok: false, erro: `${rotuloFormato(campos.formato, rede)} não é um formato do ${rotuloRede(rede)}.` };
+    if (!FORMATOS_POR_REDE[rede].includes(campos.formato) && campos.formato !== anterior.formato) return { ok: false, erro: `${rotuloFormato(campos.formato, rede)} não é um formato do ${rotuloRede(rede)}.` };
     const { data, error } = await supabase.from("conteudos").update(campos).eq("id", id).eq("empresa_id", empresaId).select("*");
     if (error) return { ok: false, erro: mensagemErro(error) };
     if (!data?.length) return { ok: false, erro: "Você não tem permissão para editar este conteúdo." };

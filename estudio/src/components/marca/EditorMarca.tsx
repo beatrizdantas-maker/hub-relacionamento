@@ -331,7 +331,7 @@ function SecaoLinkedin({ empresa, podeEditar }: { empresa: Empresa; podeEditar: 
         <>
           <div className="rounded-xl border border-ia/40 bg-ia/10 p-3 text-sm">
             <p className="font-medium text-ia">Sugestão para postar todo dia</p>
-            <p className="mt-1 text-texto-2">Seg texto de opinião · Ter carrossel em PDF · Qua vídeo com especialista · Qui caso de escola · Sex imagem de bastidores · Sáb enquete · Dom reflexão. Ajuste abaixo e clique em Salvar.</p>
+            <p className="mt-1 text-texto-2">Seg texto de opinião · Ter vídeo com especialista · Qua caso de escola com foto · Qui imagem com um dado · Sex vídeo de bastidores · Sáb enquete · Dom reflexão. Sem carrossel: no LinkedIn, texto, vídeo e enquete rendem mais. Ajuste abaixo e clique em Salvar.</p>
           </div>
           <h3 className="text-base font-semibold">Ritmo semanal do LinkedIn</h3>
           <CamposRitmo rede="linkedin" ritmo={s.valores.ritmo_linkedin} pilares={empresa.pilares ?? []} onChange={(r) => s.alterar({ ritmo_linkedin: r })} disabled={!podeEditar} />

@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
         tema,
         objetivo: objetivo?.slice(0, 120) ?? null,
         roteiro: formatarRoteiro(b.formato, b),
-        legenda: juntarLegenda(b.legenda, b.hashtags, 5),
+        legenda: juntarLegenda(b.legenda, b.hashtags, 3),
         cta: b.cta.trim().slice(0, 300),
         orientacao_arte: formatarOrientacao(b),
         ganchos: b.formato === "Reels" ? b.ganchos.map((g) => g.trim().slice(0, 300)).filter(Boolean).slice(0, 3) : [],

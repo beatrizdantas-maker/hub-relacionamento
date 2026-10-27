@@ -140,6 +140,7 @@ export function CamposRitmo({ ritmo, pilares, onChange, disabled, rede = "instag
             <CampoTexto rotulo="Hora" type="time" disabled={disabled} value={r.hora} onChange={(e) => atualizar(i, { hora: e.target.value })} className="tabular" />
             <CampoSelecao rotulo="Formato" disabled={disabled} value={r.formato} onChange={(e) => atualizar(i, { formato: e.target.value as FormatoConteudo })}>
               {FORMATOS_POR_REDE[rede].map((f) => <option key={f} value={f}>{rotuloFormato(f, rede)}</option>)}
+              {!FORMATOS_POR_REDE[rede].includes(r.formato) && <option value={r.formato}>{rotuloFormato(r.formato, rede)}</option>}
             </CampoSelecao>
             <CampoTexto rotulo="Tipo" disabled={disabled} value={r.tipo} onChange={(e) => atualizar(i, { tipo: e.target.value })} placeholder={rede === "linkedin" ? "Ex.: Caso de escola atendida" : "Ex.: Reels de prova social"} maxLength={120} />
             <CampoSelecao rotulo="Objetivo" disabled={disabled} value={r.objetivo} onChange={(e) => atualizar(i, { objetivo: e.target.value })}>

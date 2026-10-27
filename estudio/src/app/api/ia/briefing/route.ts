@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       roteiro: formatarRoteiro(formato, b),
       orientacao_arte: formatarOrientacao(b),
-      legenda: juntarLegenda(b.legenda, b.hashtags, rede === "linkedin" ? 5 : 10),
+      legenda: juntarLegenda(b.legenda, b.hashtags, rede === "linkedin" ? 3 : 10),
       cta: b.cta.trim().slice(0, 300),
       ganchos: formato === "Reels" ? b.ganchos.map((g) => g.trim().slice(0, 300)).filter(Boolean).slice(0, 3) : [],
     });

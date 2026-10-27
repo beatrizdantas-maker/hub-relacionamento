@@ -78,7 +78,7 @@ export const SaidaBriefing = z.object({
 
 /** "Adaptar para o LinkedIn": o briefing completo mais o formato e os dados do post. */
 export const SaidaAdaptacao = SaidaBriefing.extend({
-  formato: z.enum(["Texto", "Carrossel", "Reels", "Estático", "Enquete", "Artigo"]).describe("Formato no LinkedIn (Reels = vídeo, Estático = imagem, Carrossel = documento PDF)"),
+  formato: z.enum(["Texto", "Reels", "Estático", "Enquete", "Artigo"]).describe("Formato no LinkedIn (Reels = vídeo, Estático = imagem)"),
   tema: z.string().describe("Tema do post no LinkedIn, até 120 caracteres"),
   tipo: z.string().describe("Tipo do post, curto. Ex.: Texto de opinião, Caso de escola"),
   objetivo: z.string().describe("Um destes: salvamentos, alcance, direct, engajamento, comentarios, compartilhamentos, seguidores, cliques"),

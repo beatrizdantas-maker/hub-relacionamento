@@ -112,7 +112,7 @@ export async function POST(req: NextRequest) {
           tema: dia.tema.trim().slice(0, 200),
           objetivo: (dia.objetivo.trim() || slot.objetivo).slice(0, 120),
           roteiro: formatarRoteiro(slot.formato, dia),
-          legenda: juntarLegenda(dia.legenda, dia.hashtags, rede === "linkedin" ? 5 : 10),
+          legenda: juntarLegenda(dia.legenda, dia.hashtags, rede === "linkedin" ? 3 : 10),
           cta: dia.cta.trim().slice(0, 300),
           orientacao_arte: formatarOrientacao(dia),
           ganchos: slot.formato === "Reels" ? dia.ganchos.map((g) => g.trim().slice(0, 300)).slice(0, 3) : [],
