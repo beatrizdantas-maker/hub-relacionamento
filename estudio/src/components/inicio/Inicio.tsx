@@ -3,10 +3,12 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, ArrowDownRight, ArrowUpRight, BarChart3, CalendarDays, Check, ChevronRight, Lightbulb, Minus, Plus, Sparkles } from "lucide-react";
+import { AlertTriangle, ArrowDownRight, ArrowUpRight, BarChart3, CalendarDays, Check, ChevronRight, Eraser, Lightbulb, Minus, Plus, Sparkles } from "lucide-react";
 import { Selo } from "@/components/ui/Selo";
 import { Aviso } from "@/components/ui/Aviso";
 import { Botao } from "@/components/ui/Botao";
+import { Confirmacao } from "@/components/ui/Confirmacao";
+import { limparOQuePassou } from "@/app/(app)/calendario/acoes";
 import { ICONE_FORMATO, STATUS } from "@/components/calendario/rotulos";
 import { SeloLinkedin } from "@/components/calendario/Cartoes";
 import { redeDe, rotuloFormato } from "@/lib/redes";
@@ -24,6 +26,8 @@ export interface InicioProps {
   papel: Papel;
   hoje: string;
   alertas: Alerta[];
+  /** O que ficou para trás (data/prazo antes de hoje, não publicado/concluído); null para quem não pode editar. */
+  passado?: { conteudos: number; stories: number; tarefas: number } | null;
   conteudos: Conteudo[];
   stories: Story[];
   tarefas: GruposTarefas;
@@ -31,6 +35,53 @@ export interface InicioProps {
   indicadores: { atual: Periodo | null; anterior: Periodo | null };
   metas: ProgressoMeta[];
   ultimaSugestao: { id: string; semana: string; gerado_em: string; resumo: string; ideias: number } | null;
+}
+
+function LimparPassado({ empresaId, passado }: { empresaId: string; passado: { conteudos: number; stories: number; tarefas: number } }) {
+  const router = useRouter();
+  const [confirmando, setConfirmando] = useState(false);
+  const [resultado, setResultado] = useState<string | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
+  const [pendente, iniciar] = useTransition();
+  const total = passado.conteudos + passado.stories + passado.tarefas;
+  if (resultado) return <Aviso tipo="sucesso">{resultado}</Aviso>;
+  if (total === 0) return null;
+
+  const partes = [
+    passado.conteudos ? `${passado.conteudos} ${passado.conteudos === 1 ? "post" : "posts"}` : null,
+    passado.stories ? `${passado.stories} stories` : null,
+    passado.tarefas ? `${passado.tarefas} ${passado.tarefas === 1 ? "tarefa" : "tarefas"}` : null,
+  ].filter(Boolean).join(", ");
+
+  function limpar() {
+    setErro(null);
+    iniciar(async () => {
+      const r = await limparOQuePassou(empresaId);
+      if (!r.ok) { setErro(r.erro); setConfirmando(false); return; }
+      setResultado(`Pronto: ${r.conteudos} posts, ${r.stories} stories e ${r.tarefas} tarefas que tinham passado foram apagados. Agora o sistema começa de hoje.`);
+      router.refresh();
+    });
+  }
+
+  return (
+    <section aria-label="Limpar o que passou" className="space-y-2 rounded-xl border border-manual/40 bg-manual/10 p-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm"><strong>Ficou coisa para trás:</strong> {partes} com data que já passou e não foram publicados ou concluídos.</p>
+        {!confirmando && <Botao tamanho="sm" variante="secundaria" onClick={() => setConfirmando(true)}><Eraser className="h-4 w-4" aria-hidden /> Limpar o que passou</Botao>}
+      </div>
+      {confirmando && (
+        <Confirmacao
+          titulo={`Apagar ${partes}?`}
+          descricao="Some tudo o que tem data ou prazo antes de hoje e não foi marcado como publicado ou concluído. O que já foi publicado ou concluído fica no histórico. Não tem volta."
+          rotuloConfirmar="Apagar"
+          carregando={pendente}
+          onConfirmar={limpar}
+          onCancelar={() => setConfirmando(false)}
+        />
+      )}
+      {erro && <Aviso tipo="erro">{erro}</Aviso>}
+    </section>
+  );
 }
 
 const INDICADORES_INICIO = ["seguidores", "seguidores_liquidos", "visualizacoes", "engajamento"] as const;
@@ -61,6 +112,8 @@ export function Inicio(p: InicioProps) {
           </div>
         )}
       </header>
+
+      {p.passado && <LimparPassado empresaId={p.empresa.id} passado={p.passado} />}
 
       {p.alertas.length > 0 && (
         <section aria-label="Precisa de atenção" className="grid gap-2 sm:grid-cols-2">

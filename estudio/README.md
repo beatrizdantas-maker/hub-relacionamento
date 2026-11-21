@@ -221,6 +221,10 @@ Página da empresa no LinkedIn, com calendário e ritmo próprios (`src/lib/rede
 - **Tarefas padrão:** Texto (escrever 2 dias antes, revisar e agendar 1 dia antes), Artigo (escrever 5 dias antes, capa 3 dias antes, revisar e publicar 1 dia antes).
 - Ainda não tem: números do LinkedIn no Painel e sugestões semanais por rede (próxima etapa).
 
+## Limpar o que passou
+
+Quando o sistema fica um tempo sem uso, a tela **Início** mostra (para Dono e Editor) quantos posts, stories e tarefas têm data ou prazo antes de hoje e não foram publicados ou concluídos, com o botão **Limpar o que passou** (`limparOQuePassou` em `src/app/(app)/calendario/acoes.ts`). Ele apaga esses itens depois de confirmar; o que foi publicado ou concluído fica no histórico. "Hoje" segue o fuso da empresa.
+
 ## Papéis e permissões
 
 | Ação | Dono | Editor | Colaborador | Leitor |

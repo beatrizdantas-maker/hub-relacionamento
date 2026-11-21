@@ -5,6 +5,7 @@ import { criarClienteServidor } from "@/lib/supabase/server";
 import { hojeNaEmpresa, somarDias } from "@/lib/datas";
 import { agruparTarefasInicio, alertasInicio } from "@/lib/inicio";
 import { compararUltimos, mesDe, progressoMetas, semanaParaPeriodo } from "@/lib/metricas";
+import { permissoes } from "@/lib/papeis";
 import { Inicio } from "@/components/inicio/Inicio";
 
 export const metadata = { title: "Início" };
@@ -49,6 +50,15 @@ export default async function PaginaInicio() {
       : Promise.resolve({ data: null }),
   ]);
 
+  // O que ficou para trás (para o botão "Limpar o que passou"); só quem pode editar.
+  const passado = permissoes.podeEditar(papel)
+    ? await Promise.all([
+        supabase.from("conteudos").select("id", { count: "exact", head: true }).eq("empresa_id", empresa.id).lt("data", hoje).neq("status", "publicado"),
+        supabase.from("stories").select("id", { count: "exact", head: true }).eq("empresa_id", empresa.id).lt("data", hoje).neq("status", "publicado"),
+        supabase.from("tarefas").select("id", { count: "exact", head: true }).eq("empresa_id", empresa.id).lt("prazo", hoje).neq("status", "concluido"),
+      ]).then(([c, s, t]) => ({ conteudos: c.count ?? 0, stories: s.count ?? 0, tarefas: t.count ?? 0 }))
+    : null;
+
   const grupos = agruparTarefasInicio(tarefas ?? [], hoje);
   const periodos = [...(semanas ?? [])].reverse().map((s) => semanaParaPeriodo(s, hoje));
   const { atual, anterior } = compararUltimos(periodos);
@@ -73,6 +83,7 @@ export default async function PaginaInicio() {
       papel={papel}
       hoje={hoje}
       alertas={alertas}
+      passado={passado}
       conteudos={conteudos ?? []}
       stories={stories ?? []}
       tarefas={grupos}

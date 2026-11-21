@@ -205,3 +205,23 @@ export async function concluirTarefasDoConteudo(empresaId: string, conteudoId: s
   revalidar();
   return { ok: true, concluidas: (data ?? []).map((t) => t.id) };
 }
+
+/**
+ * "Limpar o que passou": apaga o que ficou para trás enquanto o sistema não
+ * foi usado — posts e stories com data antes de hoje que não foram marcados
+ * como publicados e tarefas com prazo antes de hoje que não foram concluídas.
+ * O que foi publicado ou concluído fica no histórico. Só Dono e Editor (RLS).
+ */
+export async function limparOQuePassou(empresaId: string): Promise<{ ok: true; conteudos: number; stories: number; tarefas: number } | Erro> {
+  const supabase = await criarClienteServidor();
+  const hoje = hojeNaEmpresa(await fusoDaEmpresa(empresaId));
+  // Tarefas primeiro: as dos posts apagados iriam junto (cascade) e não entrariam na conta.
+  const t = await supabase.from("tarefas").delete().eq("empresa_id", empresaId).lt("prazo", hoje).neq("status", "concluido").select("id");
+  if (t.error) return { ok: false, erro: mensagemErro(t.error) };
+  const c = await supabase.from("conteudos").delete().eq("empresa_id", empresaId).lt("data", hoje).neq("status", "publicado").select("id");
+  if (c.error) return { ok: false, erro: mensagemErro(c.error) };
+  const s = await supabase.from("stories").delete().eq("empresa_id", empresaId).lt("data", hoje).neq("status", "publicado").select("id");
+  if (s.error) return { ok: false, erro: mensagemErro(s.error) };
+  revalidar();
+  return { ok: true, conteudos: c.data?.length ?? 0, stories: s.data?.length ?? 0, tarefas: t.data?.length ?? 0 };
+}

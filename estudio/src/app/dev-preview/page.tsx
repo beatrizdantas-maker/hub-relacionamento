@@ -54,6 +54,7 @@ export default async function Pagina({ searchParams }: { searchParams: Promise<{
         <Inicio
           empresa={{ id: "e1", nome: "NARAEDU" }} usuario={{ id: "u1", nome: "Beatriz Dantas" }} papel={papel} hoje={HOJE}
           alertas={[{ chave: "atrasadas", tom: "atrasado", texto: "2 tarefas atrasadas", href: "/tarefas?filtro=atrasadas", acao: "Ver tarefas" }, { chave: "sugestoes", tom: "ia", texto: "5 sugestões da IA aguardando aprovação", href: "/calendario", acao: "Revisar no calendário" }]}
+          passado={papel === "leitor" || papel === "colaborador" ? null : { conteudos: 51, stories: 20, tarefas: 142 }}
           conteudos={CONTEUDOS} stories={STORIES} tarefas={agruparTarefasInicio(TAREFAS, HOJE)} membros={{ u1: "Beatriz" }}
           indicadores={{ atual, anterior }} metas={progressoMetas(EMPRESA.metas, SEMANAS.filter((s) => s.semana.startsWith("2026-10")), POSTS)}
           ultimaSugestao={{ id: SUGESTAO.id, semana: SUGESTAO.semana, gerado_em: SUGESTAO.gerado_em, resumo: SUGESTAO.resumo, ideias: 2 }}
