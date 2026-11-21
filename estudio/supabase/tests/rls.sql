@@ -13,6 +13,8 @@
 --  5. Sugestões da IA e stories: só Dono/Editor gravam; Leitor e
 --     Colaborador só leem (Colaborador muda status de stories).
 --  6. Métricas: Leitor e Colaborador não registram; Editor registra.
+--  7. Tokens das redes (publicação): ninguém lê pela API; a tela só vê o
+--     nome da conta, e só quem é membro.
 -- =====================================================================
 begin;
 
@@ -169,6 +171,19 @@ begin
   select count(*) into n from estudio.empresas_integracoes where empresa_id = emp_a; if n <> 1 then raise exception 'FALHOU: dona não leu integração'; end if;
   perform pg_temp.espera_erro(format('delete from estudio.membros where empresa_id = %L and user_id = %L', emp_a, ana), 'última dona removida');
   perform pg_temp.sair();
+
+  -- Tokens das redes: nem a dona lê pela API (só o service_role); a função mostra só o nome da conta
+  if to_regclass('estudio.redes_conexoes') is not null then
+    execute format('insert into estudio.redes_conexoes (empresa_id, rede, conta_id, conta_nome, token) values (%L, ''instagram'', ''1'', ''@a'', ''segredo'')', emp_a);
+    perform pg_temp.entrar(ana, 'ana@teste.local');
+    perform pg_temp.espera_erro('select token from estudio.redes_conexoes', 'dona leu o token da rede');
+    select count(*) into n from estudio.conexoes_redes(emp_a); if n <> 1 then raise exception 'FALHOU: dona não viu a conexão'; end if;
+    perform pg_temp.espera_erro('select * from estudio.publicacoes_devidas()', 'usuário chamou a fila do robô');
+    perform pg_temp.sair();
+    perform pg_temp.entrar(bia, 'bia@teste.local');
+    select count(*) into n from estudio.conexoes_redes(emp_a); if n <> 0 then raise exception 'FALHOU: Bia viu conexão da A'; end if;
+    perform pg_temp.sair();
+  end if;
 
   raise notice 'RLS OK';
 end $$;
