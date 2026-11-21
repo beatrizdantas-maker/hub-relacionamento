@@ -4,6 +4,7 @@ import { Selo } from "@/components/ui/Selo";
 import { horaCurta } from "@/lib/datas";
 import type { Conteudo, Story } from "@/lib/tipos/database";
 import { redeDe, rotuloFormato } from "@/lib/redes";
+import { ROTULO_STATUS_PUBLICACAO } from "@/lib/publicacao";
 import { ICONE_FORMATO, ORIGEM, STATUS } from "./rotulos";
 
 export function CartaoConteudo({ conteudo, onAbrir, compacto = true }: { conteudo: Conteudo; onAbrir: () => void; compacto?: boolean }) {
@@ -26,7 +27,9 @@ export function CartaoConteudo({ conteudo, onAbrir, compacto = true }: { conteud
       <p className={`mt-1 text-sm font-medium ${compacto ? "line-clamp-2" : ""}`}>{conteudo.tema || <span className="text-texto-3">Sem tema</span>}</p>
       <div className="mt-1.5 flex flex-wrap gap-1">
         <Selo tom={st.tom}>{st.rotulo}</Selo>
-        <Selo tom={or.tom}>{or.rotulo}</Selo>
+        {conteudo.publicacao_status && conteudo.publicacao_status !== "publicado"
+          ? <Selo tom={conteudo.publicacao_status === "erro" ? "atrasado" : conteudo.publicacao_status === "processando" ? "ia" : "primaria"}>{ROTULO_STATUS_PUBLICACAO[conteudo.publicacao_status]}</Selo>
+          : <Selo tom={or.tom}>{or.rotulo}</Selo>}
       </div>
     </button>
   );

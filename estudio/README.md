@@ -45,8 +45,9 @@ As três migrations já foram aplicadas no GAME e o teste de RLS passou lá. Par
    - `supabase/migrations/0007_linkedin.sql` — LinkedIn: rede de cada conteúdo, redes da empresa, ritmo do LinkedIn e formatos Texto, Enquete e Artigo
    - `supabase/migrations/0008_linkedin_sem_carrossel.sql` — novo ritmo padrão do LinkedIn, sem carrossel
    - `supabase/migrations/0009_linkedin_sem_enquete.sql` — ritmo do LinkedIn só com texto, vídeo e foto (sábado vira pergunta em texto)
+   - `supabase/migrations/0010_publicacao.sql` — publicação automática: arquivos e estado de publicação dos posts, contas conectadas, bucket `estudio-midias`, funções do robô e agendador (pg_cron). Antes dela, crie no Vault o segredo `estudio_cron_segredo` (texto aleatório longo) e publique a função `supabase/functions/estudio-publicar` (com `verify_jwt` desligado: ela confere login e segredo sozinha)
 
-   As migrations 0006 a 0009 podem ser rodadas mais de uma vez sem problema. Sem a 0007, o Instagram continua funcionando; o que for do LinkedIn mostra "rode a migração 0007".
+   As migrations 0006 a 0010 podem ser rodadas mais de uma vez sem problema. Sem a 0007, o Instagram continua funcionando; o que for do LinkedIn mostra "rode a migração 0007".
 2. Em **Project Settings → Data API → Exposed schemas**, inclua `estudio` (sem isso a API não enxerga o schema). No GAME isso já foi feito.
 3. Rode o teste de RLS: `supabase/tests/rls.sql`. Ele cria usuários de teste, exercita os quatro papéis em duas empresas e **desfaz tudo no fim** (`rollback`). Deve terminar com `NOTICE: RLS OK`. Se algum critério falhar, para com `FALHOU: ...`.
 4. Em **Authentication → URL Configuration**:
@@ -220,6 +221,16 @@ Página da empresa no LinkedIn, com calendário e ritmo próprios (`src/lib/rede
 - **Briefing com IA** e as cópias de artes e falas funcionam nas duas redes; o texto copiado indica "LINKEDIN" nos posts de lá.
 - **Tarefas padrão:** Texto (escrever 2 dias antes, revisar e agendar 1 dia antes), Artigo (escrever 5 dias antes, capa 3 dias antes, revisar e publicar 1 dia antes).
 - Ainda não tem: números do LinkedIn no Painel e sugestões semanais por rede (próxima etapa).
+
+## Publicação automática (Instagram e LinkedIn)
+
+O Estúdio publica sozinho os posts prontos, no dia e hora do calendário.
+
+- **Conectar (Dono):** Marca → **Publicação**. Cola o token do Instagram (API do Instagram com login do Instagram, gerado no app da Meta) e o do LinkedIn (Community Management API, com o link da página). O robô confere o token na rede e guarda em `estudio.redes_conexoes`, tabela que **só o service_role lê** (a tela usa `estudio.conexoes_redes`, que devolve só o nome da conta).
+- **Em cada post:** quadro **Publicação** com os arquivos prontos (enviados direto do navegador para o bucket público `estudio-midias`; PNG/WebP viram JPEG; vídeo MP4 até 50 MB), **Agendar** e **Publicar agora**. Usa o que está salvo (legenda, data, hora).
+- **O que sai sozinho:** Instagram — Reels (1 vídeo), Carrossel (2 a 10 imagens), Estático (1 imagem); LinkedIn — Texto (com foto opcional), Foto, Vídeo. Ficam à mão: stories, Artigo e carrossel do LinkedIn. Regras em `src/lib/publicacao.ts` (testado; a função usa uma cópia idêntica, `regras.ts`, conferida por teste).
+- **Robô:** função `estudio-publicar` (Supabase Edge Function). O `pg_cron` chama a cada 5 minutos com o segredo do Vault; ela renova os tokens do Instagram toda semana e publica o que venceu (`estudio.publicacoes_devidas`, no fuso da empresa). Vídeo fica "Publicando…" até a rede liberar e é conferido na rodada seguinte. Erros aparecem no post, no cartão do calendário e como alerta na tela Início.
+- O Next só repassa os pedidos de pessoas (`POST /api/publicacao`) ao robô com o login de quem pediu; o robô confere o papel (conectar: Dono; publicar: Dono/Editor).
 
 ## Limpar o que passou
 

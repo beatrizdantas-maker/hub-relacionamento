@@ -22,10 +22,11 @@ export default async function PaginaCalendario({ searchParams }: { searchParams:
   const domingo = grade ? grade[grade.length - 1][6] : somarDias(segunda, 6);
 
   const supabase = await criarClienteServidor();
-  const [{ data: conteudos }, { data: stories }, { data: campanhas }] = await Promise.all([
+  const [{ data: conteudos }, { data: stories }, { data: campanhas }, { data: conexoes }] = await Promise.all([
     supabase.from("conteudos").select("*").eq("empresa_id", empresa.id).gte("data", segunda).lte("data", domingo).order("data").order("hora", { nullsFirst: false }),
     supabase.from("stories").select("*").eq("empresa_id", empresa.id).gte("data", segunda).lte("data", domingo).order("data"),
     supabase.from("campanhas").select("id, nome").eq("empresa_id", empresa.id).order("nome"),
+    supabase.rpc("conexoes_redes", { p_empresa: empresa.id }),
   ]);
   const ids = (conteudos ?? []).map((c) => c.id);
   const { data: tarefas } = ids.length
@@ -51,6 +52,7 @@ export default async function PaginaCalendario({ searchParams }: { searchParams:
       stories={stories ?? []}
       tarefas={tarefas ?? []}
       campanhas={campanhas ?? []}
+      conectadas={(conexoes ?? []).map((c) => c.rede)}
     />
   );
 }

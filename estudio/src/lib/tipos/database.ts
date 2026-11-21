@@ -3,6 +3,8 @@
  * Depois de aplicar as migrations, podem ser regenerados com:
  *   npx supabase gen types typescript --project-id <id> --schema estudio > src/lib/tipos/database.ts
  */
+import type { ArquivoPublicacao, StatusPublicacao } from "@/lib/publicacao";
+
 export type Papel = "dono" | "editor" | "colaborador" | "leitor";
 export type FormatoConteudo = "Reels" | "Carrossel" | "Estático" | "Texto" | "Enquete" | "Artigo";
 export type Rede = "instagram" | "linkedin";
@@ -87,6 +89,9 @@ export interface Database {
         pilar: string | null; tema: string; objetivo: string | null; roteiro: string | null; legenda: string | null; cta: string | null;
         orientacao_arte: string | null; ganchos: string[]; notas: string | null; status: StatusConteudo; origem: Origem;
         rede?: Rede; // migração 0007; sem a coluna, vale "instagram"
+        // Publicação automática (migração 0010)
+        arquivos?: ArquivoPublicacao[]; publicar?: boolean; publicacao_status?: StatusPublicacao | null; publicacao_erro?: string | null;
+        publicacao_link?: string | null; publicado_em?: string | null;
         campanha_id: string | null; criado_por: string | null; criado_em: string; atualizado_em: string;
       }>;
       stories: Linha<{
@@ -129,6 +134,7 @@ export interface Database {
       criar_empresa: { Args: { p_dados: Json }; Returns: string };
       ritmo_semanal_padrao: { Args: Record<string, never>; Returns: RitmoDia[] };
       metas_padrao: { Args: Record<string, never>; Returns: Metas };
+      conexoes_redes: { Args: { p_empresa: string }; Returns: { rede: Rede; conta_nome: string | null; expira_em: string | null; atualizado_em: string }[] };
     };
     Enums: {
       papel_membro: Papel; formato_conteudo: FormatoConteudo; status_conteudo: StatusConteudo; origem_item: Origem;

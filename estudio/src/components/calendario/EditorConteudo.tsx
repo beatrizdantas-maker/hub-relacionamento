@@ -17,6 +17,7 @@ import { copiarTexto, falasDoRoteiro } from "@/lib/copiarArtes";
 import type { Conteudo, FormatoConteudo, Papel, Rede, RitmoDia, StatusConteudo, Tarefa } from "@/lib/tipos/database";
 import { FORMATOS_POR_REDE, redeDe, rotuloFormato, rotuloRede } from "@/lib/redes";
 import { SeloLinkedin } from "./Cartoes";
+import { PublicacaoConteudo } from "./PublicacaoConteudo";
 import type { ResultadoAdaptar } from "@/app/api/ia/adaptar/route";
 import { Painel } from "./Painel";
 import { BriefingIA } from "./BriefingIA";
@@ -64,11 +65,13 @@ const DICA_ROTEIRO: Record<FormatoConteudo, string> = {
 const STATUS_TAREFA: Record<Tarefa["status"], string> = { pendente: "Pendente", em_producao: "Em produção", aguardando: "Aguardando", concluido: "Concluída" };
 
 export function EditorConteudo({
-  empresaId, conteudo, dataInicial, ritmo: ritmoInstagram, ritmoLinkedin = null, redeInicial = "instagram", pilares, campanhas, tarefas, papel, usuarioId, hoje, onFechar,
+  empresaId, conteudo, dataInicial, ritmo: ritmoInstagram, ritmoLinkedin = null, redeInicial = "instagram", conectadas = [], pilares, campanhas, tarefas, papel, usuarioId, hoje, onFechar,
 }: {
   empresaId: string; conteudo: Conteudo | null; dataInicial: string; ritmo: RitmoDia[];
   /** Ritmo do LinkedIn; null quando a empresa não usa LinkedIn. */
-  ritmoLinkedin?: RitmoDia[] | null; redeInicial?: Rede; pilares: string[]; campanhas: { id: string; nome: string }[];
+  ritmoLinkedin?: RitmoDia[] | null; redeInicial?: Rede;
+  /** Redes conectadas para publicação automática (Marca → Publicação). */
+  conectadas?: Rede[]; pilares: string[]; campanhas: { id: string; nome: string }[];
   tarefas: Tarefa[]; papel: Papel; usuarioId: string; hoje: string; onFechar: () => void;
 }) {
   const router = useRouter();
@@ -347,6 +350,16 @@ export function EditorConteudo({
           </section>
         )}
         {teleprompter && <Teleprompter falas={extrairFalas(form.roteiro)} onFechar={() => setTeleprompter(false)} />}
+
+        {atual && (
+          <PublicacaoConteudo
+            empresaId={empresaId}
+            conteudo={conteudo?.id === atual.id ? conteudo : atual}
+            conectada={conectadas.includes(redeDe(atual))}
+            podeEditar={podeEditar}
+            alteracoesNaoSalvas={form.legenda !== (atual.legenda ?? "") || form.data !== atual.data || form.hora !== horaCurta(atual.hora) || form.formato !== atual.formato}
+          />
+        )}
 
         {atual && (
           <section className="space-y-2 border-t border-borda pt-3">

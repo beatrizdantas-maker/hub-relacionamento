@@ -25,13 +25,16 @@ export const CONTEUDOS: Conteudo[] = [
   c({ id: "c2", data: "2026-10-29", formato: "Reels", tema: "3 frases que travam o estudo", status: "sugestao", origem: "ia", tipo: "Reels com texto na tela" }),
   c({ id: "c3", data: "2026-10-30", formato: "Carrossel", tema: "5 sinais de que a rotina de estudos não funciona", hora: "12:00",
     roteiro: "SLIDE 1 — CAPA\nTÍTULO NA ARTE: 5 sinais de que a rotina não funciona\nIMAGEM: Fundo roxo, título grande centralizado\n\nSLIDE 2\nTÍTULO NA ARTE: Ele estuda, mas esquece\nIMAGEM: Foto de caderno aberto",
-    orientacao_arte: "ESTILO: Editorial limpo\nCORES: Roxo e amarelo da marca" }),
+    orientacao_arte: "ESTILO: Editorial limpo\nCORES: Roxo e amarelo da marca",
+    publicar: true, publicacao_status: "agendado",
+    arquivos: [1, 2].map((n) => ({ caminho: `e1/c3/${n}.jpg`, url: `data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'><rect width='10' height='10' fill='#7c3aed'/></svg>`)}`, tipo: "imagem" as const, nome: `slide-${n}.jpg` })) }),
   c({ id: "c5", data: "2026-10-14", formato: "Estático", tema: "Frase da semana" }),
   c({ id: "c6", data: "2026-10-20", formato: "Reels", tema: "Bastidores da aula" }),
   c({ id: "c4", data: "2026-11-01", formato: "Estático", tema: "Você também já se sentiu assim?", status: "sugestao", origem: "ia" }),
   c({ id: "l1", rede: "linkedin", data: HOJE, hora: "08:00", formato: "Texto", tema: "O que aprendemos com 40 escolas em 2026", status: "sugestao", origem: "ia", ganchos: [],
     legenda: "Nós visitamos 40 escolas este ano.\n\nO que mais trava a gestão não é tecnologia.\n\n#gestaoescolar #educacao", roteiro: "IMAGEM DE APOIO: Foto da equipe numa sala de aula" }),
-  c({ id: "l2", rede: "linkedin", data: "2026-10-31", hora: "10:00", formato: "Estático", tema: "1 em cada 3 coordenadores sente falta de tempo", ganchos: [] }),
+  c({ id: "l2", rede: "linkedin", data: "2026-10-31", hora: "10:00", formato: "Estático", tema: "1 em cada 3 coordenadores sente falta de tempo", ganchos: [],
+    publicar: true, publicacao_status: "erro", publicacao_erro: "Falta enviar a imagem." }),
 ];
 export const STORIES: Story[] = [{ id: "s1", empresa_id: "e1", data: HOJE, objetivo: "Puxar o Reels", telas: [{ tipo: "Texto", texto: "Abertura" }, { tipo: "Compartilhar post", texto: "" }, { tipo: "Enquete", texto: "", interacao: { pergunta: "Qual?", opcoes: ["A", "B"] } }, { tipo: "Texto", texto: "Fecho" }], status: "sugestao", origem: "ia", conteudo_id: "c1", criado_por: null, criado_em: "", atualizado_em: "" }];
 export const TAREFAS: Tarefa[] = [

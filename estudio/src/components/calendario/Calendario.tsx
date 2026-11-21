@@ -37,6 +37,8 @@ export interface CalendarioProps {
   stories: Story[];
   tarefas: Tarefa[];
   campanhas: { id: string; nome: string }[];
+  /** Redes conectadas para publicação automática. */
+  conectadas?: Rede[];
 }
 
 export function Calendario(p: CalendarioProps) {
@@ -205,6 +207,7 @@ export function Calendario(p: CalendarioProps) {
           dataInicial={dataEditor}
           ritmo={p.empresa.ritmo}
           ritmoLinkedin={p.empresa.ritmoLinkedin}
+          conectadas={p.conectadas ?? []}
           redeInicial={selecao.tipo === "novo" ? selecao.rede : undefined}
           pilares={p.empresa.pilares}
           campanhas={p.campanhas}

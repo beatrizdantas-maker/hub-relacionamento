@@ -22,11 +22,16 @@ export interface EntradaAlertas {
   ritmoDefinido: boolean;
   metricoolConfigurado: boolean | null; // null = não é Dono (não sabe)
   proximos7DiasVazios: boolean;
+  errosPublicacao?: number;          // posts que o robô não conseguiu publicar
 }
 
 export function alertasInicio(e: EntradaAlertas): Alerta[] {
   const alertas: Alerta[] = [];
   const podeEditar = e.papel === "dono" || e.papel === "editor";
+  if (podeEditar && (e.errosPublicacao ?? 0) > 0) {
+    const n = e.errosPublicacao ?? 0;
+    alertas.push({ chave: "publicacao", tom: "atrasado", texto: `${n} ${n === 1 ? "post não foi publicado" : "posts não foram publicados"} automaticamente`, href: "/calendario?mes=" + e.hoje.slice(0, 7), acao: "Ver no calendário" });
+  }
   if (e.atrasadas > 0) {
     alertas.push({ chave: "atrasadas", tom: "atrasado", texto: `${e.atrasadas} ${e.atrasadas === 1 ? "tarefa atrasada" : "tarefas atrasadas"}`, href: "/tarefas?filtro=atrasadas", acao: "Ver tarefas" });
   }

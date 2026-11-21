@@ -35,7 +35,7 @@ export default async function PaginaInicio() {
   const mes = mesDe(hoje);
   const supabase = await criarClienteServidor();
 
-  const [{ data: conteudos }, { data: stories }, { data: tarefas }, { data: membros }, { data: semanas }, { data: postsMes }, { data: ultimaSugestao }, sugestoesC, sugestoesS, integracao] = await Promise.all([
+  const [{ data: conteudos }, { data: stories }, { data: tarefas }, { data: membros }, { data: semanas }, { data: postsMes }, { data: ultimaSugestao }, sugestoesC, sugestoesS, integracao, errosPub] = await Promise.all([
     supabase.from("conteudos").select("*").eq("empresa_id", empresa.id).gte("data", hoje).lte("data", fim7).order("data").order("hora", { nullsFirst: false }),
     supabase.from("stories").select("*").eq("empresa_id", empresa.id).gte("data", hoje).lte("data", fim7).order("data"),
     supabase.from("tarefas").select("*").eq("empresa_id", empresa.id).neq("status", "concluido").lte("prazo", somarDias(hoje, 7)).order("prazo"),
@@ -48,6 +48,7 @@ export default async function PaginaInicio() {
     papel === "dono"
       ? supabase.from("empresas_integracoes").select("metricool_brand_id, metricool_user_id, metricool_token_cifrado").eq("empresa_id", empresa.id).maybeSingle()
       : Promise.resolve({ data: null }),
+    supabase.from("conteudos").select("id", { count: "exact", head: true }).eq("empresa_id", empresa.id).eq("publicacao_status", "erro"),
   ]);
 
   // O que ficou para trás (para o botão "Limpar o que passou"); só quem pode editar.
@@ -74,6 +75,7 @@ export default async function PaginaInicio() {
     ritmoDefinido: (empresa.ritmo_semanal ?? []).length > 0,
     metricoolConfigurado,
     proximos7DiasVazios: (conteudos ?? []).length === 0 && (stories ?? []).length === 0,
+    errosPublicacao: errosPub.count ?? 0,
   });
 
   return (

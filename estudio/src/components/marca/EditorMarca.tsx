@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { BarChart3, Briefcase, Check, Megaphone, Palette, Plug, Repeat, Target, Trash2, Users } from "lucide-react";
+import { BarChart3, Briefcase, Check, Megaphone, Palette, Plug, Repeat, Send, Target, Trash2, Users } from "lucide-react";
 import { Botao } from "@/components/ui/Botao";
 import { Aviso } from "@/components/ui/Aviso";
 import { Selo } from "@/components/ui/Selo";
@@ -15,6 +15,7 @@ import type { Campanha, Empresa, Papel, Rede, RitmoDia } from "@/lib/tipos/datab
 import { redesDaEmpresa, ritmoLinkedinOuPadrao } from "@/lib/redes";
 import type { SecaoMarca } from "@/lib/validacao/empresa";
 import { useSecaoMarca, type Conflito } from "./useSecaoMarca";
+import { SecaoPublicacao, type ConexaoResumo } from "./SecaoPublicacao";
 import { CampoLogo } from "@/components/empresas/CampoLogo";
 import { aplicarHorarios, type AnaliseMetas, type AnaliseRitmo } from "@/lib/analiseSistema";
 import { formatarCurta } from "@/lib/datas";
@@ -30,7 +31,7 @@ export interface IntegracaoResumo {
   ultimaImportacao: string | null;
 }
 
-export type Aba = SecaoMarca | "campanhas" | "integracao";
+export type Aba = SecaoMarca | "campanhas" | "publicacao" | "integracao";
 const ABAS: { chave: Aba; rotulo: string; Icone: typeof Palette; soDono?: boolean }[] = [
   { chave: "identidade", rotulo: "Identidade", Icone: Palette },
   { chave: "publico", rotulo: "Público", Icone: Users },
@@ -38,10 +39,11 @@ const ABAS: { chave: Aba; rotulo: string; Icone: typeof Palette; soDono?: boolea
   { chave: "ritmo", rotulo: "Ritmo semanal", Icone: Repeat },
   { chave: "linkedin", rotulo: "LinkedIn", Icone: Briefcase },
   { chave: "campanhas", rotulo: "Campanhas", Icone: Megaphone },
+  { chave: "publicacao", rotulo: "Publicação", Icone: Send, soDono: true },
   { chave: "integracao", rotulo: "Metricool", Icone: Plug, soDono: true },
 ];
 
-export function EditorMarca({ empresa, papel, campanhas, integracao, analise, abaInicial }: { empresa: Empresa; papel: Papel; campanhas: Campanha[]; integracao: IntegracaoResumo | null; analise?: AnaliseMarca; abaInicial?: Aba }) {
+export function EditorMarca({ empresa, papel, campanhas, integracao, analise, abaInicial, conexoes = [] }: { empresa: Empresa; papel: Papel; campanhas: Campanha[]; integracao: IntegracaoResumo | null; analise?: AnaliseMarca; abaInicial?: Aba; conexoes?: ConexaoResumo[] }) {
   const podeEditar = permissoes.podeEditar(papel);
   const [aba, setAba] = useState<Aba>(abaInicial ?? "identidade");
 
@@ -84,6 +86,7 @@ export function EditorMarca({ empresa, papel, campanhas, integracao, analise, ab
       {aba === "ritmo" && <SecaoRitmo empresa={empresa} podeEditar={podeEditar} analise={analise?.ritmo} />}
       {aba === "linkedin" && <SecaoLinkedin empresa={empresa} podeEditar={podeEditar} />}
       {aba === "campanhas" && <SecaoCampanhas empresaId={empresa.id} campanhas={campanhas} podeEditar={podeEditar} />}
+      {aba === "publicacao" && papel === "dono" && <SecaoPublicacao empresaId={empresa.id} conexoes={conexoes} />}
       {aba === "integracao" && papel === "dono" && integracao && <SecaoIntegracao empresaId={empresa.id} integracao={integracao} />}
     </div>
   );

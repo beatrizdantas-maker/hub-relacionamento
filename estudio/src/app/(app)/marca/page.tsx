@@ -16,13 +16,14 @@ export default async function PaginaMarca() {
   const supabase = await criarClienteServidor();
 
   const hoje = hojeNaEmpresa(empresa.fuso_horario);
-  const [{ data: campanhas }, { data: integracao }, { data: semanas }, { data: posts }] = await Promise.all([
+  const [{ data: campanhas }, { data: integracao }, { data: semanas }, { data: posts }, { data: conexoes }] = await Promise.all([
     supabase.from("campanhas").select("*").eq("empresa_id", empresa.id).order("inicio", { ascending: false, nullsFirst: false }),
     ctx.papel === "dono"
       ? supabase.from("empresas_integracoes").select("*").eq("empresa_id", empresa.id).maybeSingle()
       : Promise.resolve({ data: null }),
     supabase.from("metricas_semanais").select("*").eq("empresa_id", empresa.id).lt("fim", hoje).order("semana", { ascending: false }).limit(4),
     supabase.from("resultados_posts").select("*").eq("empresa_id", empresa.id).gte("publicado_em", `${somarDias(hoje, -56)}T00:00:00`).order("publicado_em", { ascending: false }).limit(300),
+    supabase.rpc("conexoes_redes", { p_empresa: empresa.id }),
   ]);
   const analise = {
     metas: analisarMetas({ hoje, semanas: semanas ?? [], posts: posts ?? [] }),
@@ -58,7 +59,7 @@ export default async function PaginaMarca() {
         </div>
         <Selo tom="neutro">Você é {rotuloPapel(ctx.papel)}</Selo>
       </header>
-      <EditorMarca empresa={empresa} papel={ctx.papel} campanhas={campanhas ?? []} integracao={resumoIntegracao} analise={analise} />
+      <EditorMarca empresa={empresa} papel={ctx.papel} campanhas={campanhas ?? []} integracao={resumoIntegracao} analise={analise} conexoes={conexoes ?? []} />
     </div>
   );
 }

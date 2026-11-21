@@ -333,7 +333,7 @@ async function passoLinkedin(c: Conteudo, con: Conexao, arquivos: ArquivoPublica
 // ---------------- Conectar ----------------
 
 async function conectar(db: Db, empresaId: string, rede: RedePublicacao, tokenBruto: string, pagina: string, usuarioId: string) {
-  const token = tokenBruto.trim();
+  let token = tokenBruto.trim();
   if (token.length < 20) throw new Error("Cole o token completo.");
   let contaId = "";
   let contaNome: string | null = null;
@@ -352,7 +352,10 @@ async function conectar(db: Db, empresaId: string, rede: RedePublicacao, tokenBr
     // Troca pelo token de 60 dias, se ainda for de curta duração (sem efeito se já for longo).
     try {
       const r = await igGet(`${IG_RAIZ}/refresh_access_token`, { grant_type: "ig_refresh_token" }, token);
-      if (typeof r.access_token === "string") expiraEm = new Date(Date.now() + Number(r.expires_in ?? 5184000) * 1000).toISOString();
+      if (typeof r.access_token === "string") {
+        token = r.access_token;
+        expiraEm = new Date(Date.now() + Number(r.expires_in ?? 5184000) * 1000).toISOString();
+      }
     } catch { /* tokens com menos de 24 h não renovam ainda; tudo bem */ }
   } else {
     const id = idPaginaLinkedin(pagina);
